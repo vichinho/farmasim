@@ -64,6 +64,19 @@ El motor de simulaciones permanecerá separado del contenido farmacéutico. Los
 escenarios demostrativos se almacenarán como datos ficticios y posteriormente
 podrán migrarse a contenido versionado en Supabase.
 
+## Sistema de diseño
+
+La interfaz utiliza una paleta clara, superficies elevadas, bordes suaves,
+jerarquía tipográfica simple y áreas táctiles de al menos 44 px. Los componentes
+reutilizables actuales están en `src/components`:
+
+- `Button`: variantes primaria, secundaria y sutil; tamaños y estado deshabilitado.
+- `Card`: contenedor de contenido con borde y elevación ligera.
+- `Badge`: indicador de estado o contexto.
+- `ProgressBar`: progreso accesible mediante atributos ARIA.
+- `PageContainer`, `AppHeader` y `BottomNavigation`: composición y navegación
+  mobile-first.
+
 ## Requisitos
 
 - Node.js 24 LTS.
