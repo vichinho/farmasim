@@ -136,7 +136,7 @@ evitando crear carpetas vacías o abstracciones prematuras.
 
 1. Configuración inicial del proyecto.
 2. Sistema de diseño.
-3. Landing.
+3. Landing pública responsive.
 4. Supabase y políticas RLS.
 5. Autenticación.
 6. Dashboard.
@@ -144,6 +144,12 @@ evitando crear carpetas vacías o abstracciones prematuras.
 8. Primer escenario ficticio.
 9. Persistencia, XP y progreso.
 10. Modo demo, despliegue y QR.
+
+## Landing
+
+La ruta principal presenta FarmaSim, sus beneficios y el flujo de aprendizaje.
+Incluye un escenario visual ficticio para explicar la experiencia sin exponer
+contenido clínico ni protocolos reales.
 
 ## Capturas
 
