@@ -20,6 +20,29 @@ function getSafeRedirectPath(value: string) {
   return value.startsWith("/") && !value.startsWith("//") ? value : "/dashboard";
 }
 
+function getRegistrationErrorMessage(message: string) {
+  const normalizedMessage = message.toLowerCase();
+
+  if (normalizedMessage.includes("database error saving new user")) {
+    return "No fue posible preparar tu perfil de usuario. Verifica que las migraciones de FarmaSim estén aplicadas.";
+  }
+
+  if (normalizedMessage.includes("signups not allowed")) {
+    return "El registro de nuevas cuentas está desactivado en Supabase Auth.";
+  }
+
+  if (normalizedMessage.includes("captcha")) {
+    return "La verificación anti-bots bloqueó el registro. Inténtalo nuevamente.";
+  }
+
+  if (normalizedMessage.includes("rate limit")) {
+    return "Se alcanzó el límite de intentos. Espera unos minutos antes de volver a intentarlo.";
+  }
+
+  const safeMessage = "No fue posible crear tu cuenta. Inténtalo otra vez.";
+  return process.env.NODE_ENV === "development" ? `${safeMessage} (${message})` : safeMessage;
+}
+
 export async function login(
   _previousState: AuthFormState,
   formData: FormData,
@@ -64,7 +87,7 @@ export async function register(
   });
 
   if (error) {
-    return { error: "No fue posible crear tu cuenta. Inténtalo otra vez." };
+    return { error: getRegistrationErrorMessage(error.message) };
   }
 
   if (!data.session) {
