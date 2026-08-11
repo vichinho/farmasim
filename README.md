@@ -121,6 +121,14 @@ Para aplicar la migración a un proyecto Supabase, primero enlaza el proyecto y
 ejecuta `npx supabase db push`. Las credenciales reales se mantienen solo en
 `.env.local` y en la configuración del proveedor de despliegue.
 
+## Autenticación
+
+FarmaSim utiliza Supabase Auth con correo y contraseña. Las rutas `/dashboard`,
+`/simulaciones`, `/aprender`, `/progreso` y `/perfil` requieren una sesión
+validada. Para que los enlaces de recuperación funcionen fuera de desarrollo,
+agrega la URL de producción y `http://localhost:3000/auth/callback` a las
+Redirect URLs de Supabase Auth.
+
 ## Scripts
 
 | Comando | Uso |
