@@ -42,7 +42,7 @@ export function DashboardOverview({
         <section aria-labelledby="dashboard-greeting">
           <p className="text-sm font-semibold text-[var(--brand-strong)]">Tu jornada comienza aquí</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl" id="dashboard-greeting">
-            Hola, {fullName} <span aria-hidden="true">👋</span>
+            Hola, {fullName}
           </h1>
           <p className="mt-2 text-base leading-7 text-[var(--muted)]">¿Qué quieres hacer hoy?</p>
         </section>
@@ -69,8 +69,8 @@ export function DashboardOverview({
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <Card className="border-emerald-200 bg-emerald-50">
-              <p aria-hidden="true" className="text-2xl">🎯</p>
-              <h3 className="mt-4 text-lg font-bold">Continuar capacitación</h3>
+              <p className="text-xs font-bold tracking-[0.14em] text-[var(--brand-strong)]">CAPACITACIÓN</p>
+              <h3 className="mt-2 text-lg font-bold">Continuar capacitación</h3>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                 Retoma tus cápsulas cortas cuando estén disponibles.
               </p>
@@ -78,8 +78,8 @@ export function DashboardOverview({
             </Card>
 
             <Card className="border-amber-200 bg-amber-50">
-              <p aria-hidden="true" className="text-2xl">💬</p>
-              <h3 className="mt-4 text-lg font-bold">Simular</h3>
+              <p className="text-xs font-bold tracking-[0.14em] text-amber-800">SIMULACIONES</p>
+              <h3 className="mt-2 text-lg font-bold">Simular</h3>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                 Practica decisiones en escenarios completamente ficticios.
               </p>
@@ -95,7 +95,6 @@ export function DashboardOverview({
                     Contenido breve, ficticio y pendiente de validación profesional cuando corresponda.
                   </p>
                 </div>
-                <span aria-hidden="true" className="text-3xl">⚡</span>
               </div>
             </Card>
           </div>
@@ -119,8 +118,7 @@ export function DashboardOverview({
         <section aria-labelledby="activity-heading">
           <h2 className="text-xl font-bold" id="activity-heading">Actividad reciente</h2>
           <Card className="mt-3 border-dashed bg-slate-50 text-center">
-            <p aria-hidden="true" className="text-2xl">🌱</p>
-            <h3 className="mt-3 font-bold">Aún no tienes actividad</h3>
+            <h3 className="font-bold">Aún no tienes actividad</h3>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--muted)]">
               Cuando completes una simulación o una cápsula, podrás ver tu avance aquí.
             </p>
