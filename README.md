@@ -129,6 +129,14 @@ validada. Para que los enlaces de recuperación funcionen fuera de desarrollo,
 agrega la URL de producción y `http://localhost:3000/auth/callback` a las
 Redirect URLs de Supabase Auth.
 
+## Dashboard
+
+La ruta protegida `/dashboard` muestra el nombre, nivel y XP del perfil
+autenticado. También consulta el conteo propio de módulos completados y de
+simulaciones de los últimos siete días. Las tarjetas de cápsulas y simulaciones
+preparan la experiencia de las próximas fases y no enlazan a rutas aún no
+implementadas.
+
 ## Scripts
 
 | Comando | Uso |

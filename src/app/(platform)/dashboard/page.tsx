@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
-import { logout } from "@/features/auth/actions";
+import { DashboardOverview } from "@/features/dashboard/dashboard-overview";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardPage() {
@@ -12,18 +11,35 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  const userId = verifiedJwt.claims.sub;
+  const startOfWeek = new Date();
+  startOfWeek.setDate(startOfWeek.getDate() - 7);
+
+  const [profileResult, completedModulesResult, weeklySimulationsResult] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("full_name, level, xp")
+      .eq("id", userId)
+      .maybeSingle(),
+    supabase
+      .from("user_module_progress")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("status", "completed"),
+    supabase
+      .from("simulation_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("completed_at", startOfWeek.toISOString()),
+  ]);
+
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-10">
-      <section className="w-full max-w-xl rounded-2xl border border-[var(--border)] bg-white p-7 shadow-sm">
-        <p className="text-sm font-bold tracking-[0.18em] text-[var(--brand)]">FARMA SIM</p>
-        <h1 className="mt-3 text-3xl font-bold">Sesión iniciada</h1>
-        <p className="mt-3 leading-7 text-[var(--muted)]">
-          Tu cuenta está protegida y lista para el dashboard de capacitación.
-        </p>
-        <form action={logout} className="mt-7">
-          <Button type="submit">Cerrar sesión</Button>
-        </form>
-      </section>
-    </main>
+    <DashboardOverview
+      completedModules={completedModulesResult.count ?? 0}
+      fullName={profileResult.data?.full_name?.trim() || "bienvenido"}
+      level={profileResult.data?.level ?? 1}
+      simulationsThisWeek={weeklySimulationsResult.count ?? 0}
+      totalXp={profileResult.data?.xp ?? 0}
+    />
   );
 }
