@@ -110,6 +110,17 @@ La aplicación estará disponible en `http://localhost:3000`.
 No se deben guardar claves secretas ni una clave `service_role` en variables
 expuestas al navegador. `.env.local` está ignorado por Git.
 
+## Supabase y seguridad
+
+La estructura versionada de la base de datos está en `supabase/migrations`.
+Incluye perfiles creados al registrarse, contenido de aprendizaje, progreso,
+intentos y logros. Todas las tablas del esquema `public` usan RLS: el contenido
+solo se lee con sesión y cada persona accede únicamente a sus propios datos.
+
+Para aplicar la migración a un proyecto Supabase, primero enlaza el proyecto y
+ejecuta `npx supabase db push`. Las credenciales reales se mantienen solo en
+`.env.local` y en la configuración del proveedor de despliegue.
+
 ## Scripts
 
 | Comando | Uso |
