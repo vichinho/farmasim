@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { AppHeader } from "@/components/layout/app-header";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { PageContainer } from "@/components/layout/page-container";
@@ -81,9 +83,14 @@ export function DashboardOverview({
               <p className="text-xs font-bold tracking-[0.14em] text-amber-800">SIMULACIONES</p>
               <h3 className="mt-2 text-lg font-bold">Simular</h3>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                Practica decisiones en escenarios completamente ficticios.
+                Explora una práctica técnica con decisiones y feedback inmediato.
               </p>
-              <Badge className="mt-4" tone="neutral">Próximamente</Badge>
+              <Link
+                className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[var(--brand)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-strong)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+                href="/simulaciones"
+              >
+                Iniciar práctica
+              </Link>
             </Card>
 
             <Card className="sm:col-span-2">
