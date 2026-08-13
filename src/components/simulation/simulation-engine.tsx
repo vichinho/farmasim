@@ -41,7 +41,14 @@ export function SimulationEngine({ scenario }: SimulationEngineProps) {
   }
 
   function moveTo(nodeId: string) {
-    setState((currentState) => ({ ...currentState, currentNodeId: nodeId }));
+    const nextNode = scenario.nodes.find((node) => node.id === nodeId);
+
+    setState((currentState) => ({
+      ...currentState,
+      completedAt:
+        nextNode?.type === "result" ? currentState.completedAt ?? new Date() : currentState.completedAt,
+      currentNodeId: nodeId,
+    }));
   }
 
   function handleChoice(choice: SimulationChoice) {
@@ -91,9 +98,16 @@ export function SimulationEngine({ scenario }: SimulationEngineProps) {
   }
 
   if (currentNode.type === "result") {
+    const completedAt = state.completedAt ?? new Date();
+    const elapsedSeconds = Math.max(
+      0,
+      Math.round((completedAt.getTime() - state.startedAt.getTime()) / 1000),
+    );
+
     return (
       <SimulationResult
         correctAnswers={state.correctAnswers}
+        elapsedSeconds={elapsedSeconds}
         earnedXp={state.earnedXp}
         incorrectAnswers={state.incorrectAnswers}
         onRestart={restart}

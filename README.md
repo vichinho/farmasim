@@ -145,6 +145,14 @@ nodos visuales de la lógica de avance, respuestas, precisión y XP. En esta
 etapa los resultados solo viven durante la sesión del navegador; la
 persistencia se incorporará en la fase de progreso.
 
+## Primer escenario
+
+La ruta protegida `/simulaciones` presenta **Tu primera atención**, un escenario
+completamente ficticio con un paciente virtual, cuatro decisiones, feedback
+inmediato y un resultado con precisión, XP, errores y tiempo. Sus decisiones
+evalúan únicamente comunicación general y no representan indicaciones,
+procedimientos ni reglas de dispensación farmacéutica.
+
 ## Scripts
 
 | Comando | Uso |
