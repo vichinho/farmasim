@@ -52,14 +52,31 @@ const areas: AreaDefinition[] = [
 ];
 
 type VisualPharmacyProps = {
+  activeArea?: PharmacyArea;
   context: TrainingCase["context"];
+  panel?: React.ReactNode;
   professionalReviewMarker?: string;
+  statusLabel?: string;
 };
 
-export function VisualPharmacy({ context, professionalReviewMarker }: VisualPharmacyProps) {
+function toSceneArea(area: PharmacyArea | undefined): SceneArea | undefined {
+  if (!area) return undefined;
+  if (area === "entrance" || area === "dispatch-counter") return "service-counter";
+  return area;
+}
+
+export function VisualPharmacy({
+  activeArea,
+  context,
+  panel,
+  professionalReviewMarker,
+  statusLabel,
+}: VisualPharmacyProps) {
   const [activeAreaId, setActiveAreaId] = useState<SceneArea>("service-counter");
   const [visitedAreaIds, setVisitedAreaIds] = useState<SceneArea[]>(["service-counter"]);
-  const activeArea = areas.find((area) => area.id === activeAreaId) ?? areas[0];
+  const controlledAreaId = toSceneArea(activeArea);
+  const displayedAreaId = controlledAreaId ?? activeAreaId;
+  const displayedArea = areas.find((area) => area.id === displayedAreaId) ?? areas[0];
 
   function visitArea(areaId: SceneArea) {
     setActiveAreaId(areaId);
@@ -83,7 +100,7 @@ export function VisualPharmacy({ context, professionalReviewMarker }: VisualPhar
             </h2>
           </div>
           <p className="text-sm text-emerald-100" aria-live="polite">
-            {visitedAreaIds.length} de {areas.length} áreas exploradas
+            {statusLabel ?? `${visitedAreaIds.length} de ${areas.length} áreas exploradas`}
           </p>
         </div>
 
@@ -102,37 +119,37 @@ export function VisualPharmacy({ context, professionalReviewMarker }: VisualPhar
               </div>
 
               <SceneHotspot
-                active={activeAreaId === "storage"}
+                active={displayedAreaId === "storage"}
                 className="left-[4%] top-[16%] h-[35%] w-[39%]"
                 label="Almacenamiento"
-                onClick={() => visitArea("storage")}
+                onClick={controlledAreaId ? undefined : () => visitArea("storage")}
               >
                 <StorageIllustration />
               </SceneHotspot>
 
               <SceneHotspot
-                active={activeAreaId === "clinical-terminal"}
+                active={displayedAreaId === "clinical-terminal"}
                 className="right-[5%] top-[15%] h-[31%] w-[42%]"
                 label="Computador"
-                onClick={() => visitArea("clinical-terminal")}
+                onClick={controlledAreaId ? undefined : () => visitArea("clinical-terminal")}
               >
                 <TerminalIllustration />
               </SceneHotspot>
 
               <SceneHotspot
-                active={activeAreaId === "preparation-counter"}
+                active={displayedAreaId === "preparation-counter"}
                 className="left-[5%] bottom-[8%] h-[31%] w-[42%]"
                 label="Mesón de preparación"
-                onClick={() => visitArea("preparation-counter")}
+                onClick={controlledAreaId ? undefined : () => visitArea("preparation-counter")}
               >
                 <PreparationIllustration />
               </SceneHotspot>
 
               <SceneHotspot
-                active={activeAreaId === "service-counter"}
+                active={displayedAreaId === "service-counter"}
                 className="right-[4%] bottom-[7%] h-[39%] w-[45%]"
                 label="Mesón de atención"
-                onClick={() => visitArea("service-counter")}
+                onClick={controlledAreaId ? undefined : () => visitArea("service-counter")}
               >
                 <ServiceIllustration />
               </SceneHotspot>
@@ -144,56 +161,66 @@ export function VisualPharmacy({ context, professionalReviewMarker }: VisualPhar
           </div>
 
           <aside className="flex flex-col border-t border-[var(--border)] p-5 lg:border-l lg:border-t-0 lg:p-6">
-            <Badge className="self-start" tone="brand">
-              {activeArea.eyebrow}
-            </Badge>
-            <h3 className="mt-4 text-2xl font-bold">{activeArea.label}</h3>
-            <p className="mt-3 text-base leading-7 text-[var(--muted)]">{activeArea.description}</p>
-            <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-              <p className="text-sm font-bold text-amber-900">Objetivo de exploración</p>
-              <p className="mt-1 text-sm leading-6 text-amber-900/80">{activeArea.instruction}</p>
-            </div>
+            {panel ?? (
+              <>
+                <Badge className="self-start" tone="brand">
+                  {displayedArea.eyebrow}
+                </Badge>
+                <h3 className="mt-4 text-2xl font-bold">{displayedArea.label}</h3>
+                <p className="mt-3 text-base leading-7 text-[var(--muted)]">
+                  {displayedArea.description}
+                </p>
+                <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-sm font-bold text-amber-900">Objetivo de exploración</p>
+                  <p className="mt-1 text-sm leading-6 text-amber-900/80">
+                    {displayedArea.instruction}
+                  </p>
+                </div>
 
-            <nav aria-label="Áreas de la farmacia" className="mt-6">
-              <p className="text-xs font-bold tracking-[0.14em] text-[var(--muted)]">IR A UN ÁREA</p>
-              <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-1">
-                {areas.map((area, index) => {
-                  const isActive = area.id === activeAreaId;
-                  const isVisited = visitedAreaIds.includes(area.id);
+                <nav aria-label="Áreas de la farmacia" className="mt-6">
+                  <p className="text-xs font-bold tracking-[0.14em] text-[var(--muted)]">
+                    IR A UN ÁREA
+                  </p>
+                  <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-1">
+                    {areas.map((area, index) => {
+                      const isActive = area.id === displayedAreaId;
+                      const isVisited = visitedAreaIds.includes(area.id);
 
-                  return (
-                    <button
-                      aria-current={isActive ? "true" : undefined}
-                      className={cn(
-                        "flex min-h-12 items-center gap-3 rounded-xl border px-3 text-left text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]",
-                        isActive
-                          ? "border-emerald-600 bg-emerald-50 text-[var(--brand-strong)]"
-                          : "border-[var(--border)] bg-white hover:bg-slate-50",
-                      )}
-                      key={area.id}
-                      onClick={() => visitArea(area.id)}
-                      type="button"
-                    >
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "grid size-7 shrink-0 place-items-center rounded-lg text-xs",
-                          isVisited ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600",
-                        )}
-                      >
-                        {isVisited ? "✓" : index + 1}
-                      </span>
-                      {area.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </nav>
+                      return (
+                        <button
+                          aria-current={isActive ? "true" : undefined}
+                          className={cn(
+                            "flex min-h-12 items-center gap-3 rounded-xl border px-3 text-left text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]",
+                            isActive
+                              ? "border-emerald-600 bg-emerald-50 text-[var(--brand-strong)]"
+                              : "border-[var(--border)] bg-white hover:bg-slate-50",
+                          )}
+                          key={area.id}
+                          onClick={() => visitArea(area.id)}
+                          type="button"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "grid size-7 shrink-0 place-items-center rounded-lg text-xs",
+                              isVisited ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600",
+                            )}
+                          >
+                            {isVisited ? "✓" : index + 1}
+                          </span>
+                          {area.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </nav>
 
-            <p className="mt-auto pt-6 text-xs leading-5 text-[var(--muted)]">
-              {professionalReviewMarker ?? PROFESSIONAL_REVIEW_MARKER} Este prototipo no reemplaza
-              protocolos ni supervisión profesional.
-            </p>
+                <p className="mt-auto pt-6 text-xs leading-5 text-[var(--muted)]">
+                  {professionalReviewMarker ?? PROFESSIONAL_REVIEW_MARKER} Este prototipo no
+                  reemplaza protocolos ni supervisión profesional.
+                </p>
+              </>
+            )}
           </aside>
         </div>
       </div>
@@ -215,23 +242,23 @@ type SceneHotspotProps = {
   children: React.ReactNode;
   className: string;
   label: string;
-  onClick: () => void;
+  onClick?: () => void;
 };
 
 function SceneHotspot({ active, children, className, label, onClick }: SceneHotspotProps) {
-  return (
-    <button
-      aria-label={`Explorar ${label}`}
-      className={cn(
-        "group absolute rounded-2xl border-2 bg-white/65 p-2 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-white focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] sm:p-3",
-        active
-          ? "border-emerald-600 bg-white ring-4 ring-emerald-300/60"
-          : "border-white/90 hover:border-emerald-300",
-        className,
-      )}
-      onClick={onClick}
-      type="button"
-    >
+  const hotspotClassName = cn(
+    "group absolute rounded-2xl border-2 bg-white/65 p-2 text-left shadow-sm transition duration-200 sm:p-3",
+    onClick &&
+      "hover:-translate-y-0.5 hover:bg-white focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]",
+    active
+      ? "border-emerald-600 bg-white ring-4 ring-emerald-300/60"
+      : "border-white/90",
+    onClick && !active && "hover:border-emerald-300",
+    className,
+  );
+
+  const content = (
+    <>
       {children}
       <span
         className={cn(
@@ -241,6 +268,25 @@ function SceneHotspot({ active, children, className, label, onClick }: SceneHots
       >
         {label}
       </span>
+    </>
+  );
+
+  if (!onClick) {
+    return (
+      <div aria-hidden="true" className={hotspotClassName}>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      aria-label={`Explorar ${label}`}
+      className={hotspotClassName}
+      onClick={onClick}
+      type="button"
+    >
+      {content}
     </button>
   );
 }

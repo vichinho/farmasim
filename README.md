@@ -144,10 +144,12 @@ primer nivel abre `/simulaciones/case-001-ambulatory-dispensing`, una farmacia
 2D responsive con cuatro áreas navegables. La página y el catálogo se renderizan
 en el servidor; únicamente el plano exploratorio requiere estado en el cliente.
 
-La lógica completa del Caso 001 seguirá interpretando datos separados de la
-interfaz. En la fase 11, la navegación valida la composición visual, el recorrido
-entre áreas y las bases de accesibilidad antes de incorporar decisiones y errores
-diferidos.
+El Caso 001 se interpreta desde datos separados de la interfaz mediante un motor
+de sesión genérico. Sus 16 etapas recorren contexto, paciente, identificación,
+sistema ficticio, solicitud, almacenamiento, selección, preparación, doble
+chequeo, verificación final, resultado y cierre educativo. Las decisiones y sus
+efectos viven en la sesión del navegador; la persistencia ampliada se incorporará
+después de estabilizar el modelo de resultados.
 
 ## Primer escenario
 

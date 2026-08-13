@@ -6,7 +6,7 @@ import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { PageContainer } from "@/components/layout/page-container";
 import { Badge } from "@/components/ui/badge";
 import { getTrainingCaseBySlug, trainingCases, trainingLevels } from "@/data/training";
-import { VisualPharmacy } from "@/features/training/visual-pharmacy";
+import { TrainingSession } from "@/features/training/training-session";
 
 export function generateStaticParams() {
   return trainingCases.map((trainingCase) => ({ slug: trainingCase.id }));
@@ -61,10 +61,7 @@ export default async function TrainingCasePage({ params }: PageProps<"/simulacio
           </p>
         </header>
 
-        <VisualPharmacy
-          context={trainingCase.context}
-          professionalReviewMarker={trainingCase.professionalReviewMarker}
-        />
+        <TrainingSession trainingCase={trainingCase} />
       </PageContainer>
       <BottomNavigation activeHref="/simulaciones" />
     </>
