@@ -145,6 +145,26 @@ nodos visuales de la lógica de avance, respuestas, precisión y XP. En esta
 etapa los resultados solo viven durante la sesión del navegador; la
 persistencia se incorporará en la fase de progreso.
 
+## Primer escenario
+
+La ruta protegida `/simulaciones` presenta **Tu primera atención**, un escenario
+completamente ficticio con un paciente virtual, cuatro decisiones, feedback
+inmediato y un resultado con precisión, XP, errores y tiempo. Sus decisiones
+evalúan únicamente comunicación general y no representan indicaciones,
+procedimientos ni reglas de dispensación farmacéutica.
+
+## Progreso del usuario
+
+Al completar una simulación, FarmaSim guarda el intento de forma idempotente en
+Supabase con su precisión, respuestas correctas e incorrectas, XP y fecha. Una
+función transaccional calcula el resultado en la base de datos, actualiza el XP
+y nivel del perfil y desbloquea la primera insignia sin permitir que el cliente
+modifique directamente esos valores.
+
+La ruta protegida `/progreso` muestra nivel, avance hacia el siguiente nivel,
+simulaciones y módulos completados, precisión acumulada, insignias y actividad
+reciente. Para esta primera fórmula, cada nivel requiere 250 XP.
+
 ## Scripts
 
 | Comando | Uso |

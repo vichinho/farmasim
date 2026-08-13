@@ -246,34 +246,40 @@ export type Database = {
       scenarios: {
         Row: {
           created_at: string
+          decision_count: number
           description: string
           difficulty: number
           id: string
           initial_node_id: string | null
           is_active: boolean
           module_id: string
+          slug: string | null
           title: string
           xp_reward: number
         }
         Insert: {
           created_at?: string
+          decision_count?: number
           description?: string
           difficulty: number
           id?: string
           initial_node_id?: string | null
           is_active?: boolean
           module_id: string
+          slug?: string | null
           title: string
           xp_reward?: number
         }
         Update: {
           created_at?: string
+          decision_count?: number
           description?: string
           difficulty?: number
           id?: string
           initial_node_id?: string | null
           is_active?: boolean
           module_id?: string
+          slug?: string | null
           title?: string
           xp_reward?: number
         }
@@ -410,7 +416,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      complete_simulation_attempt: {
+        Args: {
+          p_attempt_id: string
+          p_correct_answers: number
+          p_incorrect_answers: number
+          p_scenario_slug: string
+          p_started_at: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       profile_role: "learner" | "supervisor" | "admin"
