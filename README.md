@@ -137,6 +137,14 @@ simulaciones de los últimos siete días. Las tarjetas de cápsulas y simulacion
 preparan la experiencia de las próximas fases y no enlazan a rutas aún no
 implementadas.
 
+## Motor de simulaciones
+
+La ruta protegida `/simulaciones` contiene una práctica técnica completamente
+ficticia. El motor interpreta escenarios definidos como datos y separa los
+nodos visuales de la lógica de avance, respuestas, precisión y XP. En esta
+etapa los resultados solo viven durante la sesión del navegador; la
+persistencia se incorporará en la fase de progreso.
+
 ## Scripts
 
 | Comando | Uso |
