@@ -151,6 +151,12 @@ chequeo, verificación final, resultado y cierre educativo. Las decisiones y sus
 efectos viven en la sesión del navegador; la persistencia ampliada se incorporará
 después de estabilizar el modelo de resultados.
 
+Los niveles 1, 2 y 3 reutilizan este mismo escenario con modos distintos. El
+primero ofrece orientación contextual; el segundo conserva el feedback diferido
+de la trampa; y el tercero reduce las ayudas, agrega un objetivo de tiempo e
+interrupciones controladas. Los niveles 4 a 7 permanecen bloqueados para mostrar
+la expansión futura sin ampliar el alcance de la demo.
+
 ## Primer escenario
 
 El Caso 001 representa una dispensación ambulatoria ficticia y pendiente de

@@ -33,7 +33,9 @@ export function LevelSelector() {
         {trainingLevels.map((level) => {
           const isAvailable = level.status === "available";
           const status = statusCopy[level.status];
-          const href = level.caseSlugs[0] ? `/simulaciones/${level.caseSlugs[0]}` : undefined;
+          const href = level.caseSlugs[0]
+            ? `/simulaciones/${level.caseSlugs[0]}?nivel=${level.number}`
+            : undefined;
 
           return (
             <li

@@ -8,6 +8,15 @@ export type ContentValidationStatus =
 
 export type TrainingLevelStatus = "available" | "coming-soon" | "locked";
 
+export type TrainingMode = {
+  guidance: "guided" | "standard" | "minimal";
+  id: string;
+  interruptionStageIds: string[];
+  levelId: string;
+  pressureTargetSeconds?: number;
+  shortLabel: string;
+};
+
 export type PharmacyArea =
   | "entrance"
   | "service-counter"

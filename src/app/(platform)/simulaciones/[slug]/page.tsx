@@ -5,7 +5,12 @@ import { notFound } from "next/navigation";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { PageContainer } from "@/components/layout/page-container";
 import { Badge } from "@/components/ui/badge";
-import { getTrainingCaseBySlug, trainingCases, trainingLevels } from "@/data/training";
+import {
+  getTrainingCaseBySlug,
+  getTrainingModeByLevelId,
+  trainingCases,
+  trainingLevels,
+} from "@/data/training";
 import { TrainingSession } from "@/features/training/training-session";
 
 export function generateStaticParams() {
@@ -24,15 +29,26 @@ export async function generateMetadata({
   };
 }
 
-export default async function TrainingCasePage({ params }: PageProps<"/simulaciones/[slug]">) {
-  const { slug } = await params;
+export default async function TrainingCasePage({
+  params,
+  searchParams,
+}: PageProps<"/simulaciones/[slug]">) {
+  const [{ slug }, query] = await Promise.all([params, searchParams]);
   const trainingCase = getTrainingCaseBySlug(slug);
 
   if (!trainingCase) {
     notFound();
   }
 
-  const trainingLevel = trainingLevels.find((level) => level.id === trainingCase.levelId);
+  const requestedLevel = typeof query.nivel === "string" ? Number(query.nivel) : 1;
+  const trainingLevel =
+    trainingLevels.find(
+      (level) =>
+        level.number === requestedLevel &&
+        level.status === "available" &&
+        level.caseSlugs.includes(trainingCase.id),
+    ) ?? trainingLevels[0];
+  const trainingMode = getTrainingModeByLevelId(trainingLevel.id);
 
   return (
     <>
@@ -61,7 +77,7 @@ export default async function TrainingCasePage({ params }: PageProps<"/simulacio
           </p>
         </header>
 
-        <TrainingSession trainingCase={trainingCase} />
+        <TrainingSession key={trainingMode.id} mode={trainingMode} trainingCase={trainingCase} />
       </PageContainer>
       <BottomNavigation activeHref="/simulaciones" />
     </>
