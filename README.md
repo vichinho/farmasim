@@ -139,19 +139,23 @@ implementadas.
 
 ## Motor de simulaciones
 
-La ruta protegida `/simulaciones` contiene una práctica técnica completamente
-ficticia. El motor interpreta escenarios definidos como datos y separa los
-nodos visuales de la lógica de avance, respuestas, precisión y XP. En esta
-etapa los resultados solo viven durante la sesión del navegador; la
-persistencia se incorporará en la fase de progreso.
+La ruta protegida `/simulaciones` presenta la ruta visual de siete niveles. El
+primer nivel abre `/simulaciones/case-001-ambulatory-dispensing`, una farmacia
+2D responsive con cuatro áreas navegables. La página y el catálogo se renderizan
+en el servidor; únicamente el plano exploratorio requiere estado en el cliente.
+
+La lógica completa del Caso 001 seguirá interpretando datos separados de la
+interfaz. En la fase 11, la navegación valida la composición visual, el recorrido
+entre áreas y las bases de accesibilidad antes de incorporar decisiones y errores
+diferidos.
 
 ## Primer escenario
 
-La ruta protegida `/simulaciones` presenta **Tu primera atención**, un escenario
-completamente ficticio con un paciente virtual, cuatro decisiones, feedback
-inmediato y un resultado con precisión, XP, errores y tiempo. Sus decisiones
-evalúan únicamente comunicación general y no representan indicaciones,
-procedimientos ni reglas de dispensación farmacéutica.
+El Caso 001 representa una dispensación ambulatoria ficticia y pendiente de
+validación profesional. Su primera entrega visual incluye un paciente virtual,
+un trabajador, mesón de atención, computador, almacenamiento con gavetas y
+mesón de preparación. No representa indicaciones, procedimientos ni reglas de
+dispensación farmacéutica.
 
 ## Progreso del usuario
 
@@ -198,7 +202,12 @@ evitando crear carpetas vacías o abstracciones prematuras.
 7. Motor de simulaciones.
 8. Primer escenario ficticio.
 9. Persistencia, XP y progreso.
-10. Modo demo, despliegue y QR.
+10. Arquitectura de la demo de alta fidelidad y definición del Caso 001.
+11. Selección de niveles y farmacia visual navegable.
+12. Caso 001 jugable de principio a fin.
+13. Niveles, trampas, decisiones ramificadas y registro de errores.
+14. Capacitación adaptativa, casos de refuerzo y contenido actualizado.
+15. Estabilización, despliegue, QR y respaldos para la presentación.
 
 ## Demo del 20 de agosto de 2026
 
