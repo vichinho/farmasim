@@ -1,0 +1,60 @@
+import type { TrainingLevel } from "@/types/training-simulation";
+
+export const trainingLevels = [
+  {
+    id: "level-1",
+    number: 1,
+    title: "Aprende el proceso",
+    description: "Recorre cada etapa con orientación visible.",
+    status: "available",
+    caseSlugs: ["case-001-ambulatory-dispensing"],
+  },
+  {
+    id: "level-2",
+    number: 2,
+    title: "Detecta la trampa",
+    description: "Practica una discrepancia ficticia y utiliza una barrera de seguridad.",
+    status: "coming-soon",
+    caseSlugs: ["case-001-ambulatory-dispensing"],
+  },
+  {
+    id: "level-3",
+    number: 3,
+    title: "Trabaja bajo presión",
+    description: "Resuelve interrupciones demostrativas sin perder el orden del proceso.",
+    status: "coming-soon",
+    caseSlugs: [],
+  },
+  {
+    id: "level-4",
+    number: 4,
+    title: "Jornada completa",
+    description: "Nivel futuro con varios casos consecutivos.",
+    status: "locked",
+    caseSlugs: [],
+  },
+  {
+    id: "level-5",
+    number: 5,
+    title: "Medicamentos LASA",
+    description: "Contenido futuro pendiente de validación profesional.",
+    status: "locked",
+    caseSlugs: [],
+  },
+  {
+    id: "level-6",
+    number: 6,
+    title: "Errores múltiples",
+    description: "Nivel futuro con más de una discrepancia por caso.",
+    status: "locked",
+    caseSlugs: [],
+  },
+  {
+    id: "level-7",
+    number: 7,
+    title: "Modo experto",
+    description: "Nivel futuro sin orientación inicial.",
+    status: "locked",
+    caseSlugs: [],
+  },
+] satisfies TrainingLevel[];

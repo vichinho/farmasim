@@ -200,6 +200,18 @@ evitando crear carpetas vacías o abstracciones prematuras.
 9. Persistencia, XP y progreso.
 10. Modo demo, despliegue y QR.
 
+## Demo del 20 de agosto de 2026
+
+La línea de presentación amplía el MVP con selección visual de niveles,
+farmacia 2D, etapas ficticias, errores diferidos, barreras, resultados por
+competencia y entrenamiento de refuerzo. La arquitectura y el blueprint del
+Caso 001 están documentados en
+[`docs/demo-architecture.md`](docs/demo-architecture.md).
+
+El contenido que hace referencia a medicamentos permanece separado del motor y
+marcado como pendiente de validación profesional. Esta fase no modifica
+Supabase ni reemplaza el escenario estable actual.
+
 ## Landing
 
 La ruta principal presenta FarmaSim, sus beneficios y el flujo de aprendizaje.
