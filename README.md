@@ -124,7 +124,7 @@ ejecuta `npx supabase db push`. Las credenciales reales se mantienen solo en
 ## Autenticación
 
 FarmaSim utiliza Supabase Auth con correo y contraseña. Las rutas `/dashboard`,
-`/simulaciones`, `/aprender`, `/progreso` y `/perfil` requieren una sesión
+`/simulaciones`, `/novedades`, `/aprender`, `/progreso` y `/perfil` requieren una sesión
 validada. Para que los enlaces de recuperación funcionen fuera de desarrollo,
 agrega la URL de producción y `http://localhost:3000/auth/callback` a las
 Redirect URLs de Supabase Auth.
@@ -156,6 +156,13 @@ primero ofrece orientación contextual; el segundo conserva el feedback diferido
 de la trampa; y el tercero reduce las ayudas, agrega un objetivo de tiempo e
 interrupciones controladas. Los niveles 4 a 7 permanecen bloqueados para mostrar
 la expansión futura sin ampliar el alcance de la demo.
+
+La capacitación adaptativa incluye cuatro casos completos. Si se registra un
+error de concentración, el cierre recomienda el siguiente caso con la misma
+competencia y un contexto diferente. El resultado clasifica cada competencia
+como `Dominado`, `En progreso` o `En refuerzo`. La ruta protegida `/novedades`
+muestra el catálogo versionado de casos, funciones y entrenamientos agregados a
+la versión educativa 1.1.
 
 ## Primer escenario
 

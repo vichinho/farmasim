@@ -12,7 +12,7 @@ type NavigationItem = {
 const navigationItems: NavigationItem[] = [
   { href: "/dashboard", icon: "home", label: "Inicio" },
   { href: "/simulaciones", icon: "play", label: "Simular" },
-  { icon: "book", label: "Aprender" },
+  { href: "/novedades", icon: "book", label: "Novedades" },
   { href: "/progreso", icon: "chart", label: "Progreso" },
   { icon: "user", label: "Perfil" },
 ];
