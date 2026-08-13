@@ -10,6 +10,8 @@ import { VisualPharmacy } from "@/features/training/visual-pharmacy";
 import { cn } from "@/lib/utils";
 import {
   PROFESSIONAL_REVIEW_MARKER,
+  type CompetencyId,
+  type CompetencyStatus,
   type DecisionOption,
   type TrainingCase,
   type TrainingEffect,
@@ -128,15 +130,26 @@ export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
   }, [isComplete, mode.pressureTargetSeconds]);
 
   const outcome = useMemo(() => {
-    const wrongConcentrationRecorded = session.recordedErrorIds.includes("wrong-concentration");
-    const wrongConcentrationCorrected = session.correctedErrorIds.includes("wrong-concentration");
+    const trapErrorIds = trainingCase.traps.map((trap) => trap.errorId);
+    const recordedTrapErrorIds = trapErrorIds.filter((errorId) =>
+      session.recordedErrorIds.includes(errorId),
+    );
+    const correctedTrapErrorIds = recordedTrapErrorIds.filter((errorId) =>
+      session.correctedErrorIds.includes(errorId),
+    );
 
     return {
       barrierEffective:
-        wrongConcentrationCorrected && session.activatedBarrierIds.length > 0,
-      errorReachedPatient: wrongConcentrationRecorded && !wrongConcentrationCorrected,
+        correctedTrapErrorIds.length > 0 && session.activatedBarrierIds.length > 0,
+      errorReachedPatient: recordedTrapErrorIds.some(
+        (errorId) =>
+          !session.correctedErrorIds.includes(errorId) &&
+          trainingCase.traps.some(
+            (trap) => trap.errorId === errorId && trap.patientImpactIfUnresolved,
+          ),
+      ),
     };
-  }, [session]);
+  }, [session, trainingCase.traps]);
 
   function advance(stageId: string) {
     setSession((current) => moveToStage(current, stageId));
@@ -308,7 +321,14 @@ function StagePanel({
   trainingCase,
 }: StagePanelProps) {
   if (isComplete) {
-    return <CompletionPanel elapsedSeconds={elapsedSeconds} mode={mode} onRestart={onRestart} />;
+    return (
+      <CompletionPanel
+        caseTitle={trainingCase.title}
+        elapsedSeconds={elapsedSeconds}
+        mode={mode}
+        onRestart={onRestart}
+      />
+    );
   }
 
   if (hasPendingInterruption) {
@@ -361,6 +381,10 @@ function StagePanel({
   const content = stage.content.replace(PROFESSIONAL_REVIEW_MARKER, "").trim();
   const isLearningCard = stage.type === "learning-card";
   const isReinforcement = stage.type === "reinforcement";
+  const needsReinforcement = session.recordedErrorIds.some((errorId) => {
+    const error = trainingCase.errors.find((candidate) => candidate.id === errorId);
+    return error?.competencyId === "concentration-verification";
+  });
   const continueStageId =
     stage.interaction.type === "continue" ? stage.interaction.nextStageId : null;
 
@@ -445,9 +469,24 @@ function StagePanel({
       ) : null}
 
       {stage.interaction.type === "complete" ? (
-        <Button className="mt-6" fullWidth onClick={onComplete} size="lg">
-          {stage.interaction.label}
-        </Button>
+        <div className="mt-6 grid gap-3">
+          {isReinforcement && needsReinforcement && trainingCase.reinforcementCaseSlug ? (
+            <Link
+              className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[var(--brand)] px-5 text-center text-base font-semibold text-white hover:bg-[var(--brand-strong)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+              href={`/simulaciones/${trainingCase.reinforcementCaseSlug}?nivel=1`}
+            >
+              Iniciar entrenamiento recomendado
+            </Link>
+          ) : null}
+          <Button
+            fullWidth
+            onClick={onComplete}
+            size="lg"
+            variant={needsReinforcement && trainingCase.reinforcementCaseSlug ? "secondary" : "primary"}
+          >
+            {stage.interaction.label}
+          </Button>
+        </div>
       ) : null}
 
       <p className="mt-auto pt-6 text-xs leading-5 text-[var(--muted)]">
@@ -505,6 +544,31 @@ function ResultPanel({
         })}
       </div>
 
+      <h4 className="mt-5 text-sm font-black tracking-wide">ESTADO POR COMPETENCIA</h4>
+      <div className="mt-2 grid gap-2">
+        {trainingCase.competencies.map((competencyId) => {
+          const competency = trainingCompetencies.find((item) => item.id === competencyId);
+          const status = getCompetencyStatus(competencyId, session, trainingCase);
+          const statusCopy: Record<CompetencyStatus, string> = {
+            mastered: "Dominado",
+            "in-progress": "En progreso",
+            reinforcement: "En refuerzo",
+          };
+
+          return (
+            <div
+              className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-3"
+              key={competencyId}
+            >
+              <span className="text-sm font-semibold">{competency?.name ?? competencyId}</span>
+              <Badge tone={status === "reinforcement" ? "warning" : status === "mastered" ? "brand" : "neutral"}>
+                {statusCopy[status]}
+              </Badge>
+            </div>
+          );
+        })}
+      </div>
+
       {outcome.barrierEffective ? (
         <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-900">
           La barrera de seguridad permitió recuperar la discrepancia antes del cierre.
@@ -528,10 +592,12 @@ function ResultMetric({ label, value }: { label: string; value: number | string 
 }
 
 function CompletionPanel({
+  caseTitle,
   elapsedSeconds,
   mode,
   onRestart,
 }: {
+  caseTitle: string;
   elapsedSeconds: number;
   mode: TrainingMode;
   onRestart: () => void;
@@ -546,7 +612,7 @@ function CompletionPanel({
       </span>
       <h3 className="mt-4 text-2xl font-black">Entrenamiento finalizado</h3>
       <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-        Completaste el recorrido demostrativo del Caso 001.
+        Completaste el recorrido demostrativo: {caseTitle}.
       </p>
       {mode.pressureTargetSeconds ? (
         <p className="mt-3 rounded-xl bg-amber-50 px-4 py-2 text-sm font-bold text-amber-900">
@@ -589,22 +655,47 @@ function stageLabel(stage: TrainingStage) {
 }
 
 function getContextualFeedback(option: DecisionOption, session: SessionState) {
-  const detectsWrongConcentration = option.effects?.some(
-    (effect) => effect.type === "detect-error" && effect.errorId === "wrong-concentration",
+  const detectedErrorIds =
+    option.effects?.flatMap((effect) => (effect.type === "detect-error" ? [effect.errorId] : [])) ??
+    [];
+  const hasPendingError = detectedErrorIds.some(
+    (errorId) =>
+      session.recordedErrorIds.includes(errorId) &&
+      !session.correctedErrorIds.includes(errorId),
   );
-  const hasPendingWrongConcentration =
-    session.recordedErrorIds.includes("wrong-concentration") &&
-    !session.correctedErrorIds.includes("wrong-concentration");
 
-  if (detectsWrongConcentration && hasPendingWrongConcentration) {
+  if (detectedErrorIds.length > 0 && hasPendingError) {
     return "La comparación revela una discrepancia de concentración. La selección se corrige antes del cierre.";
   }
 
-  if (detectsWrongConcentration) {
+  if (detectedErrorIds.length > 0) {
     return "La comparación confirma que la selección ficticia coincide con la solicitud.";
   }
 
   return option.feedback;
+}
+
+function getCompetencyStatus(
+  competencyId: CompetencyId,
+  session: SessionState,
+  trainingCase: TrainingCase,
+): CompetencyStatus {
+  const competencyErrorIds = trainingCase.errors
+    .filter((error) => error.competencyId === competencyId)
+    .map((error) => error.id);
+  const recordedErrorIds = competencyErrorIds.filter((errorId) =>
+    session.recordedErrorIds.includes(errorId),
+  );
+
+  if (recordedErrorIds.some((errorId) => !session.correctedErrorIds.includes(errorId))) {
+    return "reinforcement";
+  }
+
+  if (recordedErrorIds.length > 0) {
+    return "in-progress";
+  }
+
+  return "mastered";
 }
 
 function stageHint(stage: TrainingStage) {

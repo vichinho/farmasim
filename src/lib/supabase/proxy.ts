@@ -7,6 +7,7 @@ import type { Database } from "@/types/database";
 const protectedPaths = [
   "/dashboard",
   "/simulaciones",
+  "/novedades",
   "/aprender",
   "/progreso",
   "/perfil",
