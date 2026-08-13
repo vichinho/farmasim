@@ -174,7 +174,7 @@ export const firstAttentionScenario: SimulationScenario = {
     {
       id: "result",
       type: "result",
-      text: "Completaste tu primera atención ficticia. Tus resultados todavía se guardan solo durante esta sesión.",
+      text: "Completaste tu primera atención ficticia. Tu resultado se guardará en tu progreso.",
     },
   ],
 };
