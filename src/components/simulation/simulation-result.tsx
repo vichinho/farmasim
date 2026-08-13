@@ -1,12 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import type { SaveSimulationAttemptResult } from "@/features/progress/actions";
 
 type SimulationResultProps = {
   correctAnswers: number;
   elapsedSeconds: number;
   earnedXp: number;
   incorrectAnswers: number;
+  isSaving: boolean;
   onRestart: () => void;
+  onRetrySave: () => void;
+  saveResult: SaveSimulationAttemptResult | null;
   score: number;
   text: string;
 };
@@ -16,7 +20,10 @@ export function SimulationResult({
   elapsedSeconds,
   earnedXp,
   incorrectAnswers,
+  isSaving,
   onRestart,
+  onRetrySave,
+  saveResult,
   score,
   text,
 }: SimulationResultProps) {
@@ -50,7 +57,20 @@ export function SimulationResult({
           <dd className="mt-1 text-2xl font-bold">{elapsedMinutes}:{remainingSeconds}</dd>
         </div>
       </dl>
-      <Button className="mt-6" fullWidth onClick={onRestart} size="lg">Repetir práctica</Button>
+      <div
+        aria-live="polite"
+        className="mt-4 rounded-2xl border border-[var(--border)] bg-white px-4 py-3 text-sm"
+      >
+        {isSaving ? "Guardando tu progreso..." : saveResult?.message ?? "Preparando el guardado..."}
+      </div>
+      {saveResult?.status === "error" ? (
+        <Button className="mt-3" fullWidth onClick={onRetrySave} variant="secondary">
+          Reintentar guardado
+        </Button>
+      ) : null}
+      <Button className="mt-6" disabled={isSaving} fullWidth onClick={onRestart} size="lg">
+        Repetir práctica
+      </Button>
     </Card>
   );
 }

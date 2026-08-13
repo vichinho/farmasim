@@ -53,6 +53,7 @@ export type SimulationAnswer = {
 
 export type SimulationState = {
   answers: SimulationAnswer[];
+  attemptId: string;
   completedAt: Date | null;
   correctAnswers: number;
   currentNodeId: string;

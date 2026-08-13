@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ChoiceNode } from "@/components/simulation/choice-node";
 import { DialogueNode } from "@/components/simulation/dialogue-node";
@@ -8,6 +8,10 @@ import { FeedbackCard } from "@/components/simulation/feedback-card";
 import { SimulationProgress } from "@/components/simulation/simulation-progress";
 import { SimulationResult } from "@/components/simulation/simulation-result";
 import { Card } from "@/components/ui/card";
+import {
+  saveSimulationAttempt,
+  type SaveSimulationAttemptResult,
+} from "@/features/progress/actions";
 import type { SimulationChoice, SimulationScenario, SimulationState } from "@/types/simulation";
 
 type SimulationEngineProps = {
@@ -17,6 +21,7 @@ type SimulationEngineProps = {
 function createInitialState(scenario: SimulationScenario): SimulationState {
   return {
     answers: [],
+    attemptId: crypto.randomUUID(),
     completedAt: null,
     correctAnswers: 0,
     currentNodeId: scenario.initialNodeId,
@@ -30,11 +35,47 @@ function createInitialState(scenario: SimulationScenario): SimulationState {
 export function SimulationEngine({ scenario }: SimulationEngineProps) {
   const [state, setState] = useState(() => createInitialState(scenario));
   const [selectedChoice, setSelectedChoice] = useState<SimulationChoice | null>(null);
+  const [saveResult, setSaveResult] = useState<SaveSimulationAttemptResult | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const savingAttemptId = useRef<string | null>(null);
   const currentNode = scenario.nodes.find((node) => node.id === state.currentNodeId);
   const totalChoices = useMemo(
     () => scenario.nodes.filter((node) => node.type === "choice").length,
     [scenario.nodes],
   );
+
+  const persistAttempt = useCallback(async () => {
+    if (!state.completedAt) return;
+
+    setIsSaving(true);
+    setSaveResult(null);
+
+    const result = await saveSimulationAttempt({
+      attemptId: state.attemptId,
+      correctAnswers: state.correctAnswers,
+      incorrectAnswers: state.incorrectAnswers,
+      scenarioSlug: scenario.id,
+      startedAt: state.startedAt.toISOString(),
+    });
+
+    setSaveResult(result);
+    setIsSaving(false);
+  }, [
+    scenario.id,
+    state.attemptId,
+    state.completedAt,
+    state.correctAnswers,
+    state.incorrectAnswers,
+    state.startedAt,
+  ]);
+
+  useEffect(() => {
+    if (currentNode?.type !== "result" || !state.completedAt) return;
+    if (savingAttemptId.current === state.attemptId) return;
+
+    savingAttemptId.current = state.attemptId;
+    void persistAttempt();
+  }, [currentNode?.type, persistAttempt, state.attemptId, state.completedAt]);
 
   if (!currentNode) {
     return <Card>La práctica no pudo cargarse porque falta un nodo del escenario.</Card>;
@@ -89,6 +130,9 @@ export function SimulationEngine({ scenario }: SimulationEngineProps) {
   }
 
   function restart() {
+    savingAttemptId.current = null;
+    setIsSaving(false);
+    setSaveResult(null);
     setSelectedChoice(null);
     setState(createInitialState(scenario));
   }
@@ -110,7 +154,10 @@ export function SimulationEngine({ scenario }: SimulationEngineProps) {
         elapsedSeconds={elapsedSeconds}
         earnedXp={state.earnedXp}
         incorrectAnswers={state.incorrectAnswers}
+        isSaving={isSaving}
         onRestart={restart}
+        onRetrySave={persistAttempt}
+        saveResult={saveResult}
         score={state.score}
         text={currentNode.text}
       />

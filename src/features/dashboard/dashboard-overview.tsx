@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { logout } from "@/features/auth/actions";
+import { getLevelProgress, XP_PER_LEVEL } from "@/lib/progression";
 
 type DashboardOverviewProps = {
   completedModules: number;
@@ -17,8 +18,6 @@ type DashboardOverviewProps = {
   totalXp: number;
 };
 
-const xpPerLevel = 250;
-
 export function DashboardOverview({
   completedModules,
   fullName,
@@ -26,8 +25,7 @@ export function DashboardOverview({
   simulationsThisWeek,
   totalXp,
 }: DashboardOverviewProps) {
-  const currentLevelXp = totalXp % xpPerLevel;
-  const xpProgress = Math.round((currentLevelXp / xpPerLevel) * 100);
+  const { currentLevelXp, percentage: xpProgress } = getLevelProgress(totalXp);
 
   return (
     <>
@@ -59,7 +57,7 @@ export function DashboardOverview({
           </div>
           <ProgressBar
             className="mt-5"
-            label={`${currentLevelXp} de ${xpPerLevel} XP para el nivel ${level + 1}`}
+            label={`${currentLevelXp} de ${XP_PER_LEVEL} XP para el nivel ${level + 1}`}
             value={xpProgress}
           />
         </Card>
@@ -132,7 +130,7 @@ export function DashboardOverview({
           </Card>
         </section>
       </PageContainer>
-      <BottomNavigation />
+      <BottomNavigation activeHref="/dashboard" />
     </>
   );
 }
