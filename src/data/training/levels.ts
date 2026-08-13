@@ -14,7 +14,7 @@ export const trainingLevels = [
     number: 2,
     title: "Detecta la trampa",
     description: "Practica una discrepancia ficticia y utiliza una barrera de seguridad.",
-    status: "coming-soon",
+    status: "available",
     caseSlugs: ["case-001-ambulatory-dispensing"],
   },
   {
@@ -22,8 +22,8 @@ export const trainingLevels = [
     number: 3,
     title: "Trabaja bajo presión",
     description: "Resuelve interrupciones demostrativas sin perder el orden del proceso.",
-    status: "coming-soon",
-    caseSlugs: [],
+    status: "available",
+    caseSlugs: ["case-001-ambulatory-dispensing"],
   },
   {
     id: "level-4",

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   type DecisionOption,
   type TrainingCase,
   type TrainingEffect,
+  type TrainingMode,
   type TrainingStage,
 } from "@/types/training-simulation";
 
@@ -20,7 +21,9 @@ type SessionState = {
   activatedBarrierIds: string[];
   correctedErrorIds: string[];
   currentStageId: string;
+  decisionHistory: { optionId: string; stageId: string }[];
   detectedErrorIds: string[];
+  handledInterruptionStageIds: string[];
   recordedErrorIds: string[];
   selectedItemIds: string[];
   visitedStageIds: string[];
@@ -32,6 +35,7 @@ type FeedbackState = {
 };
 
 type TrainingSessionProps = {
+  mode: TrainingMode;
   trainingCase: TrainingCase;
 };
 
@@ -44,7 +48,9 @@ function createInitialState(trainingCase: TrainingCase): SessionState {
     activatedBarrierIds: [],
     correctedErrorIds: [],
     currentStageId: trainingCase.initialStageId,
+    decisionHistory: [],
     detectedErrorIds: [],
+    handledInterruptionStageIds: [],
     recordedErrorIds: [],
     selectedItemIds: [],
     visitedStageIds: [trainingCase.initialStageId],
@@ -98,10 +104,11 @@ function moveToStage(state: SessionState, stageId: string) {
   };
 }
 
-export function TrainingSession({ trainingCase }: TrainingSessionProps) {
+export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
   const [session, setSession] = useState(() => createInitialState(trainingCase));
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [isComplete, setIsComplete] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const currentStage =
     trainingCase.stages.find((stage) => stage.id === session.currentStageId) ??
     trainingCase.stages[0];
@@ -110,6 +117,15 @@ export function TrainingSession({ trainingCase }: TrainingSessionProps) {
   );
   const progress = Math.round(((currentStageIndex + 1) / trainingCase.stages.length) * 100);
   const statusLabel = `Etapa ${currentStageIndex + 1} de ${trainingCase.stages.length}`;
+  const hasPendingInterruption =
+    mode.interruptionStageIds.includes(currentStage.id) &&
+    !session.handledInterruptionStageIds.includes(currentStage.id);
+
+  useEffect(() => {
+    if (!mode.pressureTargetSeconds || isComplete) return;
+    const timer = window.setInterval(() => setElapsedSeconds((seconds) => seconds + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [isComplete, mode.pressureTargetSeconds]);
 
   const outcome = useMemo(() => {
     const wrongConcentrationRecorded = session.recordedErrorIds.includes("wrong-concentration");
@@ -127,10 +143,22 @@ export function TrainingSession({ trainingCase }: TrainingSessionProps) {
   }
 
   function chooseOption(option: DecisionOption) {
-    setSession((current) => applyEffects(current, option.effects));
+    const feedbackMessage = getContextualFeedback(option, session);
+    setSession((current) =>
+      applyEffects(
+        {
+          ...current,
+          decisionHistory: [
+            ...current.decisionHistory,
+            { optionId: option.id, stageId: current.currentStageId },
+          ],
+        },
+        option.effects,
+      ),
+    );
 
-    if (option.feedbackTiming === "immediate" && option.feedback) {
-      setFeedback({ message: option.feedback, nextStageId: option.nextStageId });
+    if (option.feedbackTiming === "immediate" && feedbackMessage) {
+      setFeedback({ message: feedbackMessage, nextStageId: option.nextStageId });
       return;
     }
 
@@ -147,14 +175,44 @@ export function TrainingSession({ trainingCase }: TrainingSessionProps) {
     setSession(createInitialState(trainingCase));
     setFeedback(null);
     setIsComplete(false);
+    setElapsedSeconds(0);
+  }
+
+  function handleInterruption() {
+    setSession((current) => ({
+      ...current,
+      handledInterruptionStageIds: addUnique(
+        current.handledInterruptionStageIds,
+        currentStage.id,
+      ),
+    }));
   }
 
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-[var(--border)] bg-white p-4">
-        <div className="flex items-center justify-between gap-4 text-sm">
-          <span className="font-semibold">Progreso del caso</span>
-          <span className="font-bold text-[var(--brand-strong)]">{progress}%</span>
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Progreso del caso</span>
+            <Badge tone={mode.guidance === "minimal" ? "warning" : "brand"}>
+              {mode.shortLabel}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-3">
+            {mode.pressureTargetSeconds ? (
+              <span
+                className={cn(
+                  "font-bold tabular-nums",
+                  elapsedSeconds > mode.pressureTargetSeconds
+                    ? "text-rose-700"
+                    : "text-amber-800",
+                )}
+              >
+                {formatTime(elapsedSeconds)} / {formatTime(mode.pressureTargetSeconds)}
+              </span>
+            ) : null}
+            <span className="font-bold text-[var(--brand-strong)]">{progress}%</span>
+          </div>
         </div>
         <div
           aria-label={`Progreso: ${progress}%`}
@@ -169,6 +227,20 @@ export function TrainingSession({ trainingCase }: TrainingSessionProps) {
             style={{ width: `${progress}%` }}
           />
         </div>
+        {mode.guidance !== "guided" ? (
+          <p
+            className={cn(
+              "mt-3 rounded-xl px-3 py-2 text-xs font-semibold leading-5",
+              mode.guidance === "minimal"
+                ? "bg-amber-50 text-amber-900"
+                : "bg-slate-50 text-slate-700",
+            )}
+          >
+            {mode.guidance === "minimal"
+              ? "Modo presión: habrá interrupciones y la orientación estará reducida. El cronómetro es informativo."
+              : "Modo trampa: algunas decisiones avanzan sin revelar inmediatamente si existe una discrepancia."}
+          </p>
+        ) : null}
       </div>
 
       <VisualPharmacy
@@ -176,12 +248,16 @@ export function TrainingSession({ trainingCase }: TrainingSessionProps) {
         context={trainingCase.context}
         panel={
           <StagePanel
+            elapsedSeconds={elapsedSeconds}
             feedback={feedback}
+            hasPendingInterruption={hasPendingInterruption}
             isComplete={isComplete}
+            mode={mode}
             onChooseOption={chooseOption}
             onComplete={() => setIsComplete(true)}
             onContinue={advance}
             onContinueAfterFeedback={continueAfterFeedback}
+            onHandleInterruption={handleInterruption}
             onRestart={restart}
             outcome={outcome}
             session={session}
@@ -197,12 +273,16 @@ export function TrainingSession({ trainingCase }: TrainingSessionProps) {
 }
 
 type StagePanelProps = {
+  elapsedSeconds: number;
   feedback: FeedbackState | null;
+  hasPendingInterruption: boolean;
   isComplete: boolean;
+  mode: TrainingMode;
   onChooseOption: (option: DecisionOption) => void;
   onComplete: () => void;
   onContinue: (stageId: string) => void;
   onContinueAfterFeedback: () => void;
+  onHandleInterruption: () => void;
   onRestart: () => void;
   outcome: { barrierEffective: boolean; errorReachedPatient: boolean };
   session: SessionState;
@@ -211,12 +291,16 @@ type StagePanelProps = {
 };
 
 function StagePanel({
+  elapsedSeconds,
   feedback,
+  hasPendingInterruption,
   isComplete,
+  mode,
   onChooseOption,
   onComplete,
   onContinue,
   onContinueAfterFeedback,
+  onHandleInterruption,
   onRestart,
   outcome,
   session,
@@ -224,7 +308,20 @@ function StagePanel({
   trainingCase,
 }: StagePanelProps) {
   if (isComplete) {
-    return <CompletionPanel onRestart={onRestart} />;
+    return <CompletionPanel elapsedSeconds={elapsedSeconds} mode={mode} onRestart={onRestart} />;
+  }
+
+  if (hasPendingInterruption) {
+    return (
+      <InterruptionPanel
+        interruptionNumber={
+          mode.interruptionStageIds.findIndex((stageId) => stageId === stage.id) + 1
+        }
+        onResume={onHandleInterruption}
+        stage={stage}
+        totalInterruptions={mode.interruptionStageIds.length}
+      />
+    );
   }
 
   if (feedback) {
@@ -271,10 +368,16 @@ function StagePanel({
     <div className="flex h-full flex-col">
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone={isLearningCard ? "warning" : "brand"}>{stageLabel(stage)}</Badge>
-        {stage.competencyIds.length > 0 ? (
+        {stage.competencyIds.length > 0 && mode.guidance !== "minimal" ? (
           <Badge tone="neutral">{stage.competencyIds.length} competencia(s)</Badge>
         ) : null}
       </div>
+
+      {mode.guidance === "guided" && stageHint(stage) ? (
+        <p className="mt-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm leading-6 text-sky-900">
+          <strong>Guía:</strong> {stageHint(stage)}
+        </p>
+      ) : null}
 
       <div
         className={cn(
@@ -374,8 +477,10 @@ function ResultPanel({
       <h3 className="mt-4 text-2xl font-black">Resultado por etapas</h3>
       <div className="mt-4 grid grid-cols-2 gap-2">
         <ResultMetric label="Errores registrados" value={session.recordedErrorIds.length} />
+        <ResultMetric label="Errores detectados" value={session.detectedErrorIds.length} />
         <ResultMetric label="Errores corregidos" value={session.correctedErrorIds.length} />
         <ResultMetric label="Barreras usadas" value={session.activatedBarrierIds.length} />
+        <ResultMetric label="Decisiones tomadas" value={session.decisionHistory.length} />
         <ResultMetric label="Impacto virtual" value={outcome.errorReachedPatient ? "Sí" : "No"} />
       </div>
 
@@ -422,7 +527,15 @@ function ResultMetric({ label, value }: { label: string; value: number | string 
   );
 }
 
-function CompletionPanel({ onRestart }: { onRestart: () => void }) {
+function CompletionPanel({
+  elapsedSeconds,
+  mode,
+  onRestart,
+}: {
+  elapsedSeconds: number;
+  mode: TrainingMode;
+  onRestart: () => void;
+}) {
   return (
     <div className="flex h-full flex-col items-center justify-center text-center" aria-live="polite">
       <span
@@ -435,6 +548,11 @@ function CompletionPanel({ onRestart }: { onRestart: () => void }) {
       <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
         Completaste el recorrido demostrativo del Caso 001.
       </p>
+      {mode.pressureTargetSeconds ? (
+        <p className="mt-3 rounded-xl bg-amber-50 px-4 py-2 text-sm font-bold text-amber-900">
+          Tiempo: {formatTime(elapsedSeconds)} · Objetivo: {formatTime(mode.pressureTargetSeconds)}
+        </p>
+      ) : null}
       <div className="mt-6 grid w-full gap-3">
         <Button fullWidth onClick={onRestart} size="lg">
           Repetir caso
@@ -468,4 +586,82 @@ function stageLabel(stage: TrainingStage) {
   };
 
   return labels[stage.type] ?? "Etapa del caso";
+}
+
+function getContextualFeedback(option: DecisionOption, session: SessionState) {
+  const detectsWrongConcentration = option.effects?.some(
+    (effect) => effect.type === "detect-error" && effect.errorId === "wrong-concentration",
+  );
+  const hasPendingWrongConcentration =
+    session.recordedErrorIds.includes("wrong-concentration") &&
+    !session.correctedErrorIds.includes("wrong-concentration");
+
+  if (detectsWrongConcentration && hasPendingWrongConcentration) {
+    return "La comparación revela una discrepancia de concentración. La selección se corrige antes del cierre.";
+  }
+
+  if (detectsWrongConcentration) {
+    return "La comparación confirma que la selección ficticia coincide con la solicitud.";
+  }
+
+  return option.feedback;
+}
+
+function stageHint(stage: TrainingStage) {
+  const hints: Partial<Record<TrainingStage["type"], string>> = {
+    identification: "Revisa todos los campos ficticios antes de pasar al sistema.",
+    "clinical-system": "Consulta el conjunto completo de información demostrativa.",
+    "storage-selection": "Compara etiquetas y concentración antes de confirmar una selección.",
+    "safety-barrier": "Una barrera puede detectar una discrepancia que todavía no se ha revelado.",
+    "final-verification": "Esta es la última oportunidad de revisar antes del cierre.",
+  };
+
+  return hints[stage.type];
+}
+
+function InterruptionPanel({
+  interruptionNumber,
+  onResume,
+  stage,
+  totalInterruptions,
+}: {
+  interruptionNumber: number;
+  onResume: () => void;
+  stage: TrainingStage;
+  totalInterruptions: number;
+}) {
+  const messages: Record<string, string> = {
+    "clinical-system": "Una consulta externa solicita atención mientras revisas el sistema.",
+    "product-selection": "Se escucha un aviso de turno mientras comparas las cajas ficticias.",
+    "final-check": "Otra persona pregunta por el tiempo de espera justo antes del cierre.",
+  };
+
+  return (
+    <div className="flex h-full flex-col" role="alert">
+      <Badge className="self-start" tone="warning">
+        Interrupción {interruptionNumber} de {totalInterruptions}
+      </Badge>
+      <div className="mt-5 rounded-2xl border-2 border-amber-300 bg-amber-50 p-5">
+        <span aria-hidden="true" className="text-3xl">
+          !
+        </span>
+        <h3 className="mt-3 text-2xl font-black text-amber-950">Mantén el punto de control</h3>
+        <p className="mt-3 text-base leading-7 text-amber-950/80">
+          {messages[stage.id] ?? "Surge una interrupción durante la atención simulada."}
+        </p>
+        <p className="mt-3 text-sm font-semibold leading-6 text-amber-950">
+          Reconoce la interrupción y retoma exactamente la etapa que estabas realizando.
+        </p>
+      </div>
+      <Button className="mt-6" fullWidth onClick={onResume} size="lg">
+        Registrar punto y retomar
+      </Button>
+    </div>
+  );
+}
+
+function formatTime(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
