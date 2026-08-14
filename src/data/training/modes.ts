@@ -33,6 +33,30 @@ export const trainingModes = [
     interruptionStageIds: [],
     notice: "Modo consolidación: resuelve un caso nuevo con orientación reducida y sin interrupciones adicionales.",
   },
+  {
+    id: "storage-review",
+    levelId: "level-5",
+    shortLabel: "Revisión de almacenamiento",
+    guidance: "guided",
+    interruptionStageIds: [],
+    notice: "Los códigos y productos son ficticios. El módulo no sustituye la revisión institucional ni la evaluación del QF.",
+  },
+  {
+    id: "multiple-errors",
+    levelId: "level-6",
+    shortLabel: "Discrepancias múltiples",
+    guidance: "standard",
+    interruptionStageIds: [],
+    notice: "Dos discrepancias ficticias pueden coexistir. El cierre exige que ambas sean interceptadas por una barrera de seguridad.",
+  },
+  {
+    id: "expert-closeout",
+    levelId: "level-7",
+    shortLabel: "Cierre experto",
+    guidance: "minimal",
+    interruptionStageIds: [],
+    notice: "Modo experto: la orientación está reducida. La simulación sigue siendo ficticia y cualquier situación no prevista debe derivarse al QF.",
+  },
 ] satisfies TrainingMode[];
 
 export function getTrainingModeByLevelId(levelId: string) {

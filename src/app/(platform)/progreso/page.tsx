@@ -1,7 +1,13 @@
 import { redirect } from "next/navigation";
 
+import { dispensingCriteria } from "@/data/training/dispensing-criteria";
+import { contentTraceability, educationalSources } from "@/data/training/educational-sources";
 import { ProgressOverview } from "@/features/progress/progress-overview";
 import { createClient } from "@/lib/supabase/server";
+import type {
+  AttemptCriterionStatus,
+  DispensingCriterionId,
+} from "@/types/training-simulation";
 
 export default async function ProgressPage() {
   const supabase = await createClient();
@@ -32,7 +38,7 @@ export default async function ProgressPage() {
       .eq("status", "completed"),
     supabase
       .from("simulation_attempts")
-      .select("completed_at, correct_answers, incorrect_answers, scenario_id, score, xp_earned")
+      .select("completed_at, correct_answers, criterion_results, incorrect_answers, scenario_id, score, xp_earned")
       .eq("user_id", userId)
       .not("completed_at", "is", null)
       .order("completed_at", { ascending: false }),
@@ -51,6 +57,43 @@ export default async function ProgressPage() {
     0,
   );
   const precision = totalAnswers === 0 ? 0 : Math.round((totalCorrect / totalAnswers) * 100);
+  const criteriaIndicators = dispensingCriteria.map((criterion) => ({
+    criterionId: criterion.id,
+    title: criterion.title,
+    met: 0,
+    intercepted: 0,
+    reinforcement: 0,
+  }));
+  const indicatorByCriterionId = new Map(
+    criteriaIndicators.map((indicator) => [indicator.criterionId, indicator]),
+  );
+  const knownCriterionIds = new Set(dispensingCriteria.map((criterion) => criterion.id));
+
+  for (const attempt of attempts) {
+    if (!Array.isArray(attempt.criterion_results)) continue;
+
+    for (const result of attempt.criterion_results) {
+      if (!result || typeof result !== "object" || Array.isArray(result)) continue;
+
+      const criterionId = result.criterionId;
+      const status = result.status;
+      if (typeof criterionId !== "string" || typeof status !== "string") continue;
+
+      if (!knownCriterionIds.has(criterionId as DispensingCriterionId)) continue;
+      if (!(["met", "intercepted", "reinforcement"] as const).includes(status as AttemptCriterionStatus)) {
+        continue;
+      }
+
+      const indicator = indicatorByCriterionId.get(criterionId as DispensingCriterionId);
+      if (!indicator) continue;
+
+      indicator[status as AttemptCriterionStatus] += 1;
+    }
+  }
+  const assessedCriteria = criteriaIndicators.reduce(
+    (total, indicator) => total + indicator.met + indicator.intercepted + indicator.reinforcement,
+    0,
+  );
   const scenarioTitles = new Map(
     (scenariosResult.data ?? []).map((scenario) => [scenario.id, scenario.title]),
   );
@@ -71,7 +114,9 @@ export default async function ProgressPage() {
   return (
     <ProgressOverview
       achievements={achievements}
+      assessedCriteria={assessedCriteria}
       completedModules={completedModulesResult.count ?? 0}
+      criteriaIndicators={criteriaIndicators}
       fullName={profileResult.data?.full_name?.trim() || "Usuario"}
       level={profileResult.data?.level ?? 1}
       precision={precision}
@@ -82,7 +127,11 @@ export default async function ProgressPage() {
         xpEarned: attempt.xp_earned,
       }))}
       simulationsCompleted={attempts.length}
+      documentedSources={educationalSources.filter(
+        (source) => source.reviewStatus === "documented-base",
+      ).length}
       totalXp={profileResult.data?.xp ?? 0}
+      traceabilityRecord={contentTraceability}
     />
   );
 }

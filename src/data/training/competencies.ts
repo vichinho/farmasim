@@ -26,4 +26,14 @@ export const trainingCompetencies = [
     name: "Verificación final",
     description: "Comprueba la preparación antes de cerrar el caso demostrativo.",
   },
+  {
+    id: "storage-domain-separation",
+    name: "Separación de dominios",
+    description: "Distingue, dentro del ejercicio ficticio, los registros de medicamentos de los registros de insumos médicos.",
+  },
+  {
+    id: "storage-record-review",
+    name: "Revisión de almacenamiento",
+    description: "Completa una revisión ficticia de código, nombre, estado y observación antes de cerrar el registro.",
+  },
 ] satisfies TrainingCompetency[];
