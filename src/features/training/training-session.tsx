@@ -11,6 +11,7 @@ import {
   type SaveSimulationAttemptResult,
 } from "@/features/progress/actions";
 import { PharmacyScene } from "@/features/training/pharmacy-scene/pharmacy-scene";
+import { PharmacySimulation } from "@/features/training/interactive-simulation/pharmacy-simulation";
 import { cn } from "@/lib/utils";
 import {
   CONTENT_TRACEABILITY_NOTE,
@@ -54,6 +55,14 @@ type TrainingSessionProps = {
   mode: TrainingMode;
   trainingCase: TrainingCase;
 };
+
+export function TrainingSession(props: TrainingSessionProps) {
+  if (props.trainingCase.id === "case-001-ambulatory-dispensing") {
+    return <PharmacySimulation />;
+  }
+
+  return <LegacyTrainingSession {...props} />;
+}
 
 function addUnique(values: string[], value: string) {
   return values.includes(value) ? values : [...values, value];
@@ -202,7 +211,7 @@ function getCriterionResults(
   });
 }
 
-export function TrainingSession({ levelNumber, mode, trainingCase }: TrainingSessionProps) {
+function LegacyTrainingSession({ levelNumber, mode, trainingCase }: TrainingSessionProps) {
   const [session, setSession] = useState(() => createInitialState(trainingCase));
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [safetyAlert, setSafetyAlert] = useState<SafetyAlertState | null>(null);
