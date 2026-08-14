@@ -6,6 +6,35 @@ import { cn } from "@/lib/utils";
 
 import type { WorkspaceArea } from "./scene-types";
 
+const hotspotPositions: Record<Exclude<WorkspaceArea, "service">, string> = {
+  system: "bottom-[10%] left-[1.5%] h-[39%] w-[25%]",
+  storage: "right-[1%] top-[18%] h-[52%] w-[15%]",
+  preparation: "bottom-[5%] right-[17%] h-[27%] w-[27%]",
+  verification: "bottom-[5%] right-[1.5%] h-[25%] w-[14%]",
+};
+
+export function WorkspaceHotspots({ activeArea }: { activeArea: WorkspaceArea }) {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <div aria-label="Zonas del puesto de atención" className="pointer-events-none absolute inset-0 z-40" role="group">
+      {Object.entries(hotspotPositions).map(([area, position]) => {
+        const active = activeArea === area;
+        return (
+          <motion.div
+            animate={active && !reduceMotion ? { opacity: [0.55, 1, 0.55] } : { opacity: active ? 0.85 : 0 }}
+            aria-label={`${area}${active ? ", zona activa" : ""}`}
+            className={cn("absolute rounded-2xl border-2 border-amber-200 bg-amber-100/10 shadow-[0_0_32px_rgb(253_230_138/.72)]", position)}
+            key={area}
+            role="img"
+            transition={{ duration: 1.5, repeat: active && !reduceMotion ? Infinity : 0 }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 export function CounterWorkspace({ activeArea }: { activeArea: WorkspaceArea }) {
   return (
     <div className="absolute inset-x-0 bottom-0 z-40 h-[35%] border-t-[7px] border-[#75472f] bg-[linear-gradient(160deg,#c68a5d_0%,#a76643_52%,#8c5337_100%)] shadow-[0_-14px_32px_rgb(19_33_60/.28)]">

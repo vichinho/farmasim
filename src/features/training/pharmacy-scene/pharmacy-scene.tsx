@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
@@ -8,13 +10,12 @@ import {
   type TrainingStage,
 } from "@/types/training-simulation";
 
-import { CounterWorkspace, StorageDrawers } from "./counter-workspace";
+import { WorkspaceHotspots } from "./counter-workspace";
 import { PatientActor } from "./patient-actor";
 import { PatientDialogue } from "./patient-dialogue";
 import { getPatientProfile, type SceneFeedbackTone, type WorkspaceArea } from "./scene-types";
 import { ServiceWindow } from "./service-window";
 import { usePatientSceneState } from "./use-patient-scene-state";
-import { WaitingQueue } from "./waiting-queue";
 
 type PharmacySceneProps = {
   caseId: string;
@@ -80,15 +81,20 @@ export function PharmacyScene({
 
         <div className="grid lg:grid-cols-[minmax(0,1.58fr)_minmax(20rem,0.82fr)]">
           <div className="bg-[#d7e1d8] p-3 sm:p-5">
-            <div className="relative min-h-[31rem] overflow-hidden rounded-[1.6rem] border-4 border-white bg-[#cbd9cf] shadow-inner sm:min-h-[38rem]">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[1.6rem] border-4 border-white bg-[#cbd9cf] shadow-inner sm:aspect-[16/10] xl:aspect-video">
               <ServiceWindow>
-                <WaitingQueue activeTurn={profile.turn} />
+                <Image
+                  alt="Farmacia virtual vista desde el puesto de atención, con sala de espera, turnero y equipamiento clínico ficticio"
+                  className="object-cover object-center"
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 68vw"
+                  src="/scenes/pharmacy-counter-v2.png"
+                />
                 <PatientActor profile={profile} state={scene.patientState} />
                 <PatientDialogue dialogue={scene.dialogue} profile={profile} state={scene.patientState} />
               </ServiceWindow>
-              <StorageDrawers active={scene.activeWorkspace === "storage"} />
-              <CounterWorkspace activeArea={scene.activeWorkspace} />
-              <div aria-hidden="true" className="absolute inset-x-0 bottom-0 z-50 h-4 bg-emerald-950/90" />
+              <WorkspaceHotspots activeArea={scene.activeWorkspace} />
             </div>
 
             <div aria-label="Progreso por estaciones del puesto" className="mt-3 grid grid-cols-3 gap-1.5 sm:grid-cols-5" role="list">

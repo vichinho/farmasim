@@ -21,7 +21,7 @@ export function PatientDialogue({
       {isVisible ? (
         <motion.div
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="absolute left-[4%] top-[24%] z-30 max-w-[48%] rounded-2xl rounded-bl-md border border-slate-900/80 bg-white/96 p-3 shadow-[0_10px_30px_rgb(19_33_60/.22)] backdrop-blur-sm sm:p-4"
+          className="absolute left-[4%] top-[22%] z-30 max-w-[56%] rounded-2xl rounded-bl-md border border-slate-900/80 bg-white/96 p-3 shadow-[0_10px_30px_rgb(19_33_60/.22)] backdrop-blur-sm sm:left-auto sm:right-[3%] sm:top-[24%] sm:max-w-[32%] sm:p-4"
           exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 5 }}
           initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 8 }}
           key={dialogue}
