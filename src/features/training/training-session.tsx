@@ -13,7 +13,7 @@ import {
 import { PharmacyScene } from "@/features/training/pharmacy-scene/pharmacy-scene";
 import { cn } from "@/lib/utils";
 import {
-  PROFESSIONAL_REVIEW_MARKER,
+  CONTENT_TRACEABILITY_NOTE,
   type AttemptCriterionResult,
   type CompetencyId,
   type CompetencyStatus,
@@ -433,7 +433,6 @@ export function TrainingSession({ levelNumber, mode, trainingCase }: TrainingSes
             trainingCase={trainingCase}
           />
         }
-        professionalReviewMarker={trainingCase.professionalReviewMarker}
         safety={{
           activeAlert: safetyAlert !== null,
           interceptedErrorCount: session.correctedErrorIds.length,
@@ -562,7 +561,7 @@ function StagePanel({
     );
   }
 
-  const content = stage.content.replace(PROFESSIONAL_REVIEW_MARKER, "").trim();
+  const content = stage.content.replace(CONTENT_TRACEABILITY_NOTE, "").trim();
   const isLearningCard = stage.type === "learning-card";
   const isReinforcement = stage.type === "reinforcement";
   const needsReinforcement = session.recordedErrorIds.some((errorId) => {

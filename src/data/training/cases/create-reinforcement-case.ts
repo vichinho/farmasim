@@ -1,7 +1,7 @@
 import { trainingCompetencies } from "@/data/training/competencies";
 import { case001AmbulatoryDispensing } from "@/data/training/cases/case-001-ambulatory-dispensing";
 import { assertValidTrainingCase } from "@/data/training/validate-training-case";
-import { PROFESSIONAL_REVIEW_MARKER, type TrainingCase } from "@/types/training-simulation";
+import { CONTENT_TRACEABILITY_NOTE, type TrainingCase } from "@/types/training-simulation";
 
 type ReinforcementCaseConfig = {
   description: string;
@@ -56,7 +56,7 @@ export function createReinforcementCase(config: ReinforcementCaseConfig) {
     if (stage.id === "prescription-review") {
       return {
         ...stage,
-        content: `${PROFESSIONAL_REVIEW_MARKER} Solicitud demostrativa: ${config.productName} ${config.requestedStrength}. No constituye una indicación ni una regla de dispensación.`,
+        content: `${CONTENT_TRACEABILITY_NOTE} Solicitud demostrativa: ${config.productName} ${config.requestedStrength}. No constituye una indicación ni una regla de dispensación.`,
       };
     }
 
@@ -106,7 +106,7 @@ export function createReinforcementCase(config: ReinforcementCaseConfig) {
     if (stage.id === "product-selection") {
       return {
         ...stage,
-        content: `${PROFESSIONAL_REVIEW_MARKER} La nueva disposición muestra dos cajas ficticias con presentaciones diferentes.`,
+        content: `${CONTENT_TRACEABILITY_NOTE} La nueva disposición muestra dos cajas ficticias con presentaciones diferentes.`,
         interaction: {
           type: "item-selection" as const,
           prompt: "Selecciona una caja para continuar la demostración.",
@@ -150,6 +150,11 @@ export function createReinforcementCase(config: ReinforcementCaseConfig) {
     version: "1.0.0-demo",
     title: config.title,
     description: config.description,
+    traceability: {
+      ...case001AmbulatoryDispensing.traceability,
+      medicationUsed: `${config.productName} ${config.requestedStrength} (ficticio)`,
+      scope: "Escenario de refuerzo autónomo para comparar concentraciones en un contexto ficticio.",
+    },
     reinforcementCaseSlug: config.reinforcementCaseSlug,
     context: {
       location: config.location,

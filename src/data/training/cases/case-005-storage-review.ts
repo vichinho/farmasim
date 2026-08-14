@@ -1,9 +1,6 @@
 import { trainingCompetencies } from "@/data/training/competencies";
 import { assertValidTrainingCase } from "@/data/training/validate-training-case";
-import {
-  PROFESSIONAL_REVIEW_MARKER,
-  type TrainingCase,
-} from "@/types/training-simulation";
+import { CONTENT_TRACEABILITY_NOTE, type TrainingCase } from "@/types/training-simulation";
 
 const case005Definition = {
   id: "case-005-storage-review",
@@ -11,23 +8,27 @@ const case005Definition = {
   levelId: "level-5",
   title: "Caso 005 - Revisión de almacenamiento",
   description:
-    "Caso ficticio para practicar el registro diario de almacenamiento y la separación entre medicamentos e insumos.",
+    "Caso ficticio para practicar el registro diario de almacenamiento de medicamentos.",
   contentValidation: "educational-development",
+  traceability: {
+    createdAt: "2026-08-14",
+    medicationUsed: "Producto farmacológico F-102 (ficticio)",
+    observations:
+      "La pauta se centra en medicamentos. La distinción con insumos se incorporará solo cuando un escenario cuente con fuente y objetivo educativo específicos.",
+    relatedProtocolIds: ["daily-storage-review-rubric", "medications-storage-protocol-v1"],
+    sourceIds: ["daily-storage-review-rubric", "medications-storage-protocol-v1", "arsenal-2026"],
+    status: "documented-base",
+    statement: CONTENT_TRACEABILITY_NOTE,
+    scope: "Registro diario educativo de almacenamiento de medicamentos.",
+  },
   initialStageId: "storage-context",
   context: {
     timeLabel: "07:45 h",
     location: "Área de almacenamiento ficticia",
     patientDescription: "Sin atención de paciente: revisión interna ficticia de almacenamiento.",
   },
-  competencies: ["storage-domain-separation", "storage-record-review"],
-  errors: [
-    {
-      id: "mixed-storage-domains",
-      competencyId: "storage-domain-separation",
-      description: "Se intentó registrar conjuntamente un medicamento ficticio y un insumo médico ficticio.",
-      severity: "important",
-    },
-  ],
+  competencies: ["storage-record-review"],
+  errors: [],
   barriers: [
     {
       id: "storage-record-completeness",
@@ -36,17 +37,7 @@ const case005Definition = {
       description: "Barrera educativa para completar los campos visibles del registro ficticio.",
     },
   ],
-  traps: [
-    {
-      id: "mixed-storage-domains-trap",
-      triggerStageId: "choose-review-register",
-      triggerOptionId: "open-combined-register",
-      errorId: "mixed-storage-domains",
-      revealStageIds: ["storage-result"],
-      recoveryStageIds: [],
-      patientImpactIfUnresolved: false,
-    },
-  ],
+  traps: [],
   stages: [
     {
       id: "storage-context",
@@ -59,52 +50,7 @@ const case005Definition = {
       interaction: {
         type: "continue",
         label: "Abrir pauta ficticia",
-        nextStageId: "choose-review-register",
-      },
-    },
-    {
-      id: "choose-review-register",
-      type: "storage-selection",
-      title: "Seleccionar registro",
-      area: "storage",
-      competencyIds: ["storage-domain-separation"],
-      content:
-        "La actividad presenta registros separados para medicamentos ficticios e insumos médicos ficticios.",
-      interaction: {
-        type: "item-selection",
-        prompt: "Selecciona el registro adecuado para el producto farmacológico ficticio F-102.",
-        items: [
-          { id: "medication-register", label: "Registro de medicamentos ficticios" },
-          { id: "supply-register", label: "Registro de insumos médicos ficticios" },
-          { id: "combined-register", label: "Registro combinado ficticio" },
-        ],
-        options: [
-          {
-            id: "open-medication-register",
-            isCorrect: true,
-            label: "Abrir registro de medicamentos ficticios",
-            feedbackTiming: "immediate",
-            feedback: "El escenario mantiene separados los dominios de medicamentos e insumos.",
-            nextStageId: "review-storage-record",
-          },
-          {
-            id: "open-supply-register",
-            isCorrect: false,
-            label: "Abrir registro de insumos médicos ficticios",
-            feedbackTiming: "immediate",
-            feedback: "El producto mostrado pertenece al registro ficticio de medicamentos. Revisa nuevamente.",
-            nextStageId: "choose-review-register",
-          },
-          {
-            id: "open-combined-register",
-            isCorrect: false,
-            label: "Abrir registro combinado ficticio",
-            feedbackTiming: "immediate",
-            feedback: "La actividad registra una mezcla de dominios y pide volver al registro separado.",
-            effects: [{ type: "record-error", errorId: "mixed-storage-domains" }],
-            nextStageId: "choose-review-register",
-          },
-        ],
+        nextStageId: "review-storage-record",
       },
     },
     {
@@ -113,7 +59,7 @@ const case005Definition = {
       title: "Revisión diaria ficticia",
       area: "storage",
       competencyIds: ["storage-record-review"],
-      content: `${PROFESSIONAL_REVIEW_MARKER} Registro ficticio F-102: completa las comprobaciones visibles. No se evalúan condiciones clínicas ni se modifica inventario real.`,
+      content: `${CONTENT_TRACEABILITY_NOTE} Registro ficticio F-102: completa las comprobaciones visibles. No se evalúan condiciones clínicas ni se modifica inventario real.`,
       interaction: {
         type: "operational-check",
         prompt: "Completa las acciones observables del registro ficticio.",
@@ -137,8 +83,8 @@ const case005Definition = {
       type: "result",
       title: "Resultado de almacenamiento",
       area: "storage",
-      competencyIds: ["storage-domain-separation", "storage-record-review"],
-      content: "El resultado resume las acciones y la separación de dominios dentro del escenario ficticio.",
+      competencyIds: ["storage-record-review"],
+      content: "El resultado resume las acciones del registro dentro del escenario ficticio.",
       interaction: { type: "continue", label: "Ver recordatorio", nextStageId: "storage-learning-card" },
     },
     {
@@ -146,8 +92,8 @@ const case005Definition = {
       type: "learning-card",
       title: "NO OLVIDAR",
       area: "storage",
-      competencyIds: ["storage-domain-separation", "storage-record-review"],
-      content: `${PROFESSIONAL_REVIEW_MARKER} Mantén separados los registros educativos de medicamentos e insumos. Ante una condición no prevista por el escenario, registra la situación y deriva la evaluación al QF.`,
+      competencyIds: ["storage-record-review"],
+      content: "Registra las observaciones visibles del escenario educativo. Ante una condición no prevista, detén la actividad y deriva la situación al QF según el protocolo aplicable.",
       interaction: { type: "complete", label: "Finalizar revisión" },
     },
   ],

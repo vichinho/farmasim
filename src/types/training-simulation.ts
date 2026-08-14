@@ -1,5 +1,5 @@
-export const PROFESSIONAL_REVIEW_MARKER =
-  "[CONTENIDO PENDIENTE DE VALIDACIÓN PROFESIONAL]";
+export const CONTENT_TRACEABILITY_NOTE =
+  "Contenido educativo basado en fuentes documentales adjuntas. Sin validación institucional específica.";
 
 export type ContentValidationStatus =
   | "documented-base"
@@ -8,6 +8,17 @@ export type ContentValidationStatus =
   | "institutionally-approved";
 
 export type ContentTraceabilityRecord = {
+  createdAt: string;
+  medicationUsed?: string;
+  observations?: string;
+  relatedProtocolIds: EducationalSourceId[];
+  review?: {
+    reviewedAt: string;
+    reviewerName: string;
+    reviewerRole: string;
+    scope: string;
+  };
+  sourceIds: EducationalSourceId[];
   status: ContentValidationStatus;
   statement: string;
   scope: string;
@@ -82,7 +93,6 @@ export type CompetencyId =
   | "product-selection"
   | "concentration-verification"
   | "final-verification"
-  | "storage-domain-separation"
   | "storage-record-review";
 
 export type CompetencyStatus = "mastered" | "in-progress" | "reinforcement";
@@ -244,10 +254,10 @@ export type TrainingCase = {
   id: string;
   initialStageId: string;
   levelId: string;
-  professionalReviewMarker?: typeof PROFESSIONAL_REVIEW_MARKER;
   reinforcementCaseSlug?: string;
   stages: TrainingStage[];
   title: string;
+  traceability: ContentTraceabilityRecord;
   traps: ScenarioTrap[];
   version: string;
 };

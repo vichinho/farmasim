@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { motion, useReducedMotion } from "motion/react";
 import {
-  PROFESSIONAL_REVIEW_MARKER,
+  CONTENT_TRACEABILITY_NOTE,
   type TrainingCase,
   type TrainingStage,
 } from "@/types/training-simulation";
@@ -39,7 +39,6 @@ type PharmacySceneProps = {
   isComplete: boolean;
   outcome: { errorReachedPatient: boolean };
   panel: React.ReactNode;
-  professionalReviewMarker?: string;
   safety: SafetyState;
   stage: TrainingStage;
   statusLabel: string;
@@ -68,7 +67,6 @@ export function PharmacyScene({
   isComplete,
   outcome,
   panel,
-  professionalReviewMarker,
   safety,
   stage,
   statusLabel,
@@ -144,7 +142,7 @@ export function PharmacyScene({
       </div>
 
       <p className="px-2 text-xs leading-5 text-[var(--muted)]">
-        {professionalReviewMarker ?? PROFESSIONAL_REVIEW_MARKER} Escenario y pacientes completamente ficticios; esta actividad no reemplaza protocolos ni supervisión profesional.
+        {CONTENT_TRACEABILITY_NOTE} Escenario y pacientes completamente ficticios; esta actividad no reemplaza protocolos ni supervisión profesional.
       </p>
     </section>
   );

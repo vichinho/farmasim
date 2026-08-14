@@ -72,6 +72,16 @@ export const educationalSources = [
 ] satisfies EducationalSource[];
 
 export const contentTraceability = {
+  createdAt: "2026-08-14",
+  relatedProtocolIds: [
+    "dispensing-evaluation-rubric-7-criteria",
+    "medications-storage-protocol-v1",
+  ],
+  sourceIds: [
+    "dispensing-evaluation-rubric-7-criteria",
+    "seminar-diagnosis-2026",
+    "arsenal-2026",
+  ],
   status: "documented-base",
   statement:
     "Contenido educativo basado en fuentes documentales adjuntas. Sin validación institucional específica.",

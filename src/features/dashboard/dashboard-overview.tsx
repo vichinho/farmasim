@@ -97,7 +97,7 @@ export function DashboardOverview({
                   <p className="text-sm font-semibold text-[var(--brand-strong)]">Cápsula rápida</p>
                   <h3 className="mt-1 text-lg font-bold">Tu primera cápsula estará aquí</h3>
                   <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">
-                    Contenido breve, ficticio y pendiente de validación profesional cuando corresponda.
+                    Contenido breve basado en fuentes documentales, disponible para tu práctica autónoma.
                   </p>
                 </div>
               </div>
