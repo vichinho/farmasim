@@ -8,6 +8,7 @@ type SaveSimulationAttemptInput = {
   attemptId: string;
   correctAnswers: number;
   incorrectAnswers: number;
+  levelNumber?: number;
   scenarioSlug: string;
   startedAt: string;
 };
@@ -28,8 +29,11 @@ export async function saveSimulationAttempt(
     !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.scenarioSlug) ||
     !Number.isInteger(input.correctAnswers) ||
     !Number.isInteger(input.incorrectAnswers) ||
+    (input.levelNumber !== undefined && !Number.isInteger(input.levelNumber)) ||
     input.correctAnswers < 0 ||
     input.incorrectAnswers < 0 ||
+    (input.levelNumber !== undefined &&
+      (input.levelNumber < 1 || input.levelNumber > 4)) ||
     Number.isNaN(Date.parse(input.startedAt))
   ) {
     return { message: "El resultado recibido no es válido.", status: "error" };
@@ -48,6 +52,7 @@ export async function saveSimulationAttempt(
     p_incorrect_answers: input.incorrectAnswers,
     p_scenario_slug: input.scenarioSlug,
     p_started_at: input.startedAt,
+    ...(input.levelNumber !== undefined ? { p_level_number: input.levelNumber } : {}),
   });
 
   if (error) {
@@ -60,6 +65,7 @@ export async function saveSimulationAttempt(
 
   revalidatePath("/dashboard");
   revalidatePath("/progreso");
+  revalidatePath("/simulaciones");
 
   if (!data) {
     return { message: "Este intento ya estaba guardado.", status: "duplicate" };

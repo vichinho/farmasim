@@ -1,8 +1,8 @@
-# FarmaSim
+# FarmaVerse
 
 **Aprende. Practica. Simula.**
 
-FarmaSim es una plataforma web gamificada para apoyar procesos de capacitación
+FarmaVerse es una plataforma web gamificada para apoyar procesos de capacitación
 mediante microaprendizaje, simulaciones interactivas y seguimiento del progreso.
 La experiencia está diseñada principalmente para teléfonos, sin excluir el uso
 desde computadores.
@@ -11,7 +11,7 @@ desde computadores.
 
 La incorporación de personal en farmacias puede requerir aprender numerosos
 procedimientos operativos mediante documentos, capacitaciones y experiencia
-directa. FarmaSim busca ofrecer un entorno complementario donde practicar
+directa. FarmaVerse busca ofrecer un entorno complementario donde practicar
 situaciones ficticias antes de enfrentarlas en el trabajo.
 
 ## Solución
@@ -55,7 +55,7 @@ modo turno y la experiencia offline quedan fuera del MVP.
 
 ## Arquitectura
 
-FarmaSim seguirá una arquitectura de monolito modular. Las rutas y layouts
+FarmaVerse seguirá una arquitectura de monolito modular. Las rutas y layouts
 vivirán en `src/app`; cada capacidad del producto tendrá su propio módulo en
 `src/features`; los componentes visuales compartidos estarán en
 `src/components`; y las integraciones externas estarán en `src/lib`.
@@ -106,6 +106,7 @@ La aplicación estará disponible en `http://localhost:3000`.
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | URL pública del proyecto Supabase. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Clave publicable para el cliente. |
+| `NEXT_PUBLIC_SITE_URL` | URL canónica para metadatos y vista previa social. |
 
 No se deben guardar claves secretas ni una clave `service_role` en variables
 expuestas al navegador. `.env.local` está ignorado por Git.
@@ -123,11 +124,30 @@ ejecuta `npx supabase db push`. Las credenciales reales se mantienen solo en
 
 ## Autenticación
 
-FarmaSim utiliza Supabase Auth con correo y contraseña. Las rutas `/dashboard`,
+FarmaVerse utiliza Supabase Auth con correo y contraseña. Las rutas `/dashboard`,
 `/simulaciones`, `/novedades`, `/aprender`, `/progreso` y `/perfil` requieren una sesión
 validada. Para que los enlaces de recuperación funcionen fuera de desarrollo,
 agrega la URL de producción y `http://localhost:3000/auth/callback` a las
 Redirect URLs de Supabase Auth.
+
+## Privacidad y sesiones
+
+La ruta pública `/privacidad` informa los datos mínimos usados por la demo. El
+registro exige confirmar su lectura y `/perfil` permite revisar la sesión actual,
+cerrarla localmente o revocar las demás sesiones. Las respuestas autenticadas no
+se almacenan en cachés compartidas. La evaluación técnica y los pendientes para
+producción están en [`docs/privacy-security.md`](docs/privacy-security.md).
+
+La lista operativa y los tres respaldos de la presentación están en
+[`docs/presentation-checklist.md`](docs/presentation-checklist.md).
+
+## Despliegue público
+
+La demostración estable está publicada en <https://farmasim.vercel.app>. El QR
+para la presentación está disponible en
+[`public/farmasim-qr.png`](public/farmasim-qr.png). Vercel está conectado al
+repositorio; las variables públicas de Supabase se administran desde el entorno
+del proyecto y no se guardan en Git.
 
 ## Dashboard
 
@@ -147,9 +167,8 @@ en el servidor; únicamente el plano exploratorio requiere estado en el cliente.
 El Caso 001 se interpreta desde datos separados de la interfaz mediante un motor
 de sesión genérico. Sus 16 etapas recorren contexto, paciente, identificación,
 sistema ficticio, solicitud, almacenamiento, selección, preparación, doble
-chequeo, verificación final, resultado y cierre educativo. Las decisiones y sus
-efectos viven en la sesión del navegador; la persistencia ampliada se incorporará
-después de estabilizar el modelo de resultados.
+chequeo, verificación final, resultado y cierre educativo. Al terminar, el
+intento y su resultado se guardan de forma idempotente en Supabase.
 
 Los niveles 1, 2 y 3 reutilizan este mismo escenario con modos distintos. El
 primero ofrece orientación contextual; el segundo conserva el feedback diferido
@@ -174,7 +193,7 @@ dispensación farmacéutica.
 
 ## Progreso del usuario
 
-Al completar una simulación, FarmaSim guarda el intento de forma idempotente en
+Al completar una simulación, FarmaVerse guarda el intento de forma idempotente en
 Supabase con su precisión, respuestas correctas e incorrectas, XP y fecha. Una
 función transaccional calcula el resultado en la base de datos, actualiza el XP
 y nivel del perfil y desbloquea la primera insignia sin permitir que el cliente
@@ -238,7 +257,7 @@ Supabase ni reemplaza el escenario estable actual.
 
 ## Landing
 
-La ruta principal presenta FarmaSim, sus beneficios y el flujo de aprendizaje.
+La ruta principal presenta FarmaVerse, sus beneficios y el flujo de aprendizaje.
 Incluye un escenario visual ficticio para explicar la experiencia sin exponer
 contenido clínico ni protocolos reales.
 
@@ -253,7 +272,7 @@ Proyecto desarrollado por Vicente con apoyo de Codex.
 
 ## Disclaimer
 
-FarmaSim es un prototipo de capacitación y simulación. El contenido incluido en
+FarmaVerse es un prototipo de capacitación y simulación. El contenido incluido en
 esta versión es demostrativo y no reemplaza protocolos institucionales,
 instrucciones profesionales, normativa sanitaria ni supervisión del químico
 farmacéutico.

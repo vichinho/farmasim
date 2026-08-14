@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { trainingCompetencies } from "@/data/training";
-import { VisualPharmacy } from "@/features/training/visual-pharmacy";
+import { getTrainingLevelByCaseSlug, trainingCompetencies } from "@/data/training";
+import {
+  saveSimulationAttempt,
+  type SaveSimulationAttemptResult,
+} from "@/features/progress/actions";
+import { PharmacyScene } from "@/features/training/pharmacy-scene/pharmacy-scene";
 import { cn } from "@/lib/utils";
 import {
   PROFESSIONAL_REVIEW_MARKER,
@@ -34,9 +38,11 @@ type SessionState = {
 type FeedbackState = {
   message: string;
   nextStageId: string;
+  tone: "concerned" | "positive";
 };
 
 type TrainingSessionProps = {
+  levelNumber: number;
   mode: TrainingMode;
   trainingCase: TrainingCase;
 };
@@ -106,10 +112,36 @@ function moveToStage(state: SessionState, stageId: string) {
   };
 }
 
-export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
+function scoreAttempt(session: SessionState, trainingCase: TrainingCase) {
+  const latestDecisionByStage = new Map(
+    session.decisionHistory.map((decision) => [decision.stageId, decision.optionId]),
+  );
+  const scoredStages = trainingCase.stages.filter(
+    (stage) =>
+      stage.interaction.type === "decision" || stage.interaction.type === "item-selection",
+  );
+  const correctAnswers = scoredStages.filter((stage) => {
+    if (stage.interaction.type !== "decision" && stage.interaction.type !== "item-selection") {
+      return false;
+    }
+    const optionId = latestDecisionByStage.get(stage.id);
+    return stage.interaction.options.some((option) => option.id === optionId && option.isCorrect);
+  }).length;
+
+  return {
+    correctAnswers,
+    incorrectAnswers: scoredStages.length - correctAnswers,
+  };
+}
+
+export function TrainingSession({ levelNumber, mode, trainingCase }: TrainingSessionProps) {
   const [session, setSession] = useState(() => createInitialState(trainingCase));
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [isComplete, setIsComplete] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveResult, setSaveResult] = useState<SaveSimulationAttemptResult | null>(null);
+  const attemptId = useRef(crypto.randomUUID());
+  const startedAt = useRef(new Date().toISOString());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const currentStage =
     trainingCase.stages.find((stage) => stage.id === session.currentStageId) ??
@@ -171,7 +203,11 @@ export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
     );
 
     if (option.feedbackTiming === "immediate" && feedbackMessage) {
-      setFeedback({ message: feedbackMessage, nextStageId: option.nextStageId });
+      setFeedback({
+        message: feedbackMessage,
+        nextStageId: option.nextStageId,
+        tone: option.isCorrect ? "positive" : "concerned",
+      });
       return;
     }
 
@@ -188,7 +224,32 @@ export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
     setSession(createInitialState(trainingCase));
     setFeedback(null);
     setIsComplete(false);
+    setIsSaving(false);
+    setSaveResult(null);
+    attemptId.current = crypto.randomUUID();
+    startedAt.current = new Date().toISOString();
     setElapsedSeconds(0);
+  }
+
+  async function persistAttempt() {
+    if (isSaving) return;
+
+    setIsSaving(true);
+    const score = scoreAttempt(session, trainingCase);
+    const result = await saveSimulationAttempt({
+      attemptId: attemptId.current,
+      levelNumber,
+      scenarioSlug: trainingCase.id,
+      startedAt: startedAt.current,
+      ...score,
+    });
+    setSaveResult(result);
+    setIsSaving(false);
+  }
+
+  function completeTraining() {
+    setIsComplete(true);
+    void persistAttempt();
   }
 
   function handleInterruption() {
@@ -240,7 +301,7 @@ export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
             style={{ width: `${progress}%` }}
           />
         </div>
-        {mode.guidance !== "guided" ? (
+        {mode.notice ? (
           <p
             className={cn(
               "mt-3 rounded-xl px-3 py-2 text-xs font-semibold leading-5",
@@ -249,36 +310,42 @@ export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
                 : "bg-slate-50 text-slate-700",
             )}
           >
-            {mode.guidance === "minimal"
-              ? "Modo presión: habrá interrupciones y la orientación estará reducida. El cronómetro es informativo."
-              : "Modo trampa: algunas decisiones avanzan sin revelar inmediatamente si existe una discrepancia."}
+            {mode.notice}
           </p>
         ) : null}
       </div>
 
-      <VisualPharmacy
-        activeArea={currentStage.area}
+      <PharmacyScene
+        caseId={trainingCase.id}
         context={trainingCase.context}
+        feedbackTone={feedback?.tone ?? null}
+        isComplete={isComplete}
+        outcome={outcome}
         panel={
           <StagePanel
             elapsedSeconds={elapsedSeconds}
             feedback={feedback}
             hasPendingInterruption={hasPendingInterruption}
             isComplete={isComplete}
+            isSaving={isSaving}
+            levelNumber={levelNumber}
             mode={mode}
             onChooseOption={chooseOption}
-            onComplete={() => setIsComplete(true)}
+            onComplete={completeTraining}
             onContinue={advance}
             onContinueAfterFeedback={continueAfterFeedback}
             onHandleInterruption={handleInterruption}
             onRestart={restart}
+            onRetrySave={() => void persistAttempt()}
             outcome={outcome}
             session={session}
+            saveResult={saveResult}
             stage={currentStage}
             trainingCase={trainingCase}
           />
         }
         professionalReviewMarker={trainingCase.professionalReviewMarker}
+        stage={currentStage}
         statusLabel={statusLabel}
       />
     </div>
@@ -290,6 +357,8 @@ type StagePanelProps = {
   feedback: FeedbackState | null;
   hasPendingInterruption: boolean;
   isComplete: boolean;
+  isSaving: boolean;
+  levelNumber: number;
   mode: TrainingMode;
   onChooseOption: (option: DecisionOption) => void;
   onComplete: () => void;
@@ -297,8 +366,10 @@ type StagePanelProps = {
   onContinueAfterFeedback: () => void;
   onHandleInterruption: () => void;
   onRestart: () => void;
+  onRetrySave: () => void;
   outcome: { barrierEffective: boolean; errorReachedPatient: boolean };
   session: SessionState;
+  saveResult: SaveSimulationAttemptResult | null;
   stage: TrainingStage;
   trainingCase: TrainingCase;
 };
@@ -308,6 +379,8 @@ function StagePanel({
   feedback,
   hasPendingInterruption,
   isComplete,
+  isSaving,
+  levelNumber,
   mode,
   onChooseOption,
   onComplete,
@@ -315,8 +388,10 @@ function StagePanel({
   onContinueAfterFeedback,
   onHandleInterruption,
   onRestart,
+  onRetrySave,
   outcome,
   session,
+  saveResult,
   stage,
   trainingCase,
 }: StagePanelProps) {
@@ -325,8 +400,11 @@ function StagePanel({
       <CompletionPanel
         caseTitle={trainingCase.title}
         elapsedSeconds={elapsedSeconds}
+        isSaving={isSaving}
         mode={mode}
         onRestart={onRestart}
+        onRetrySave={onRetrySave}
+        saveResult={saveResult}
       />
     );
   }
@@ -473,7 +551,7 @@ function StagePanel({
           {isReinforcement && needsReinforcement && trainingCase.reinforcementCaseSlug ? (
             <Link
               className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[var(--brand)] px-5 text-center text-base font-semibold text-white hover:bg-[var(--brand-strong)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
-              href={`/simulaciones/${trainingCase.reinforcementCaseSlug}?nivel=1`}
+              href={`/simulaciones/${trainingCase.reinforcementCaseSlug}?nivel=${getTrainingLevelByCaseSlug(trainingCase.reinforcementCaseSlug)?.number ?? levelNumber}`}
             >
               Iniciar entrenamiento recomendado
             </Link>
@@ -489,10 +567,6 @@ function StagePanel({
         </div>
       ) : null}
 
-      <p className="mt-auto pt-6 text-xs leading-5 text-[var(--muted)]">
-        {trainingCase.professionalReviewMarker ?? PROFESSIONAL_REVIEW_MARKER} Actividad ficticia;
-        no reemplaza protocolos ni supervisión profesional.
-      </p>
     </div>
   );
 }
@@ -594,13 +668,19 @@ function ResultMetric({ label, value }: { label: string; value: number | string 
 function CompletionPanel({
   caseTitle,
   elapsedSeconds,
+  isSaving,
   mode,
   onRestart,
+  onRetrySave,
+  saveResult,
 }: {
   caseTitle: string;
   elapsedSeconds: number;
+  isSaving: boolean;
   mode: TrainingMode;
   onRestart: () => void;
+  onRetrySave: () => void;
+  saveResult: SaveSimulationAttemptResult | null;
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center text-center" aria-live="polite">
@@ -619,8 +699,19 @@ function CompletionPanel({
           Tiempo: {formatTime(elapsedSeconds)} · Objetivo: {formatTime(mode.pressureTargetSeconds)}
         </p>
       ) : null}
+      <p
+        className="mt-4 w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm"
+        role="status"
+      >
+        {isSaving ? "Guardando tu progreso..." : saveResult?.message ?? "Preparando el guardado..."}
+      </p>
+      {saveResult?.status === "error" ? (
+        <Button className="mt-3" fullWidth onClick={onRetrySave} variant="secondary">
+          Reintentar guardado
+        </Button>
+      ) : null}
       <div className="mt-6 grid w-full gap-3">
-        <Button fullWidth onClick={onRestart} size="lg">
+        <Button disabled={isSaving} fullWidth onClick={onRestart} size="lg">
           Repetir caso
         </Button>
         <Link

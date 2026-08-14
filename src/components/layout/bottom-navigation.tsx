@@ -14,7 +14,7 @@ const navigationItems: NavigationItem[] = [
   { href: "/simulaciones", icon: "play", label: "Simular" },
   { href: "/novedades", icon: "book", label: "Novedades" },
   { href: "/progreso", icon: "chart", label: "Progreso" },
-  { icon: "user", label: "Perfil" },
+  { href: "/perfil", icon: "user", label: "Perfil" },
 ];
 
 type BottomNavigationProps = {

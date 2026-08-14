@@ -8,6 +8,7 @@ type ReinforcementCaseConfig = {
   distractorFirst?: boolean;
   distractorStrength: string;
   id: string;
+  levelId: string;
   location: string;
   patientDescription: string;
   patientDialogue: string;
@@ -25,6 +26,7 @@ export function createReinforcementCase(config: ReinforcementCaseConfig) {
   const distractorItem = { id: "distractor-product", label: distractorLabel };
   const correctOption = {
     id: "select-target-product",
+    isCorrect: true,
     label: `Seleccionar ${config.productName} ${config.requestedStrength}`,
     feedbackTiming: "deferred" as const,
     effects: [{ type: "select-item" as const, itemId: "target-product" }],
@@ -32,6 +34,7 @@ export function createReinforcementCase(config: ReinforcementCaseConfig) {
   };
   const distractorOption = {
     id: "select-distractor-product",
+    isCorrect: false,
     label: `Seleccionar ${config.productName} ${config.distractorStrength}`,
     feedbackTiming: "deferred" as const,
     effects: [
@@ -73,6 +76,7 @@ export function createReinforcementCase(config: ReinforcementCaseConfig) {
           options: [
             {
               id: "open-other-drawer-a",
+              isCorrect: false,
               label: "Abrir gaveta A",
               feedbackTiming: "immediate" as const,
               feedback: "La etiqueta ficticia no coincide. Puedes revisar otra gaveta.",
@@ -80,6 +84,7 @@ export function createReinforcementCase(config: ReinforcementCaseConfig) {
             },
             {
               id: "open-target-drawer",
+              isCorrect: true,
               label: `Abrir gaveta ${config.productName.toUpperCase()} ${config.requestedStrength}`,
               feedbackTiming: "none" as const,
               effects: [{ type: "select-item" as const, itemId: "drawer-target" }],
@@ -87,6 +92,7 @@ export function createReinforcementCase(config: ReinforcementCaseConfig) {
             },
             {
               id: "open-other-drawer-b",
+              isCorrect: false,
               label: "Abrir gaveta B",
               feedbackTiming: "immediate" as const,
               feedback: "La etiqueta ficticia no coincide. Puedes revisar otra gaveta.",
@@ -140,6 +146,7 @@ export function createReinforcementCase(config: ReinforcementCaseConfig) {
   const definition = {
     ...case001AmbulatoryDispensing,
     id: config.id,
+    levelId: config.levelId,
     version: "1.0.0-demo",
     title: config.title,
     description: config.description,

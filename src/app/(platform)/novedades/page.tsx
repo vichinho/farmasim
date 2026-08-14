@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { trainingContentUpdates } from "@/data/training/content-updates";
 
 export const metadata: Metadata = {
-  title: "Novedades | FarmaSim",
-  description: "Contenido y entrenamientos incorporados a la demostración de FarmaSim.",
+  title: "Novedades | FarmaVerse",
+  description: "Contenido y entrenamientos incorporados a la demostración de FarmaVerse.",
 };
 
 const typeLabels = {
@@ -27,7 +27,7 @@ export default function UpdatesPage() {
             Contenido actualizado
           </h1>
           <p className="mt-3 text-base leading-7 text-[var(--muted)]">
-            Esta pantalla demuestra cómo FarmaSim puede incorporar nuevos casos, modos y
+            Esta pantalla demuestra cómo FarmaVerse puede incorporar nuevos casos, modos y
             entrenamientos después de su publicación.
           </p>
         </header>

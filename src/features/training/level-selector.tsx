@@ -1,21 +1,26 @@
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { trainingLevels } from "@/data/training";
 import { cn } from "@/lib/utils";
-import type { TrainingLevelStatus } from "@/types/training-simulation";
+import type {
+  TrainingLevel,
+  TrainingLevelStatus,
+} from "@/types/training-simulation";
 
 const statusCopy: Record<
   TrainingLevelStatus,
   { badge: string; cta: string; tone: "brand" | "neutral" | "warning" }
 > = {
   available: { badge: "Disponible", cta: "Entrar al nivel", tone: "brand" },
+  completed: { badge: "Completado", cta: "Repetir nivel", tone: "brand" },
   "coming-soon": { badge: "Próximamente", cta: "En preparación", tone: "warning" },
   locked: { badge: "Bloqueado", cta: "Completa niveles anteriores", tone: "neutral" },
 };
 
-export function LevelSelector() {
-  const availableLevelCount = trainingLevels.filter((level) => level.status === "available").length;
+export function LevelSelector({ levels }: { levels: TrainingLevel[] }) {
+  const availableLevelCount = levels.filter(
+    (level) => level.status === "available" || level.status === "completed",
+  ).length;
 
   return (
     <section aria-labelledby="level-list-heading">
@@ -24,14 +29,14 @@ export function LevelSelector() {
           Ruta de entrenamiento
         </h2>
         <span className="text-sm font-medium text-[var(--muted)]">
-          {availableLevelCount} de {trainingLevels.length}{" "}
+          {availableLevelCount} de {levels.length}{" "}
           {availableLevelCount === 1 ? "disponible" : "disponibles"}
         </span>
       </div>
 
       <ol className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {trainingLevels.map((level) => {
-          const isAvailable = level.status === "available";
+        {levels.map((level) => {
+          const isAvailable = level.status === "available" || level.status === "completed";
           const status = statusCopy[level.status];
           const href = level.caseSlugs[0]
             ? `/simulaciones/${level.caseSlugs[0]}?nivel=${level.number}`

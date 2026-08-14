@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 256" role="img" aria-labelledby="farmaverse-logo-title farmaverse-logo-desc">
+  <title id="farmaverse-logo-title">FarmaVerse</title>
+  <desc id="farmaverse-logo-desc">Logotipo de FarmaVerse con una V formada por cápsulas y una órbita.</desc>
+  <g>
+    <ellipse cx="128" cy="128" rx="101" ry="47" transform="rotate(-10 128 128)" fill="none" stroke="#34D399" stroke-width="11"/>
+    <path d="M70 61 128 190" fill="none" stroke="#0F766E" stroke-width="50" stroke-linecap="round"/>
+    <path d="m186 61-58 129" fill="none" stroke="#6EE7B7" stroke-width="50" stroke-linecap="round"/>
+    <circle cx="224" cy="110" r="14" fill="#F2B84B"/>
+  </g>
+  <text x="278" y="158" fill="#064E3B" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="92" font-weight="750" letter-spacing="-4">
+    <tspan>Farma</tspan><tspan fill="#0F766E">Verse</tspan>
+  </text>
+</svg>

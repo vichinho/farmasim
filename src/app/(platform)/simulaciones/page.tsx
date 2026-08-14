@@ -3,13 +3,16 @@ import type { Metadata } from "next";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { PageContainer } from "@/components/layout/page-container";
 import { LevelSelector } from "@/features/training/level-selector";
+import { loadTrainingLevels } from "@/features/training/load-training-levels";
 
 export const metadata: Metadata = {
-  title: "Elige un nivel | FarmaSim",
-  description: "Selecciona una experiencia de simulación en FarmaSim.",
+  title: "Elige un nivel | FarmaVerse",
+  description: "Selecciona una experiencia de simulación en FarmaVerse.",
 };
 
-export default function SimulationsPage() {
+export default async function SimulationsPage() {
+  const levels = await loadTrainingLevels();
+
   return (
     <>
       <PageContainer className="space-y-7">
@@ -26,7 +29,7 @@ export default function SimulationsPage() {
           </p>
         </header>
 
-        <LevelSelector />
+        <LevelSelector levels={levels} />
       </PageContainer>
       <BottomNavigation activeHref="/simulaciones" />
     </>

@@ -31,7 +31,7 @@ export function DashboardOverview({
     <>
       <PageContainer className="space-y-6">
         <div className="flex items-start justify-between gap-4">
-          <AppHeader eyebrow="FARMA SIM" title="Tu espacio de capacitación" />
+          <AppHeader title="Tu espacio de capacitación" />
           <form action={logout}>
             <Button className="shrink-0" size="sm" type="submit" variant="ghost">
               Salir

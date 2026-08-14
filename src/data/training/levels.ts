@@ -15,7 +15,7 @@ export const trainingLevels = [
     title: "Detecta la trampa",
     description: "Practica una discrepancia ficticia y utiliza una barrera de seguridad.",
     status: "available",
-    caseSlugs: ["case-001-ambulatory-dispensing"],
+    caseSlugs: ["case-002-concentration-reinforcement"],
   },
   {
     id: "level-3",
@@ -23,15 +23,15 @@ export const trainingLevels = [
     title: "Trabaja bajo presión",
     description: "Resuelve interrupciones demostrativas sin perder el orden del proceso.",
     status: "available",
-    caseSlugs: ["case-001-ambulatory-dispensing"],
+    caseSlugs: ["case-003-concentration-reinforcement"],
   },
   {
     id: "level-4",
     number: 4,
-    title: "Jornada completa",
-    description: "Nivel futuro con varios casos consecutivos.",
+    title: "Consolida el proceso",
+    description: "Integra lo aprendido en un cuarto caso con menor orientación.",
     status: "locked",
-    caseSlugs: [],
+    caseSlugs: ["case-004-concentration-reinforcement"],
   },
   {
     id: "level-5",
@@ -58,3 +58,24 @@ export const trainingLevels = [
     caseSlugs: [],
   },
 ] satisfies TrainingLevel[];
+
+export function resolveTrainingLevels(completedLevelNumbers: number[]) {
+  const completed = new Set(completedLevelNumbers);
+  const levelFourUnlocked = [1, 2, 3].every((levelNumber) => completed.has(levelNumber));
+
+  return trainingLevels.map((level) => {
+    if (completed.has(level.number)) {
+      return { ...level, status: "completed" as const };
+    }
+
+    if (level.number === 4 && levelFourUnlocked) {
+      return { ...level, status: "available" as const };
+    }
+
+    return level;
+  });
+}
+
+export function getTrainingLevelByCaseSlug(caseSlug: string) {
+  return trainingLevels.find((level) => level.caseSlugs.includes(caseSlug));
+}

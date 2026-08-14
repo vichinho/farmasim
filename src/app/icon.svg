@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="farmaverse-icon-title farmaverse-icon-desc">
+  <title id="farmaverse-icon-title">Icono de FarmaVerse</title>
+  <desc id="farmaverse-icon-desc">Una letra V formada por dos cápsulas, rodeada por una órbita con un nodo, sobre fondo verde.</desc>
+  <rect width="512" height="512" rx="112" fill="#064E3B"/>
+  <ellipse cx="256" cy="256" rx="202" ry="94" transform="rotate(-10 256 256)" fill="none" stroke="#D1FAE5" stroke-width="22"/>
+  <path d="m140 122 116 258" fill="none" stroke="#10B981" stroke-width="100" stroke-linecap="round"/>
+  <path d="M372 122 256 380" fill="none" stroke="#6EE7B7" stroke-width="100" stroke-linecap="round"/>
+  <circle cx="448" cy="220" r="28" fill="#F2B84B"/>
+</svg>

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">FarmaVerse — Aprende. Practica. Simula.</title>
+  <desc id="desc">Imagen de presentación de FarmaVerse para redes sociales.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#052E2B"/>
+      <stop offset="1" stop-color="#064E3B"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#6EE7B7" stop-opacity=".32"/>
+      <stop offset="1" stop-color="#6EE7B7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#background)"/>
+  <circle cx="1040" cy="90" r="360" fill="url(#glow)"/>
+  <circle cx="1060" cy="560" r="290" fill="none" stroke="#6EE7B7" stroke-opacity=".12" stroke-width="2"/>
+  <circle cx="1060" cy="560" r="210" fill="none" stroke="#6EE7B7" stroke-opacity=".18" stroke-width="2"/>
+  <g transform="translate(730 125) scale(1.48)">
+    <ellipse cx="128" cy="128" rx="101" ry="47" transform="rotate(-10 128 128)" fill="none" stroke="#D1FAE5" stroke-width="11"/>
+    <path d="M70 61 128 190" fill="none" stroke="#10B981" stroke-width="50" stroke-linecap="round"/>
+    <path d="m186 61-58 129" fill="none" stroke="#6EE7B7" stroke-width="50" stroke-linecap="round"/>
+    <circle cx="224" cy="110" r="14" fill="#F2B84B"/>
+  </g>
+  <text x="88" y="240" fill="#FAFAF7" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="94" font-weight="750" letter-spacing="-5">Farma<tspan fill="#6EE7B7">Verse</tspan></text>
+  <text x="94" y="320" fill="#D1FAE5" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="34" font-weight="650">Aprende. Practica. Simula.</text>
+  <rect x="92" y="390" width="430" height="2" fill="#34D399" opacity=".5"/>
+  <text x="94" y="446" fill="#A7F3D0" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="23">Entrenamiento interactivo con casos ficticios</text>
+</svg>

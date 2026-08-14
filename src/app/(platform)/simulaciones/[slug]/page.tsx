@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { PageContainer } from "@/components/layout/page-container";
@@ -9,9 +9,9 @@ import {
   getTrainingCaseBySlug,
   getTrainingModeByLevelId,
   trainingCases,
-  trainingLevels,
 } from "@/data/training";
 import { TrainingSession } from "@/features/training/training-session";
+import { loadTrainingLevels } from "@/features/training/load-training-levels";
 
 export function generateStaticParams() {
   return trainingCases.map((trainingCase) => ({ slug: trainingCase.id }));
@@ -24,7 +24,7 @@ export async function generateMetadata({
   const trainingCase = getTrainingCaseBySlug(slug);
 
   return {
-    title: trainingCase ? `${trainingCase.title} | FarmaSim` : "Caso no encontrado | FarmaSim",
+    title: trainingCase ? `${trainingCase.title} | FarmaVerse` : "Caso no encontrado | FarmaVerse",
     description: trainingCase?.description,
   };
 }
@@ -33,7 +33,11 @@ export default async function TrainingCasePage({
   params,
   searchParams,
 }: PageProps<"/simulaciones/[slug]">) {
-  const [{ slug }, query] = await Promise.all([params, searchParams]);
+  const [{ slug }, query, resolvedLevels] = await Promise.all([
+    params,
+    searchParams,
+    loadTrainingLevels(),
+  ]);
   const trainingCase = getTrainingCaseBySlug(slug);
 
   if (!trainingCase) {
@@ -42,12 +46,16 @@ export default async function TrainingCasePage({
 
   const requestedLevel = typeof query.nivel === "string" ? Number(query.nivel) : 1;
   const trainingLevel =
-    trainingLevels.find(
+    resolvedLevels.find(
       (level) =>
         level.number === requestedLevel &&
-        level.status === "available" &&
+        (level.status === "available" || level.status === "completed") &&
         level.caseSlugs.includes(trainingCase.id),
-    ) ?? trainingLevels[0];
+    );
+
+  if (!trainingLevel) {
+    redirect("/simulaciones");
+  }
   const trainingMode = getTrainingModeByLevelId(trainingLevel.id);
 
   return (
@@ -77,7 +85,12 @@ export default async function TrainingCasePage({
           </p>
         </header>
 
-        <TrainingSession key={trainingMode.id} mode={trainingMode} trainingCase={trainingCase} />
+        <TrainingSession
+          key={trainingMode.id}
+          levelNumber={trainingLevel.number}
+          mode={trainingMode}
+          trainingCase={trainingCase}
+        />
       </PageContainer>
       <BottomNavigation activeHref="/simulaciones" />
     </>

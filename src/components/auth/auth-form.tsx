@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -99,6 +100,28 @@ export function AuthForm({ action, fields, next, submitLabel }: AuthFormProps) {
             />
           </label>
         </>
+      ) : null}
+
+      {fields === "register" ? (
+        <label className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-slate-50 p-3 text-sm leading-6">
+          <input
+            className="mt-1 size-4 shrink-0 accent-[var(--brand)]"
+            name="privacyAccepted"
+            required
+            type="checkbox"
+          />
+          <span>
+            He leído el{" "}
+            <Link
+              className="font-semibold text-[var(--brand-strong)] underline-offset-2 hover:underline"
+              href="/privacidad"
+              target="_blank"
+            >
+              aviso de privacidad
+            </Link>{" "}
+            y entiendo qué datos usa esta demostración.
+          </span>
+        </label>
       ) : null}
 
       {state.error ? (
