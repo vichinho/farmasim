@@ -1,7 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
-
 import { cn } from "@/lib/utils";
 import { motion, useReducedMotion } from "motion/react";
 import {
@@ -15,13 +13,8 @@ import {
   type SceneFeedbackTone,
   type WorkspaceArea,
 } from "./scene-types";
-import { PatientActor } from "./patient-actor";
+import { TrainingRoom } from "./training-room";
 import { usePatientSceneState } from "./use-patient-scene-state";
-
-const SupportMonitor3D = dynamic(
-  () => import("./support-monitor-3d").then((module) => module.SupportMonitor3D),
-  { loading: () => <div className="absolute inset-0 animate-pulse bg-emerald-100" />, ssr: false },
-);
 
 type SafetyState = {
   activeAlert: boolean;
@@ -77,8 +70,7 @@ export function PharmacyScene({ caseId, context, feedbackTone, isComplete, outco
                 {details.title}
               </div>
             </div>
-            <div aria-label={`Escena de farmacia: ${scene.status}`} className="absolute inset-0" role="img"><SupportMonitor3D area={scene.activeWorkspace} showPatient={false} /></div>
-            <PatientActor profile={profile} state={scene.patientState} />
+            <TrainingRoom sceneState={scene.patientState} status={scene.status} />
             <PatientSpeech dialogue={scene.dialogue} turn={profile.turn} />
             <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[23%] bg-[linear-gradient(180deg,transparent,rgba(19,33,60,.58))]" />
             <div className="absolute inset-x-0 bottom-0 z-20 border-t border-white/20 bg-slate-950/90 px-4 py-3 text-white backdrop-blur sm:px-5">
