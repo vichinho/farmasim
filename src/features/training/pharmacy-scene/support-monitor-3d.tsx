@@ -9,7 +9,13 @@ import { clone } from "three/addons/utils/SkeletonUtils.js";
 
 import type { WorkspaceArea } from "./scene-types";
 
-export function SupportMonitor3D({ area }: { area: WorkspaceArea }) {
+export function SupportMonitor3D({
+  area,
+  showPatient = true,
+}: {
+  area: WorkspaceArea;
+  showPatient?: boolean;
+}) {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -21,13 +27,21 @@ export function SupportMonitor3D({ area }: { area: WorkspaceArea }) {
       >
         <ambientLight intensity={1.4} />
         <directionalLight intensity={1.4} position={[2, 4, 4]} />
-        <MonitorScene area={area} reduceMotion={reduceMotion} />
+        <MonitorScene area={area} reduceMotion={reduceMotion} showPatient={showPatient} />
       </Canvas>
     </div>
   );
 }
 
-function MonitorScene({ area, reduceMotion }: { area: WorkspaceArea; reduceMotion: boolean | null }) {
+function MonitorScene({
+  area,
+  reduceMotion,
+  showPatient,
+}: {
+  area: WorkspaceArea;
+  reduceMotion: boolean | null;
+  showPatient: boolean;
+}) {
   const texture = useLoader(TextureLoader, "/scenes/support-monitor-3d-room-v2.png");
 
   return (
@@ -36,7 +50,7 @@ function MonitorScene({ area, reduceMotion }: { area: WorkspaceArea; reduceMotio
         <planeGeometry args={[5.75, 3.59]} />
         <meshBasicMaterial map={texture} toneMapped={false} />
       </mesh>
-      <AnimatedPatient reduceMotion={reduceMotion} />
+      {showPatient ? <AnimatedPatient reduceMotion={reduceMotion} /> : null}
       <DocumentGlow active={area === "service" || area === "system"} reduceMotion={reduceMotion} />
       <BeaconGlow active={area === "preparation" || area === "verification"} reduceMotion={reduceMotion} />
       <StationTint area={area} reduceMotion={reduceMotion} />
