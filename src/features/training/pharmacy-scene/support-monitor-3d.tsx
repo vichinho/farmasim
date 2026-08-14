@@ -45,16 +45,17 @@ function MonitorScene({ area, reduceMotion }: { area: WorkspaceArea; reduceMotio
 }
 
 function AnimatedPatient({ reduceMotion }: { reduceMotion: boolean | null }) {
-  const gltf = useLoader(GLTFLoader, "/models/cesium-man.glb");
+  const gltf = useLoader(GLTFLoader, "/models/virtual-patient.glb");
   const character = useMemo(() => clone(gltf.scene), [gltf.scene]);
   const mixer = useMemo(() => new AnimationMixer(character), [character]);
   const group = useRef<Group>(null);
 
   useEffect(() => {
-    if (reduceMotion || !gltf.animations[0]) return;
+    const idleClip = gltf.animations.find((clip) => clip.name.includes("Idle"));
+    if (reduceMotion || !idleClip) return;
 
-    const action = mixer.clipAction(gltf.animations[0]);
-    action.reset().setEffectiveTimeScale(0.34).fadeIn(0.18).play();
+    const action = mixer.clipAction(idleClip);
+    action.reset().setEffectiveTimeScale(0.7).fadeIn(0.18).play();
 
     return () => {
       action.stop();
