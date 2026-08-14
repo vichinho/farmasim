@@ -2,8 +2,10 @@
 
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { useReducedMotion } from "motion/react";
-import { useRef } from "react";
-import { AdditiveBlending, TextureLoader, type Group, type Mesh } from "three";
+import { useEffect, useMemo, useRef } from "react";
+import { AdditiveBlending, AnimationMixer, TextureLoader, type Group, type Mesh } from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { clone } from "three/addons/utils/SkeletonUtils.js";
 
 import type { WorkspaceArea } from "./scene-types";
 
@@ -18,6 +20,7 @@ export function SupportMonitor3D({ area }: { area: WorkspaceArea }) {
         gl={{ antialias: true, powerPreference: "low-power" }}
       >
         <ambientLight intensity={1.4} />
+        <directionalLight intensity={1.4} position={[2, 4, 4]} />
         <MonitorScene area={area} reduceMotion={reduceMotion} />
       </Canvas>
     </div>
@@ -25,7 +28,7 @@ export function SupportMonitor3D({ area }: { area: WorkspaceArea }) {
 }
 
 function MonitorScene({ area, reduceMotion }: { area: WorkspaceArea; reduceMotion: boolean | null }) {
-  const texture = useLoader(TextureLoader, "/scenes/support-monitor-3d-v1.png");
+  const texture = useLoader(TextureLoader, "/scenes/support-monitor-3d-room-v2.png");
 
   return (
     <group>
@@ -33,9 +36,43 @@ function MonitorScene({ area, reduceMotion }: { area: WorkspaceArea; reduceMotio
         <planeGeometry args={[5.75, 3.59]} />
         <meshBasicMaterial map={texture} toneMapped={false} />
       </mesh>
+      <AnimatedPatient reduceMotion={reduceMotion} />
       <DocumentGlow active={area === "service" || area === "system"} reduceMotion={reduceMotion} />
       <BeaconGlow active={area === "preparation" || area === "verification"} reduceMotion={reduceMotion} />
       <StationTint area={area} reduceMotion={reduceMotion} />
+    </group>
+  );
+}
+
+function AnimatedPatient({ reduceMotion }: { reduceMotion: boolean | null }) {
+  const gltf = useLoader(GLTFLoader, "/models/cesium-man.glb");
+  const character = useMemo(() => clone(gltf.scene), [gltf.scene]);
+  const mixer = useMemo(() => new AnimationMixer(character), [character]);
+  const group = useRef<Group>(null);
+
+  useEffect(() => {
+    if (reduceMotion || !gltf.animations[0]) return;
+
+    const action = mixer.clipAction(gltf.animations[0]);
+    action.reset().setEffectiveTimeScale(0.34).fadeIn(0.18).play();
+
+    return () => {
+      action.stop();
+      mixer.stopAllAction();
+      mixer.uncacheRoot(character);
+    };
+  }, [character, gltf.animations, mixer, reduceMotion]);
+
+  useFrame(({ clock }, delta) => {
+    if (!group.current || reduceMotion) return;
+    mixer.update(delta);
+    group.current.rotation.y = -0.1 + Math.sin(clock.elapsedTime * 0.45) * 0.055;
+    group.current.position.y = -1.71 + Math.sin(clock.elapsedTime * 0.8) * 0.018;
+  });
+
+  return (
+    <group ref={group} position={[0.1, -1.71, 0.08]} rotation={[0, -0.1, 0]} scale={0.81}>
+      <primitive object={character} />
     </group>
   );
 }
