@@ -1,7 +1,7 @@
 import { trainingCompetencies } from "@/data/training/competencies";
 import { case001AmbulatoryDispensing } from "@/data/training/cases/case-001-ambulatory-dispensing";
 import { assertValidTrainingCase } from "@/data/training/validate-training-case";
-import { PROFESSIONAL_REVIEW_MARKER, type TrainingCase } from "@/types/training-simulation";
+import { CONTENT_TRACEABILITY_NOTE, type TrainingCase } from "@/types/training-simulation";
 
 const case006Definition = {
   ...case001AmbulatoryDispensing,
@@ -11,6 +11,11 @@ const case006Definition = {
   title: "Caso 006 - Discrepancias múltiples",
   description:
     "Caso ficticio con más de una discrepancia potencial para practicar barreras de seguridad antes del cierre.",
+  traceability: {
+    ...case001AmbulatoryDispensing.traceability,
+    medicationUsed: "Producto farmacológico F-210 (ficticio)",
+    scope: "Escenario educativo de detección de discrepancias múltiples.",
+  },
   reinforcementCaseSlug: undefined,
   context: {
     timeLabel: "14:20 h",
@@ -52,7 +57,7 @@ const case006Definition = {
     if (stage.id === "prescription-review") {
       return {
         ...stage,
-        content: `${PROFESSIONAL_REVIEW_MARKER} Solicitud demostrativa: Producto farmacológico F-210, presentación ficticia A. No constituye una indicación ni una regla de dispensación.`,
+        content: `${CONTENT_TRACEABILITY_NOTE} Solicitud demostrativa: Producto farmacológico F-210, presentación ficticia A. No constituye una indicación ni una regla de dispensación.`,
       };
     }
 
@@ -83,7 +88,7 @@ const case006Definition = {
     if (stage.id === "product-selection") {
       return {
         ...stage,
-        content: `${PROFESSIONAL_REVIEW_MARKER} La gaveta ficticia contiene dos presentaciones visualmente similares.`,
+        content: `${CONTENT_TRACEABILITY_NOTE} La gaveta ficticia contiene dos presentaciones visualmente similares.`,
         interaction: {
           type: "item-selection" as const,
           prompt: "Selecciona la presentación ficticia A para continuar.",

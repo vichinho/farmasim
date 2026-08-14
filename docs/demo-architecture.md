@@ -6,9 +6,10 @@ Construir una demostración visual estable que recorra un caso ficticio desde la
 selección de nivel hasta el entrenamiento de refuerzo. Esta arquitectura amplía
 el motor existente sin reemplazar autenticación, progreso ni persistencia.
 
-El contenido relacionado con medicamentos se identifica como
-`[CONTENIDO PENDIENTE DE VALIDACIÓN PROFESIONAL]`. No debe presentarse como
-protocolo, indicación clínica ni regla de dispensación.
+Cada escenario mantiene trazabilidad documental y puede marcarse como contenido
+base documentado, educativo en desarrollo, revisado o validado para uso
+institucional. Ninguno de estos estados bloquea la práctica autónoma de una
+TENS.
 
 ## Flujo cerrado
 

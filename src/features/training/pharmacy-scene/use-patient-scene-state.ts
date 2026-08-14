@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { PROFESSIONAL_REVIEW_MARKER, type TrainingStage } from "@/types/training-simulation";
+import { CONTENT_TRACEABILITY_NOTE, type TrainingStage } from "@/types/training-simulation";
 
 import type {
   PatientAnimationState,
@@ -150,5 +150,5 @@ function sceneState(
 }
 
 function cleanContent(content: string) {
-  return content.replace(PROFESSIONAL_REVIEW_MARKER, "").trim();
+  return content.replace(CONTENT_TRACEABILITY_NOTE, "").trim();
 }

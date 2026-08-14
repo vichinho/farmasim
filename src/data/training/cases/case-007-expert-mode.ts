@@ -1,7 +1,7 @@
 import { trainingCompetencies } from "@/data/training/competencies";
 import { case006MultipleErrors } from "@/data/training/cases/case-006-multiple-errors";
 import { assertValidTrainingCase } from "@/data/training/validate-training-case";
-import { PROFESSIONAL_REVIEW_MARKER, type TrainingCase } from "@/types/training-simulation";
+import { CONTENT_TRACEABILITY_NOTE, type TrainingCase } from "@/types/training-simulation";
 
 const case007Definition = {
   ...case006MultipleErrors,
@@ -11,6 +11,11 @@ const case007Definition = {
   title: "Caso 007 - Modo experto",
   description:
     "Caso ficticio de cierre con orientación reducida para practicar la detección de discrepancias antes de la entrega.",
+  traceability: {
+    ...case006MultipleErrors.traceability,
+    medicationUsed: "Producto farmacológico F-310 (ficticio)",
+    scope: "Escenario autónomo de cierre con orientación reducida.",
+  },
   context: {
     timeLabel: "16:05 h",
     location: "Ventanilla ficticia de práctica E",
@@ -39,7 +44,7 @@ const case007Definition = {
     if (stage.id === "prescription-review") {
       return {
         ...stage,
-        content: `${PROFESSIONAL_REVIEW_MARKER} Solicitud demostrativa: Producto farmacológico F-310, presentación ficticia A. No constituye una indicación ni una regla de dispensación.`,
+        content: `${CONTENT_TRACEABILITY_NOTE} Solicitud demostrativa: Producto farmacológico F-310, presentación ficticia A. No constituye una indicación ni una regla de dispensación.`,
       };
     }
 
@@ -68,7 +73,7 @@ const case007Definition = {
     if (stage.id === "product-selection" && stage.interaction.type === "item-selection") {
       return {
         ...stage,
-        content: `${PROFESSIONAL_REVIEW_MARKER} La gaveta ficticia contiene dos presentaciones visualmente similares.`,
+        content: `${CONTENT_TRACEABILITY_NOTE} La gaveta ficticia contiene dos presentaciones visualmente similares.`,
         interaction: {
           ...stage.interaction,
           prompt: "Selecciona la presentación ficticia correspondiente a la solicitud.",

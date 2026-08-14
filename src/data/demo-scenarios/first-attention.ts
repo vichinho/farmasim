@@ -165,7 +165,7 @@ export const firstAttentionScenario: SimulationScenario = {
           text: "Improvisar una respuesta para finalizar rápidamente.",
           isCorrect: false,
           feedback:
-            "No corresponde improvisar información. El contenido profesional queda pendiente de validación responsable.",
+            "No corresponde improvisar información. Revisa las fuentes documentales del escenario y deriva cualquier situación no prevista según el protocolo aplicable.",
           xpReward: 0,
           nextNodeId: "result",
         },

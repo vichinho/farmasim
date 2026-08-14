@@ -38,6 +38,25 @@ export function validateTrainingCase(
     issues.push(`Initial stage does not exist: ${trainingCase.initialStageId}`);
   }
 
+  if (trainingCase.traceability.sourceIds.length === 0) {
+    issues.push("Traceability requires at least one source");
+  }
+
+  if (trainingCase.traceability.relatedProtocolIds.length === 0) {
+    issues.push("Traceability requires at least one related protocol or rubric");
+  }
+
+  if (Number.isNaN(Date.parse(trainingCase.traceability.createdAt))) {
+    issues.push(`Traceability has an invalid creation date: ${trainingCase.traceability.createdAt}`);
+  }
+
+  if (
+    trainingCase.traceability.status === "institutionally-approved" &&
+    !trainingCase.traceability.review
+  ) {
+    issues.push("Institutionally approved content requires review metadata");
+  }
+
   for (const duplicate of findDuplicates(trainingCase.dispensingCriterionIds ?? [])) {
     issues.push(`Duplicate case criterion id: ${duplicate}`);
   }

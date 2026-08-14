@@ -37,7 +37,7 @@ export const trainingLevels = [
     id: "level-5",
     number: 5,
     title: "Arsenal y almacenamiento",
-    description: "Practica un registro ficticio de almacenamiento con dominios separados.",
+    description: "Practica un registro ficticio de almacenamiento de medicamentos.",
     status: "locked",
     caseSlugs: ["case-005-storage-review"],
   },

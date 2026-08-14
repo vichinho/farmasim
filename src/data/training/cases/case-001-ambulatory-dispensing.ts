@@ -1,9 +1,6 @@
 import { trainingCompetencies } from "@/data/training/competencies";
 import { assertValidTrainingCase } from "@/data/training/validate-training-case";
-import {
-  PROFESSIONAL_REVIEW_MARKER,
-  type TrainingCase,
-} from "@/types/training-simulation";
+import { CONTENT_TRACEABILITY_NOTE, type TrainingCase } from "@/types/training-simulation";
 
 const case001Definition = {
   id: "case-001-ambulatory-dispensing",
@@ -13,6 +10,23 @@ const case001Definition = {
   description:
     "Caso ficticio de alta fidelidad para demostrar selección, verificación y recuperación de errores.",
   contentValidation: "educational-development",
+  traceability: {
+    createdAt: "2026-08-14",
+    medicationUsed: "Losartán 50 mg (ficticio)",
+    observations: "El caso usa datos ficticios y no entrega indicaciones clínicas.",
+    relatedProtocolIds: [
+      "dispensing-evaluation-rubric-7-criteria",
+      "medication-prescription-format-v6",
+    ],
+    sourceIds: [
+      "dispensing-evaluation-rubric-7-criteria",
+      "seminar-diagnosis-2026",
+      "arsenal-2026",
+    ],
+    status: "documented-base",
+    statement: CONTENT_TRACEABILITY_NOTE,
+    scope: "Flujo educativo de dispensación ambulatoria y sus siete criterios observables.",
+  },
   initialStageId: "case-context",
   reinforcementCaseSlug: "case-002-concentration-reinforcement",
   context: {
@@ -141,7 +155,7 @@ const case001Definition = {
         "criterion-2-system-identity-match",
         "criterion-3-identify-all-prescriptions",
       ],
-      content: `${PROFESSIONAL_REVIEW_MARKER} El terminal muestra varias solicitudes demostrativas sin datos clínicos reales.`,
+      content: `${CONTENT_TRACEABILITY_NOTE} El terminal muestra varias solicitudes demostrativas sin datos clínicos reales.`,
       interaction: {
         type: "operational-check",
         prompt: "Usa el terminal ficticio y completa las comprobaciones visibles.",
@@ -170,7 +184,7 @@ const case001Definition = {
       area: "clinical-terminal",
       competencyIds: ["request-review"],
       criterionIds: ["criterion-4-confirm-prescription-issued"],
-      content: `${PROFESSIONAL_REVIEW_MARKER} Solicitud demostrativa: Losartán 50 mg. No constituye una indicación ni una regla de dispensación.`,
+      content: `${CONTENT_TRACEABILITY_NOTE} Solicitud demostrativa: Losartán 50 mg. No constituye una indicación ni una regla de dispensación.`,
       interaction: {
         type: "operational-check",
         prompt: "Comprueba el estado administrativo visible de la solicitud ficticia.",
@@ -205,7 +219,7 @@ const case001Definition = {
       title: "Selección de gaveta",
       area: "storage",
       competencyIds: ["product-selection"],
-      content: `${PROFESSIONAL_REVIEW_MARKER} Las etiquetas y productos pertenecen exclusivamente a la simulación.`,
+      content: `${CONTENT_TRACEABILITY_NOTE} Las etiquetas y productos pertenecen exclusivamente a la simulación.`,
       interaction: {
         type: "item-selection",
         prompt: "Selecciona una gaveta ficticia.",
@@ -248,7 +262,7 @@ const case001Definition = {
       title: "Selección de presentación",
       area: "storage",
       competencyIds: ["product-selection", "concentration-verification"],
-      content: `${PROFESSIONAL_REVIEW_MARKER} Dentro de la gaveta ficticia aparecen dos cajas visualmente similares.`,
+      content: `${CONTENT_TRACEABILITY_NOTE} Dentro de la gaveta ficticia aparecen dos cajas visualmente similares.`,
       interaction: {
         type: "item-selection",
         prompt: "Selecciona una caja para continuar la demostración.",
@@ -298,7 +312,7 @@ const case001Definition = {
       title: "Doble chequeo",
       area: "preparation-counter",
       competencyIds: ["concentration-verification"],
-      content: `${PROFESSIONAL_REVIEW_MARKER} Esta barrera existe solamente con fines educativos demostrativos.`,
+      content: `${CONTENT_TRACEABILITY_NOTE} Esta barrera existe solamente con fines educativos demostrativos.`,
       interaction: {
         type: "decision",
         prompt: "¿Realizas el doble chequeo antes de volver a ventanilla?",
@@ -350,7 +364,7 @@ const case001Definition = {
         "criterion-5-compare-prepared-items",
         "criterion-6-recheck-identity-before-handoff",
       ],
-      content: `${PROFESSIONAL_REVIEW_MARKER} TENS 2 virtual deja la bandeja ficticia en el mesón. Inspecciona sus elementos antes de cerrar la atención.`,
+      content: `${CONTENT_TRACEABILITY_NOTE} TENS 2 virtual deja la bandeja ficticia en el mesón. Inspecciona sus elementos antes de cerrar la atención.`,
       interaction: {
         type: "operational-check",
         prompt: "Completa las comprobaciones visibles de la bandeja y de identidad ficticias.",
@@ -439,7 +453,7 @@ const case001Definition = {
       title: "NO OLVIDAR",
       area: "dispatch-counter",
       competencyIds: ["concentration-verification", "final-verification"],
-      content: `${PROFESSIONAL_REVIEW_MARKER} Antes de preparar, verifica los elementos definidos por el contenido profesional validado de la actividad.`,
+      content: "Antes de preparar, verifica los elementos definidos por el escenario educativo y detén el proceso ante una discrepancia o duda no prevista.",
       interaction: {
         type: "continue",
         label: "Entendido",
