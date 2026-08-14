@@ -10,7 +10,7 @@ import {
   saveSimulationAttempt,
   type SaveSimulationAttemptResult,
 } from "@/features/progress/actions";
-import { VisualPharmacy } from "@/features/training/visual-pharmacy";
+import { PharmacyScene } from "@/features/training/pharmacy-scene/pharmacy-scene";
 import { cn } from "@/lib/utils";
 import {
   PROFESSIONAL_REVIEW_MARKER,
@@ -38,6 +38,7 @@ type SessionState = {
 type FeedbackState = {
   message: string;
   nextStageId: string;
+  tone: "concerned" | "positive";
 };
 
 type TrainingSessionProps = {
@@ -201,7 +202,11 @@ export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
     );
 
     if (option.feedbackTiming === "immediate" && feedbackMessage) {
-      setFeedback({ message: feedbackMessage, nextStageId: option.nextStageId });
+      setFeedback({
+        message: feedbackMessage,
+        nextStageId: option.nextStageId,
+        tone: option.isCorrect ? "positive" : "concerned",
+      });
       return;
     }
 
@@ -310,10 +315,12 @@ export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
         ) : null}
       </div>
 
-      <VisualPharmacy
-        activeArea={currentStage.area}
+      <PharmacyScene
+        caseId={trainingCase.id}
         context={trainingCase.context}
+        feedbackTone={feedback?.tone ?? null}
         isComplete={isComplete}
+        outcome={outcome}
         panel={
           <StagePanel
             elapsedSeconds={elapsedSeconds}
@@ -557,10 +564,6 @@ function StagePanel({
         </div>
       ) : null}
 
-      <p className="mt-auto pt-6 text-xs leading-5 text-[var(--muted)]">
-        {trainingCase.professionalReviewMarker ?? PROFESSIONAL_REVIEW_MARKER} Actividad ficticia;
-        no reemplaza protocolos ni supervisión profesional.
-      </p>
     </div>
   );
 }
