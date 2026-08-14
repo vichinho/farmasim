@@ -4,7 +4,7 @@ Fecha objetivo: 20 de agosto de 2026.
 
 ## Respaldos
 
-- **Respaldo A — web principal:** publicar el commit validado y comprobar inicio de sesión, Caso 001, Caso 002, Novedades, Progreso y Perfil desde la URL pública.
+- **Respaldo A — web principal:** abrir <https://farmasim.vercel.app> y comprobar inicio de sesión, Caso 001, Caso 002, Novedades, Progreso y Perfil. El QR para proyectar o imprimir está en [`public/farmasim-qr.png`](../public/farmasim-qr.png).
 - **Respaldo B — versión local:** conservar este repositorio, `package-lock.json` y `.env.local`; ejecutar `npm install`, `npm run build` y `npm run dev`. Abrir `http://localhost:3000`.
 - **Respaldo C — video:** grabar manualmente una ejecución completa de 2–3 minutos desde un equipo limpio. No capturar correo, contraseña, tokens, paneles de Supabase ni datos reales.
 

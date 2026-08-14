@@ -61,9 +61,12 @@ export default function Home() {
             FarmaSim
           </span>
         </Link>
-        <span className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-500">
-          Acceso próximamente
-        </span>
+        <Link
+          className="rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-[var(--brand-strong)] transition-colors hover:bg-emerald-100"
+          href="/login"
+        >
+          Ingresar
+        </Link>
       </header>
 
       <section className="relative mx-auto grid w-full max-w-6xl gap-10 px-4 pb-20 pt-12 sm:px-6 sm:pt-20 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:px-8 lg:pb-28" id="inicio">
@@ -78,11 +81,11 @@ export default function Home() {
             enfrentarte a ellas en el trabajo.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link className={primaryLinkClass} href="#como-funciona">
-              Conoce la experiencia
+            <Link className={primaryLinkClass} href="/login">
+              Entrar a la demo
             </Link>
-            <Link className={secondaryLinkClass} href="#beneficios">
-              Ver beneficios
+            <Link className={secondaryLinkClass} href="#como-funciona">
+              Cómo funciona
             </Link>
           </div>
           <p className="mt-5 max-w-xl text-sm leading-6 text-[var(--muted)]">
@@ -196,20 +199,20 @@ export default function Home() {
       <section className="mx-auto w-full max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
         <div className="rounded-3xl bg-[var(--foreground)] px-6 py-10 text-white sm:px-10 sm:py-12">
           <Badge className="bg-white/15 text-white" tone="neutral">
-            Próximamente
+            Demo disponible
           </Badge>
           <h2 className="mt-4 max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">
             La práctica empieza con una decisión.
           </h2>
           <p className="mt-4 max-w-xl text-base leading-7 text-slate-300">
-            Estamos preparando la primera experiencia interactiva de FarmaSim.
-            Conoce el proyecto y sigue su avance.
+            Inicia sesión y recorre los casos ficticios de entrenamiento desde
+            cualquier teléfono o computador.
           </p>
           <Link
             className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-5 text-base font-semibold text-[var(--foreground)] transition-colors hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            href="https://github.com/vichinho/farmasim"
+            href="/login"
           >
-            Ver proyecto en GitHub
+            Iniciar sesión
           </Link>
         </div>
       </section>

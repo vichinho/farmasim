@@ -141,6 +141,14 @@ producción están en [`docs/privacy-security.md`](docs/privacy-security.md).
 La lista operativa y los tres respaldos de la presentación están en
 [`docs/presentation-checklist.md`](docs/presentation-checklist.md).
 
+## Despliegue público
+
+La demostración estable está publicada en <https://farmasim.vercel.app>. El QR
+para la presentación está disponible en
+[`public/farmasim-qr.png`](public/farmasim-qr.png). Vercel está conectado al
+repositorio; las variables públicas de Supabase se administran desde el entorno
+del proyecto y no se guardan en Git.
+
 ## Dashboard
 
 La ruta protegida `/dashboard` muestra el nombre, nivel y XP del perfil
@@ -159,9 +167,8 @@ en el servidor; únicamente el plano exploratorio requiere estado en el cliente.
 El Caso 001 se interpreta desde datos separados de la interfaz mediante un motor
 de sesión genérico. Sus 16 etapas recorren contexto, paciente, identificación,
 sistema ficticio, solicitud, almacenamiento, selección, preparación, doble
-chequeo, verificación final, resultado y cierre educativo. Las decisiones y sus
-efectos viven en la sesión del navegador; la persistencia ampliada se incorporará
-después de estabilizar el modelo de resultados.
+chequeo, verificación final, resultado y cierre educativo. Al terminar, el
+intento y su resultado se guardan de forma idempotente en Supabase.
 
 Los niveles 1, 2 y 3 reutilizan este mismo escenario con modos distintos. El
 primero ofrece orientación contextual; el segundo conserva el feedback diferido
