@@ -33,6 +33,14 @@ export const trainingModes = [
     interruptionStageIds: [],
     notice: "Modo consolidación: resuelve un caso nuevo con orientación reducida y sin interrupciones adicionales.",
   },
+  {
+    id: "storage-review",
+    levelId: "level-5",
+    shortLabel: "Revisión de almacenamiento",
+    guidance: "guided",
+    interruptionStageIds: [],
+    notice: "Los códigos y productos son ficticios. El módulo no sustituye la revisión institucional ni la evaluación del QF.",
+  },
 ] satisfies TrainingMode[];
 
 export function getTrainingModeByLevelId(levelId: string) {

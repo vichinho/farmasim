@@ -36,10 +36,10 @@ export const trainingLevels = [
   {
     id: "level-5",
     number: 5,
-    title: "Medicamentos LASA",
-    description: "Contenido futuro pendiente de validación profesional.",
+    title: "Arsenal y almacenamiento",
+    description: "Practica un registro ficticio de almacenamiento con dominios separados.",
     status: "locked",
-    caseSlugs: [],
+    caseSlugs: ["case-005-storage-review"],
   },
   {
     id: "level-6",
@@ -62,6 +62,7 @@ export const trainingLevels = [
 export function resolveTrainingLevels(completedLevelNumbers: number[]) {
   const completed = new Set(completedLevelNumbers);
   const levelFourUnlocked = [1, 2, 3].every((levelNumber) => completed.has(levelNumber));
+  const levelFiveUnlocked = completed.has(4);
 
   return trainingLevels.map((level) => {
     if (completed.has(level.number)) {
@@ -69,6 +70,10 @@ export function resolveTrainingLevels(completedLevelNumbers: number[]) {
     }
 
     if (level.number === 4 && levelFourUnlocked) {
+      return { ...level, status: "available" as const };
+    }
+
+    if (level.number === 5 && levelFiveUnlocked) {
       return { ...level, status: "available" as const };
     }
 

@@ -74,7 +74,9 @@ export type CompetencyId =
   | "request-review"
   | "product-selection"
   | "concentration-verification"
-  | "final-verification";
+  | "final-verification"
+  | "storage-domain-separation"
+  | "storage-record-review";
 
 export type CompetencyStatus = "mastered" | "in-progress" | "reinforcement";
 
