@@ -10,11 +10,8 @@ import {
   type TrainingStage,
 } from "@/types/training-simulation";
 
-import { PatientActor } from "./patient-actor";
 import {
   getPatientProfile,
-  type PatientAnimationState,
-  type PatientProfile,
   type SceneFeedbackTone,
   type WorkspaceArea,
 } from "./scene-types";
@@ -130,8 +127,6 @@ export function PharmacyScene({
             <SupportMonitor
               area={scene.activeWorkspace}
               dialogue={scene.dialogue}
-              patientState={scene.patientState}
-              profile={profile}
               status={scene.status}
               turn={profile.turn}
             />
@@ -194,20 +189,15 @@ function WorkspaceCue({ area }: { area: WorkspaceArea }) {
 function SupportMonitor({
   area,
   dialogue,
-  patientState,
-  profile,
   status,
   turn,
 }: {
   area: WorkspaceArea;
   dialogue: string;
-  patientState: PatientAnimationState;
-  profile: PatientProfile;
   status: string;
   turn: string;
 }) {
   const reduceMotion = useReducedMotion();
-  const isSystemStation = area === "system";
 
   return (
     <figure className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -229,25 +219,17 @@ function SupportMonitor({
           className="object-cover object-center"
           fill
           sizes="(max-width: 1280px) 100vw, 17rem"
-          src="/scenes/pharmacy-counter-v2.png"
+          src="/scenes/support-monitor-v1.png"
         />
-        <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(180deg,transparent_42%,rgb(7_20_18/.28)_100%)]" />
-        <div aria-hidden="true" className="absolute inset-x-0 bottom-0 z-10 h-[26%] border-t-[3px] border-[#8d563c]/80 bg-[linear-gradient(165deg,#c99165,#8b5439)]" />
-        <div className="absolute inset-0 z-20 scale-[0.75] origin-bottom">
-          <PatientActor profile={profile} state={patientState} />
-        </div>
         <motion.div
-          animate={reduceMotion ? undefined : { rotate: [-4, 2, -4], x: [0, 3, 0] }}
-          className={cn("absolute bottom-[16%] left-[39%] z-30 h-[18%] w-[27%] rounded-sm border border-slate-300 bg-[#fffdf2] p-1.5 shadow-md", isSystemStation ? "ring-2 ring-emerald-400" : "")}
-          transition={{ duration: 2.3, repeat: Infinity }}
-        >
-          <span className="block h-1 w-3/4 rounded bg-emerald-600" />
-          <span className="mt-1 block h-1 w-full rounded bg-slate-300" />
-          <span className="mt-1 block h-1 w-2/3 rounded bg-slate-300" />
-        </motion.div>
+          animate={reduceMotion ? undefined : { opacity: [0, 0.36, 0], x: ["-35%", "125%"] }}
+          aria-hidden="true"
+          className="absolute inset-y-0 z-20 w-[22%] bg-[linear-gradient(90deg,transparent,rgb(255_255_255/.65),transparent)]"
+          transition={{ duration: 3.8, ease: "easeInOut", repeat: Infinity, repeatDelay: 1.2 }}
+        />
         <motion.span
           animate={reduceMotion ? undefined : { scale: [1, 1.25, 1], opacity: [0.7, 1, 0.7] }}
-          className="absolute right-[7%] top-[13%] z-30 size-3 rounded-full border-2 border-white bg-emerald-400 shadow-[0_0_14px_rgb(52_211_153/.95)]"
+          className="absolute bottom-[30%] right-[13%] z-30 size-3 rounded-full border-2 border-white bg-emerald-400 shadow-[0_0_14px_rgb(52_211_153/.95)]"
           transition={{ duration: 1.8, repeat: Infinity }}
         />
         <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-slate-950/85 px-3 py-2 text-[0.62rem] font-bold text-white">
