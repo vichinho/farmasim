@@ -6,13 +6,14 @@ export type ContentValidationStatus =
   | "pending-professional-review"
   | "professionally-validated";
 
-export type TrainingLevelStatus = "available" | "coming-soon" | "locked";
+export type TrainingLevelStatus = "available" | "coming-soon" | "completed" | "locked";
 
 export type TrainingMode = {
   guidance: "guided" | "standard" | "minimal";
   id: string;
   interruptionStageIds: string[];
   levelId: string;
+  notice?: string;
   pressureTargetSeconds?: number;
   shortLabel: string;
 };

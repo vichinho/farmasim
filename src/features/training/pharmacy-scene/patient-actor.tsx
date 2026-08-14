@@ -52,11 +52,11 @@ export function PatientActor({ profile, state }: PatientActorProps) {
           alt=""
           className="h-auto w-full select-none"
           draggable={false}
-          height={1326}
+          height={profile.imageHeight}
           priority
           sizes="(max-width: 640px) 70vw, (max-width: 1024px) 46vw, 34rem"
-          src="/scenes/patient-jorge-v2.png"
-          width={1186}
+          src={profile.imageSrc}
+          width={profile.imageWidth}
         />
         <motion.span
           animate={documentActive && !reduceMotion ? { opacity: [0.25, 0.7, 0.25], scale: [0.96, 1.05, 0.96] } : { opacity: 0 }}

@@ -306,6 +306,7 @@ export type Database = {
           correct_answers: number
           id: string
           incorrect_answers: number
+          level_number: number | null
           scenario_id: string
           score: number
           started_at: string
@@ -317,6 +318,7 @@ export type Database = {
           correct_answers?: number
           id?: string
           incorrect_answers?: number
+          level_number?: number | null
           scenario_id: string
           score?: number
           started_at?: string
@@ -328,6 +330,7 @@ export type Database = {
           correct_answers?: number
           id?: string
           incorrect_answers?: number
+          level_number?: number | null
           scenario_id?: string
           score?: number
           started_at?: string
@@ -421,6 +424,7 @@ export type Database = {
           p_attempt_id: string
           p_correct_answers: number
           p_incorrect_answers: number
+          p_level_number?: number
           p_scenario_slug: string
           p_started_at: string
         }

@@ -2,6 +2,7 @@ import { createReinforcementCase } from "@/data/training/cases/create-reinforcem
 
 export const case002ConcentrationReinforcement = createReinforcementCase({
   id: "case-002-concentration-reinforcement",
+  levelId: "level-2",
   title: "Caso 002 - Refuerzo de concentración",
   description: "Nuevo contexto ficticio para reforzar la comparación de concentraciones.",
   timeLabel: "10:12 h",
@@ -17,6 +18,7 @@ export const case002ConcentrationReinforcement = createReinforcementCase({
 
 export const case003ConcentrationReinforcement = createReinforcementCase({
   id: "case-003-concentration-reinforcement",
+  levelId: "level-3",
   title: "Caso 003 - Cambio de disposición",
   description: "Practica la misma competencia con otra persona, producto y ubicación visual.",
   timeLabel: "12:46 h",
@@ -31,6 +33,7 @@ export const case003ConcentrationReinforcement = createReinforcementCase({
 
 export const case004ConcentrationReinforcement = createReinforcementCase({
   id: "case-004-concentration-reinforcement",
+  levelId: "level-4",
   title: "Caso 004 - Consolidación",
   description: "Último escenario demostrativo para consolidar la verificación de concentración.",
   timeLabel: "16:05 h",

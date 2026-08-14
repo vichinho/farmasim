@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { trainingCompetencies } from "@/data/training";
+import { getTrainingLevelByCaseSlug, trainingCompetencies } from "@/data/training";
 import {
   saveSimulationAttempt,
   type SaveSimulationAttemptResult,
@@ -42,6 +42,7 @@ type FeedbackState = {
 };
 
 type TrainingSessionProps = {
+  levelNumber: number;
   mode: TrainingMode;
   trainingCase: TrainingCase;
 };
@@ -133,7 +134,7 @@ function scoreAttempt(session: SessionState, trainingCase: TrainingCase) {
   };
 }
 
-export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
+export function TrainingSession({ levelNumber, mode, trainingCase }: TrainingSessionProps) {
   const [session, setSession] = useState(() => createInitialState(trainingCase));
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [isComplete, setIsComplete] = useState(false);
@@ -237,6 +238,7 @@ export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
     const score = scoreAttempt(session, trainingCase);
     const result = await saveSimulationAttempt({
       attemptId: attemptId.current,
+      levelNumber,
       scenarioSlug: trainingCase.id,
       startedAt: startedAt.current,
       ...score,
@@ -299,7 +301,7 @@ export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
             style={{ width: `${progress}%` }}
           />
         </div>
-        {mode.guidance !== "guided" ? (
+        {mode.notice ? (
           <p
             className={cn(
               "mt-3 rounded-xl px-3 py-2 text-xs font-semibold leading-5",
@@ -308,9 +310,7 @@ export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
                 : "bg-slate-50 text-slate-700",
             )}
           >
-            {mode.guidance === "minimal"
-              ? "Modo presión: habrá interrupciones y la orientación estará reducida. El cronómetro es informativo."
-              : "Modo trampa: algunas decisiones avanzan sin revelar inmediatamente si existe una discrepancia."}
+            {mode.notice}
           </p>
         ) : null}
       </div>
@@ -328,6 +328,7 @@ export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
             hasPendingInterruption={hasPendingInterruption}
             isComplete={isComplete}
             isSaving={isSaving}
+            levelNumber={levelNumber}
             mode={mode}
             onChooseOption={chooseOption}
             onComplete={completeTraining}
@@ -357,6 +358,7 @@ type StagePanelProps = {
   hasPendingInterruption: boolean;
   isComplete: boolean;
   isSaving: boolean;
+  levelNumber: number;
   mode: TrainingMode;
   onChooseOption: (option: DecisionOption) => void;
   onComplete: () => void;
@@ -378,6 +380,7 @@ function StagePanel({
   hasPendingInterruption,
   isComplete,
   isSaving,
+  levelNumber,
   mode,
   onChooseOption,
   onComplete,
@@ -548,7 +551,7 @@ function StagePanel({
           {isReinforcement && needsReinforcement && trainingCase.reinforcementCaseSlug ? (
             <Link
               className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[var(--brand)] px-5 text-center text-base font-semibold text-white hover:bg-[var(--brand-strong)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
-              href={`/simulaciones/${trainingCase.reinforcementCaseSlug}?nivel=1`}
+              href={`/simulaciones/${trainingCase.reinforcementCaseSlug}?nivel=${getTrainingLevelByCaseSlug(trainingCase.reinforcementCaseSlug)?.number ?? levelNumber}`}
             >
               Iniciar entrenamiento recomendado
             </Link>

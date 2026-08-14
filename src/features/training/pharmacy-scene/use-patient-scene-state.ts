@@ -54,7 +54,7 @@ export function usePatientSceneState({
     }
 
     if (stage.type === "context") {
-      return sceneState("hidden", "service", "Esperando el llamado del turno.", "Preparando A-01");
+      return sceneState("hidden", "service", "Esperando el llamado del turno.", "Preparando turno");
     }
 
     if (stage.type === "patient-dialogue") {

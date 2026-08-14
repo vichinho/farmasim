@@ -6,7 +6,11 @@ export {
   case004ConcentrationReinforcement,
 } from "@/data/training/cases/reinforcement-cases";
 export { getTrainingCaseBySlug, trainingCases } from "@/data/training/cases";
-export { trainingLevels } from "@/data/training/levels";
+export {
+  getTrainingLevelByCaseSlug,
+  resolveTrainingLevels,
+  trainingLevels,
+} from "@/data/training/levels";
 export { getTrainingModeByLevelId, trainingModes } from "@/data/training/modes";
 export {
   assertValidTrainingCase,

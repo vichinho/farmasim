@@ -14,6 +14,7 @@ export const trainingModes = [
     shortLabel: "Trampa diferida",
     guidance: "standard",
     interruptionStageIds: [],
+    notice: "Modo trampa: algunas decisiones avanzan sin revelar inmediatamente si existe una discrepancia.",
   },
   {
     id: "pressure-shift",
@@ -21,7 +22,16 @@ export const trainingModes = [
     shortLabel: "Turno con presión",
     guidance: "minimal",
     interruptionStageIds: ["clinical-system", "product-selection", "final-check"],
+    notice: "Modo presión: habrá interrupciones y la orientación estará reducida. El cronómetro es informativo.",
     pressureTargetSeconds: 180,
+  },
+  {
+    id: "process-consolidation",
+    levelId: "level-4",
+    shortLabel: "Consolidación",
+    guidance: "minimal",
+    interruptionStageIds: [],
+    notice: "Modo consolidación: resuelve un caso nuevo con orientación reducida y sin interrupciones adicionales.",
   },
 ] satisfies TrainingMode[];
 

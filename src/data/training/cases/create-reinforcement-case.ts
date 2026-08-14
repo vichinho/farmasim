@@ -8,6 +8,7 @@ type ReinforcementCaseConfig = {
   distractorFirst?: boolean;
   distractorStrength: string;
   id: string;
+  levelId: string;
   location: string;
   patientDescription: string;
   patientDialogue: string;
@@ -145,6 +146,7 @@ export function createReinforcementCase(config: ReinforcementCaseConfig) {
   const definition = {
     ...case001AmbulatoryDispensing,
     id: config.id,
+    levelId: config.levelId,
     version: "1.0.0-demo",
     title: config.title,
     description: config.description,
