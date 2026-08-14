@@ -6,6 +6,42 @@ export type ContentValidationStatus =
   | "pending-professional-review"
   | "professionally-validated";
 
+export type EducationalSourceId =
+  | "dispensing-evaluation-rubric-7-criteria"
+  | "daily-storage-review-rubric"
+  | "labeling-and-packaging-protocol-v6"
+  | "clinical-unit-request-and-dispatch-protocol-v8"
+  | "medication-prescription-format-v6"
+  | "medical-supplies-storage-protocol-v1"
+  | "medications-storage-protocol-v1"
+  | "seminar-diagnosis-2026"
+  | "arsenal-2026";
+
+export type EducationalSource = {
+  authority: "institutional" | "academic" | "catalog";
+  id: EducationalSourceId;
+  reviewStatus: "source-identified" | "pending-professional-review" | "approved-for-training";
+  title: string;
+  versionLabel: string;
+};
+
+export type DispensingCriterionId =
+  | "criterion-1-request-identity-document"
+  | "criterion-2-system-identity-match"
+  | "criterion-3-identify-all-prescriptions"
+  | "criterion-4-confirm-prescription-issued"
+  | "criterion-5-compare-prepared-items"
+  | "criterion-6-recheck-identity-before-handoff"
+  | "criterion-7-provide-corresponding-instructions";
+
+export type DispensingCriterion = {
+  id: DispensingCriterionId;
+  observableAction: string;
+  sourceId: EducationalSourceId;
+  title: string;
+  trainingBoundary: string;
+};
+
 export type TrainingLevelStatus = "available" | "coming-soon" | "completed" | "locked";
 
 export type TrainingMode = {
@@ -65,6 +101,7 @@ export type SafetyBarrier = {
 };
 
 export type TrainingEffect =
+  | { actionId: string; type: "record-action" }
   | { errorId: string; type: "record-error" }
   | { errorId: string; type: "detect-error" }
   | { errorId: string; type: "correct-error" }
@@ -111,16 +148,38 @@ export type ItemSelectionInteraction = {
   type: "item-selection";
 };
 
+export type ObservableAction = {
+  description?: string;
+  effects?: TrainingEffect[];
+  id: string;
+  label: string;
+  required: boolean;
+};
+
+/**
+ * A sequence of visible actions. It lets a training case assess what the
+ * participant does, rather than asking which answer they would choose.
+ */
+export type OperationalCheckInteraction = {
+  actions: ObservableAction[];
+  completeLabel: string;
+  nextStageId: string;
+  prompt: string;
+  type: "operational-check";
+};
+
 export type TrainingStageInteraction =
   | CompleteInteraction
   | ContinueInteraction
   | DecisionInteraction
-  | ItemSelectionInteraction;
+  | ItemSelectionInteraction
+  | OperationalCheckInteraction;
 
 export type TrainingStageType =
   | "context"
   | "patient-dialogue"
   | "identification"
+  | "operational-check"
   | "clinical-system"
   | "prescription"
   | "area-transition"
@@ -137,6 +196,7 @@ export type TrainingStage = {
   area: PharmacyArea;
   competencyIds: CompetencyId[];
   content: string;
+  criterionIds?: DispensingCriterionId[];
   id: string;
   interaction: TrainingStageInteraction;
   title: string;
@@ -162,6 +222,7 @@ export type TrainingCase = {
     patientDescription: string;
     timeLabel: string;
   };
+  dispensingCriterionIds?: DispensingCriterionId[];
   description: string;
   errors: TrainingError[];
   id: string;

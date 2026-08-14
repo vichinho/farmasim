@@ -17,6 +17,7 @@ import {
   type CompetencyId,
   type CompetencyStatus,
   type DecisionOption,
+  type ObservableAction,
   type TrainingCase,
   type TrainingEffect,
   type TrainingMode,
@@ -30,6 +31,7 @@ type SessionState = {
   decisionHistory: { optionId: string; stageId: string }[];
   detectedErrorIds: string[];
   handledInterruptionStageIds: string[];
+  performedActionIds: string[];
   recordedErrorIds: string[];
   selectedItemIds: string[];
   visitedStageIds: string[];
@@ -39,6 +41,10 @@ type FeedbackState = {
   message: string;
   nextStageId: string;
   tone: "concerned" | "positive";
+};
+
+type SafetyAlertState = {
+  errorIds: string[];
 };
 
 type TrainingSessionProps = {
@@ -59,6 +65,7 @@ function createInitialState(trainingCase: TrainingCase): SessionState {
     decisionHistory: [],
     detectedErrorIds: [],
     handledInterruptionStageIds: [],
+    performedActionIds: [],
     recordedErrorIds: [],
     selectedItemIds: [],
     visitedStageIds: [trainingCase.initialStageId],
@@ -67,6 +74,13 @@ function createInitialState(trainingCase: TrainingCase): SessionState {
 
 function applyEffects(state: SessionState, effects: TrainingEffect[] = []) {
   return effects.reduce<SessionState>((nextState, effect) => {
+    if (effect.type === "record-action") {
+      return {
+        ...nextState,
+        performedActionIds: addUnique(nextState.performedActionIds, effect.actionId),
+      };
+    }
+
     if (effect.type === "record-error") {
       return {
         ...nextState,
@@ -118,9 +132,17 @@ function scoreAttempt(session: SessionState, trainingCase: TrainingCase) {
   );
   const scoredStages = trainingCase.stages.filter(
     (stage) =>
-      stage.interaction.type === "decision" || stage.interaction.type === "item-selection",
+      stage.interaction.type === "decision" ||
+      stage.interaction.type === "item-selection" ||
+      stage.interaction.type === "operational-check",
   );
   const correctAnswers = scoredStages.filter((stage) => {
+    if (stage.interaction.type === "operational-check") {
+      return stage.interaction.actions
+        .filter((action) => action.required)
+        .every((action) => session.performedActionIds.includes(action.id));
+    }
+
     if (stage.interaction.type !== "decision" && stage.interaction.type !== "item-selection") {
       return false;
     }
@@ -137,6 +159,7 @@ function scoreAttempt(session: SessionState, trainingCase: TrainingCase) {
 export function TrainingSession({ levelNumber, mode, trainingCase }: TrainingSessionProps) {
   const [session, setSession] = useState(() => createInitialState(trainingCase));
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
+  const [safetyAlert, setSafetyAlert] = useState<SafetyAlertState | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<SaveSimulationAttemptResult | null>(null);
@@ -160,6 +183,11 @@ export function TrainingSession({ levelNumber, mode, trainingCase }: TrainingSes
     const timer = window.setInterval(() => setElapsedSeconds((seconds) => seconds + 1), 1000);
     return () => window.clearInterval(timer);
   }, [isComplete, mode.pressureTargetSeconds]);
+
+  useEffect(() => {
+    if (!safetyAlert || typeof navigator.vibrate !== "function") return;
+    navigator.vibrate([120, 80, 120]);
+  }, [safetyAlert]);
 
   const outcome = useMemo(() => {
     const trapErrorIds = trainingCase.traps.map((trap) => trap.errorId);
@@ -214,10 +242,34 @@ export function TrainingSession({ levelNumber, mode, trainingCase }: TrainingSes
     advance(option.nextStageId);
   }
 
+  function performAction(action: ObservableAction) {
+    const detectedErrorIds =
+      action.effects
+        ?.filter((effect) => effect.type === "detect-error")
+        .map((effect) => effect.errorId) ?? [];
+    const interceptedErrorIds = detectedErrorIds.filter(
+      (errorId) =>
+        session.recordedErrorIds.includes(errorId) &&
+        !session.correctedErrorIds.includes(errorId),
+    );
+
+    setSession((current) =>
+      applyEffects(
+        current,
+        [{ actionId: action.id, type: "record-action" }, ...(action.effects ?? [])],
+      ),
+    );
+
+    if (interceptedErrorIds.length > 0) {
+      setSafetyAlert({ errorIds: interceptedErrorIds });
+    }
+  }
+
   function continueAfterFeedback() {
     if (!feedback) return;
     advance(feedback.nextStageId);
     setFeedback(null);
+    setSafetyAlert(null);
   }
 
   function restart() {
@@ -335,11 +387,14 @@ export function TrainingSession({ levelNumber, mode, trainingCase }: TrainingSes
             onContinue={advance}
             onContinueAfterFeedback={continueAfterFeedback}
             onHandleInterruption={handleInterruption}
+            onPerformAction={performAction}
+            onDismissSafetyAlert={() => setSafetyAlert(null)}
             onRestart={restart}
             onRetrySave={() => void persistAttempt()}
             outcome={outcome}
             session={session}
             saveResult={saveResult}
+            safetyAlert={safetyAlert}
             stage={currentStage}
             trainingCase={trainingCase}
           />
@@ -365,11 +420,14 @@ type StagePanelProps = {
   onContinue: (stageId: string) => void;
   onContinueAfterFeedback: () => void;
   onHandleInterruption: () => void;
+  onDismissSafetyAlert: () => void;
+  onPerformAction: (action: ObservableAction) => void;
   onRestart: () => void;
   onRetrySave: () => void;
   outcome: { barrierEffective: boolean; errorReachedPatient: boolean };
   session: SessionState;
   saveResult: SaveSimulationAttemptResult | null;
+  safetyAlert: SafetyAlertState | null;
   stage: TrainingStage;
   trainingCase: TrainingCase;
 };
@@ -387,11 +445,14 @@ function StagePanel({
   onContinue,
   onContinueAfterFeedback,
   onHandleInterruption,
+  onDismissSafetyAlert,
+  onPerformAction,
   onRestart,
   onRetrySave,
   outcome,
   session,
   saveResult,
+  safetyAlert,
   stage,
   trainingCase,
 }: StagePanelProps) {
@@ -420,6 +481,10 @@ function StagePanel({
         totalInterruptions={mode.interruptionStageIds.length}
       />
     );
+  }
+
+  if (safetyAlert) {
+    return <SafetyAlertPanel errorCount={safetyAlert.errorIds.length} onAcknowledge={onDismissSafetyAlert} />;
   }
 
   if (feedback) {
@@ -465,6 +530,8 @@ function StagePanel({
   });
   const continueStageId =
     stage.interaction.type === "continue" ? stage.interaction.nextStageId : null;
+  const operationalNextStageId =
+    stage.interaction.type === "operational-check" ? stage.interaction.nextStageId : null;
 
   return (
     <div className="flex h-full flex-col">
@@ -533,6 +600,17 @@ function StagePanel({
             })}
           </div>
         </div>
+      ) : null}
+
+      {stage.interaction.type === "operational-check" ? (
+        <OperationalCheck
+          interaction={stage.interaction}
+          onComplete={() => {
+            if (operationalNextStageId) onContinue(operationalNextStageId);
+          }}
+          onPerformAction={onPerformAction}
+          performedActionIds={session.performedActionIds}
+        />
       ) : null}
 
       {stage.interaction.type === "continue" && continueStageId ? (
@@ -665,6 +743,107 @@ function ResultMetric({ label, value }: { label: string; value: number | string 
   );
 }
 
+function OperationalCheck({
+  interaction,
+  onComplete,
+  onPerformAction,
+  performedActionIds,
+}: {
+  interaction: Extract<TrainingStage["interaction"], { type: "operational-check" }>;
+  onComplete: () => void;
+  onPerformAction: (action: ObservableAction) => void;
+  performedActionIds: string[];
+}) {
+  const requiredActions = interaction.actions.filter((action) => action.required);
+  const completedRequiredActions = requiredActions.filter((action) =>
+    performedActionIds.includes(action.id),
+  );
+  const canContinue = completedRequiredActions.length === requiredActions.length;
+
+  return (
+    <div className="mt-5">
+      <p className="text-sm font-bold leading-6">{interaction.prompt}</p>
+      <p aria-live="polite" className="mt-2 text-xs font-semibold text-[var(--muted)]">
+        Acciones requeridas completadas: {completedRequiredActions.length}/{requiredActions.length}
+      </p>
+      <div className="mt-3 grid gap-3">
+        {interaction.actions.map((action) => {
+          const completed = performedActionIds.includes(action.id);
+
+          return (
+            <button
+              aria-pressed={completed}
+              className={cn(
+                "min-h-14 rounded-2xl border px-4 py-3 text-left text-sm font-semibold leading-5 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]",
+                completed
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-950"
+                  : "border-[var(--border)] bg-white hover:border-emerald-400 hover:bg-emerald-50",
+              )}
+              disabled={completed}
+              key={action.id}
+              onClick={() => onPerformAction(action)}
+              type="button"
+            >
+              <span className="flex items-start gap-3">
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "grid size-7 shrink-0 place-items-center rounded-lg text-xs font-black",
+                    completed ? "bg-emerald-700 text-white" : "bg-slate-100 text-slate-600",
+                  )}
+                >
+                  {completed ? "OK" : ""}
+                </span>
+                <span>
+                  {action.label}
+                  {action.description ? (
+                    <span className="mt-1 block font-normal text-[var(--muted)]">
+                      {action.description}
+                    </span>
+                  ) : null}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <Button className="mt-6" disabled={!canContinue} fullWidth onClick={onComplete} size="lg">
+        {interaction.completeLabel}
+      </Button>
+    </div>
+  );
+}
+
+function SafetyAlertPanel({
+  errorCount,
+  onAcknowledge,
+}: {
+  errorCount: number;
+  onAcknowledge: () => void;
+}) {
+  return (
+    <div aria-live="assertive" className="flex h-full flex-col" role="alert">
+      <Badge className="self-start" tone="warning">
+        Barrera de seguridad activada
+      </Badge>
+      <div className="mt-5 rounded-2xl border-2 border-rose-700 bg-rose-50 p-5 text-rose-950">
+        <p className="text-sm font-black tracking-[0.16em] text-rose-800">DETENTE</p>
+        <h3 className="mt-3 text-2xl font-black">ERROR DE MEDICACIÓN INTERCEPTADO</h3>
+        <p className="mt-3 text-base font-bold leading-7">NO ENTREGAR</p>
+        <p className="mt-3 text-sm leading-6 text-rose-900">
+          La comparación de la bandeja ficticia detectó {errorCount === 1 ? "una discrepancia" : `${errorCount} discrepancias`}. El cierre permanece detenido hasta reconocer la alerta.
+        </p>
+      </div>
+      <p className="mt-4 rounded-xl bg-slate-50 p-3 text-sm leading-6 text-slate-700">
+        El escenario corrige la selección ficticia y registra que la barrera interceptó el error. No clasifica automáticamente un evento adverso ni sustituye la evaluación profesional.
+      </p>
+      <Button className="mt-6" fullWidth onClick={onAcknowledge} size="lg">
+        Reconocer alerta y continuar
+      </Button>
+    </div>
+  );
+}
+
 function CompletionPanel({
   caseTitle,
   elapsedSeconds,
@@ -732,6 +911,7 @@ function stageLabel(stage: TrainingStage) {
     context: "Contexto",
     dispatch: "Cierre",
     identification: "Decisión",
+    "operational-check": "Acciones observables",
     "learning-card": "Tarjeta educativa",
     "patient-dialogue": "Paciente virtual",
     preparation: "Preparación",

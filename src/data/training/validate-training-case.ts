@@ -1,5 +1,6 @@
 import type {
   CompetencyId,
+  DispensingCriterionId,
   TrainingCase,
   TrainingCompetency,
 } from "@/types/training-simulation";
@@ -17,6 +18,9 @@ export function validateTrainingCase(
   const stageIds = new Set(trainingCase.stages.map((stage) => stage.id));
   const errorIds = new Set(trainingCase.errors.map((error) => error.id));
   const barrierIds = new Set(trainingCase.barriers.map((barrier) => barrier.id));
+  const caseCriterionIds = new Set<DispensingCriterionId>(
+    trainingCase.dispensingCriterionIds ?? [],
+  );
 
   for (const duplicate of findDuplicates(trainingCase.stages.map((stage) => stage.id))) {
     issues.push(`Duplicate stage id: ${duplicate}`);
@@ -34,6 +38,10 @@ export function validateTrainingCase(
     issues.push(`Initial stage does not exist: ${trainingCase.initialStageId}`);
   }
 
+  for (const duplicate of findDuplicates(trainingCase.dispensingCriterionIds ?? [])) {
+    issues.push(`Duplicate case criterion id: ${duplicate}`);
+  }
+
   if (
     trainingCase.contentValidation === "pending-professional-review" &&
     !trainingCase.professionalReviewMarker
@@ -48,6 +56,12 @@ export function validateTrainingCase(
   }
 
   for (const stage of trainingCase.stages) {
+    for (const criterionId of stage.criterionIds ?? []) {
+      if (!caseCriterionIds.has(criterionId)) {
+        issues.push(`Stage ${stage.id} uses a criterion outside the case: ${criterionId}`);
+      }
+    }
+
     for (const competencyId of stage.competencyIds) {
       if (!trainingCase.competencies.includes(competencyId)) {
         issues.push(`Stage ${stage.id} uses a competency outside the case: ${competencyId}`);
