@@ -68,6 +68,26 @@ export function validateTrainingCase(
   }
 
   for (const stage of trainingCase.stages) {
+    for (const effect of [
+      ...(stage.entryEffects ?? []),
+      ...(stage.interaction.type === "operational-check"
+        ? stage.interaction.completionEffects ?? []
+        : []),
+    ]) {
+      if (
+        (effect.type === "record-error" ||
+          effect.type === "detect-error" ||
+          effect.type === "correct-error" ||
+          effect.type === "intercept-before-handoff") &&
+        !errorIds.has(effect.errorId)
+      ) {
+        issues.push(`Stage ${stage.id} uses an unknown error: ${effect.errorId}`);
+      }
+
+      if (effect.type === "activate-barrier" && !barrierIds.has(effect.barrierId)) {
+        issues.push(`Stage ${stage.id} uses an unknown barrier: ${effect.barrierId}`);
+      }
+    }
     for (const criterionId of stage.criterionIds ?? []) {
       if (!caseCriterionIds.has(criterionId)) {
         issues.push(`Stage ${stage.id} uses a criterion outside the case: ${criterionId}`);

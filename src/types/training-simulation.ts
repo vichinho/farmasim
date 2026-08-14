@@ -132,6 +132,7 @@ export type TrainingEffect =
   | { errorId: string; type: "detect-error" }
   | { errorId: string; type: "correct-error" }
   | { barrierId: string; type: "activate-barrier" }
+  | { errorId: string; type: "intercept-before-handoff" }
   | { itemId: string; type: "select-item" };
 
 export type ContinueInteraction = {
@@ -188,6 +189,7 @@ export type ObservableAction = {
  */
 export type OperationalCheckInteraction = {
   actions: ObservableAction[];
+  completionEffects?: TrainingEffect[];
   completeLabel: string;
   nextStageId: string;
   prompt: string;
@@ -223,6 +225,7 @@ export type TrainingStage = {
   competencyIds: CompetencyId[];
   content: string;
   criterionIds?: DispensingCriterionId[];
+  entryEffects?: TrainingEffect[];
   id: string;
   interaction: TrainingStageInteraction;
   title: string;
@@ -259,6 +262,12 @@ export type TrainingCase = {
   title: string;
   traceability: ContentTraceabilityRecord;
   traps: ScenarioTrap[];
+  safetyInterceptions?: {
+    errorId: string;
+    explanation: string;
+    preparation: string;
+    prescription: string;
+  }[];
   version: string;
 };
 

@@ -27,20 +27,17 @@ export function createReinforcementCase(config: ReinforcementCaseConfig) {
   const correctOption = {
     id: "select-target-product",
     isCorrect: true,
-    label: `Seleccionar ${config.productName} ${config.requestedStrength}`,
-    feedbackTiming: "deferred" as const,
+    label: `Abrir caja ${config.productName} ${config.requestedStrength}`,
+    feedbackTiming: "none" as const,
     effects: [{ type: "select-item" as const, itemId: "target-product" }],
     nextStageId: "preparation",
   };
   const distractorOption = {
     id: "select-distractor-product",
-    isCorrect: false,
-    label: `Seleccionar ${config.productName} ${config.distractorStrength}`,
-    feedbackTiming: "deferred" as const,
-    effects: [
-      { type: "select-item" as const, itemId: "distractor-product" },
-      { type: "record-error" as const, errorId: "wrong-concentration" },
-    ],
+    isCorrect: true,
+    label: `Abrir caja ${config.productName} ${config.distractorStrength}`,
+    feedbackTiming: "none" as const,
+    effects: [{ type: "select-item" as const, itemId: "distractor-product" }],
     nextStageId: "preparation",
   };
 
@@ -109,7 +106,7 @@ export function createReinforcementCase(config: ReinforcementCaseConfig) {
         content: `${CONTENT_TRACEABILITY_NOTE} La nueva disposición muestra dos cajas ficticias con presentaciones diferentes.`,
         interaction: {
           type: "item-selection" as const,
-          prompt: "Selecciona una caja para continuar la demostración.",
+          prompt: "Abre una caja ficticia para consultar su etiqueta antes de continuar.",
           items: config.distractorFirst
             ? [distractorItem, correctItem]
             : [correctItem, distractorItem],
@@ -120,22 +117,19 @@ export function createReinforcementCase(config: ReinforcementCaseConfig) {
       };
     }
 
-    if (
-      (stage.id === "double-check" || stage.id === "final-check") &&
-      stage.interaction.type === "decision"
-    ) {
+    if (stage.id === "double-check" && stage.interaction.type === "operational-check") {
       return {
         ...stage,
         interaction: {
           ...stage.interaction,
-          options: stage.interaction.options.map((option) => ({
-            ...option,
-            effects: option.effects?.map((effect) =>
-              effect.type === "select-item"
-                ? { type: "select-item" as const, itemId: "target-product" }
-                : effect,
-            ),
-          })),
+          actions: stage.interaction.actions.map((action) =>
+            action.id === "open-prepared-box"
+              ? {
+                  ...action,
+                  description: `${config.productName} · ${config.distractorStrength} · comprimidos · cantidad 30`,
+                }
+              : action,
+          ),
         },
       };
     }
@@ -174,6 +168,15 @@ export function createReinforcementCase(config: ReinforcementCaseConfig) {
         ...case001AmbulatoryDispensing.traps[0],
         id: `${config.id}-concentration-trap`,
         triggerOptionId: "select-distractor-product",
+      },
+    ],
+    safetyInterceptions: [
+      {
+        errorId: "wrong-concentration",
+        prescription: `${config.productName} ${config.requestedStrength} · comprimidos · cantidad 30`,
+        preparation: `${config.productName} ${config.distractorStrength} · comprimidos · cantidad 30`,
+        explanation:
+          "El error no fue detectado durante el doble chequeo. La simulación lo interceptó antes de que el medicamento alcanzara al paciente virtual.",
       },
     ],
     stages,

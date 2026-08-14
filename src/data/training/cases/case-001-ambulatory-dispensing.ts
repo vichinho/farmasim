@@ -95,6 +95,15 @@ const case001Definition = {
       patientImpactIfUnresolved: true,
     },
   ],
+  safetyInterceptions: [
+    {
+      errorId: "wrong-concentration",
+      prescription: "Losartán 50 mg · comprimidos · cantidad 30",
+      preparation: "Losartán 100 mg · comprimidos · cantidad 30",
+      explanation:
+        "El error no fue detectado durante el doble chequeo. La simulación lo interceptó antes de que el medicamento alcanzara al paciente virtual.",
+    },
+  ],
   stages: [
     {
       id: "case-context",
@@ -125,23 +134,29 @@ const case001Definition = {
     {
       id: "patient-identification",
       type: "identification",
-      title: "Identificación ficticia",
+      title: "Ventanilla de atención",
       area: "service-counter",
       competencyIds: ["patient-identification"],
       criterionIds: ["criterion-1-request-identity-document"],
       content: "Los datos mostrados son completamente ficticios y no corresponden a una persona real.",
       interaction: {
         type: "operational-check",
-        prompt: "Realiza la acción observable requerida antes de abrir el sistema ficticio.",
+        prompt: "Interactúa con el paciente virtual o continúa al sistema cuando lo estimes necesario.",
         actions: [
           {
             id: "request-fictional-identity-document",
-            label: "Solicitar el documento de identidad y/o tarjeta de crónico ficticia",
+            label: "Solicitar documento o tarjeta de crónico",
             description: "La persona virtual presenta el identificador requerido por el escenario.",
             required: true,
           },
+          {
+            id: "ask-fictional-withdrawal-reason",
+            label: "Confirmar el motivo del retiro",
+            description: "El paciente indica que viene por sus medicamentos del mes.",
+            required: false,
+          },
         ],
-        completeLabel: "Abrir sistema ficticio",
+        completeLabel: "Ir al sistema",
         nextStageId: "clinical-system",
       },
     },
@@ -158,7 +173,7 @@ const case001Definition = {
       content: `${CONTENT_TRACEABILITY_NOTE} El terminal muestra varias solicitudes demostrativas sin datos clínicos reales.`,
       interaction: {
         type: "operational-check",
-        prompt: "Usa el terminal ficticio y completa las comprobaciones visibles.",
+        prompt: "Abre los registros que consideres necesarios antes de continuar.",
         actions: [
           {
             id: "enter-fictional-rut-and-match-name",
@@ -166,14 +181,11 @@ const case001Definition = {
             description: "El sistema confirma una coincidencia exclusivamente demostrativa.",
             required: true,
           },
-          {
-            id: "review-all-fictional-prescriptions",
-            label: "Identificar todas las prescripciones ficticias disponibles",
-            description: "La actividad registra que se revisó el conjunto completo antes de continuar.",
-            required: true,
-          },
+          { id: "open-fictional-prescription-1", label: "Abrir prescripción 01", description: "Losartán 50 mg · emitida", required: true },
+          { id: "open-fictional-prescription-2", label: "Abrir prescripción 02", description: "Producto ficticio complementario · emitida", required: true },
+          { id: "open-fictional-prescription-3", label: "Abrir prescripción 03", description: "Producto ficticio complementario · emitida", required: true },
         ],
-        completeLabel: "Revisar estado de emisión",
+        completeLabel: "Continuar con la solicitud",
         nextStageId: "prescription-review",
       },
     },
@@ -264,8 +276,8 @@ const case001Definition = {
       competencyIds: ["product-selection", "concentration-verification"],
       content: `${CONTENT_TRACEABILITY_NOTE} Dentro de la gaveta ficticia aparecen dos cajas visualmente similares.`,
       interaction: {
-        type: "item-selection",
-        prompt: "Selecciona una caja para continuar la demostración.",
+      type: "item-selection",
+        prompt: "Abre una caja ficticia para consultar su etiqueta antes de continuar.",
         items: [
           { id: "losartan-50", label: "Losartán 50 mg - producto ficticio" },
           { id: "losartan-100", label: "Losartán 100 mg - producto ficticio" },
@@ -274,20 +286,17 @@ const case001Definition = {
           {
             id: "select-losartan-50",
             isCorrect: true,
-            label: "Seleccionar Losartán 50 mg",
-            feedbackTiming: "deferred",
+            label: "Abrir caja Losartán 50 mg",
+            feedbackTiming: "none",
             effects: [{ type: "select-item", itemId: "losartan-50" }],
             nextStageId: "preparation",
           },
           {
             id: "select-losartan-100",
-            isCorrect: false,
-            label: "Seleccionar Losartán 100 mg",
-            feedbackTiming: "deferred",
-            effects: [
-              { type: "select-item", itemId: "losartan-100" },
-              { type: "record-error", errorId: "wrong-concentration" },
-            ],
+            isCorrect: true,
+            label: "Abrir caja Losartán 100 mg",
+            feedbackTiming: "none",
+            effects: [{ type: "select-item", itemId: "losartan-100" }],
             nextStageId: "preparation",
           },
         ],
@@ -299,10 +308,20 @@ const case001Definition = {
       title: "Preparación",
       area: "preparation-counter",
       competencyIds: ["product-selection"],
+      entryEffects: [{ type: "record-error", errorId: "wrong-concentration" }],
       content: "TENS 2 virtual prepara una bandeja ficticia y la acerca a la ventanilla para la revisión del participante.",
       interaction: {
-        type: "continue",
-        label: "Continuar",
+        type: "operational-check",
+        prompt: "TENS 2 deja una bandeja en el mesón. Puedes recibirla y pasar a la revisión cuando estés lista.",
+        actions: [
+          {
+            id: "receive-tens2-tray",
+            label: "Recibir bandeja de TENS 2",
+            description: "La preparación queda disponible para una revisión independiente.",
+            required: false,
+          },
+        ],
+        completeLabel: "Pasar a doble chequeo",
         nextStageId: "double-check",
       },
     },
@@ -314,31 +333,25 @@ const case001Definition = {
       competencyIds: ["concentration-verification"],
       content: `${CONTENT_TRACEABILITY_NOTE} Esta barrera existe solamente con fines educativos demostrativos.`,
       interaction: {
-        type: "decision",
-        prompt: "¿Realizas el doble chequeo antes de volver a ventanilla?",
-        options: [
+        type: "operational-check",
+        prompt: "Inspecciona la bandeja y consulta la solicitud si lo consideras necesario. La aplicación no indicará si hay una discrepancia.",
+        actions: [
+          { id: "open-prepared-box", label: "Abrir caja preparada", description: "Losartán · 100 mg · comprimidos · cantidad 30", required: false },
           {
-            id: "perform-double-check",
-            isCorrect: true,
-            label: "Realizar doble chequeo",
-            feedbackTiming: "immediate",
-            feedback: "La comparación permite detectar y corregir una posible discrepancia.",
+            id: "compare-prepared-strength",
+            label: "Comparar concentración con la solicitud",
+            description: "Contrasta los datos visibles de preparación y prescripción.",
+            required: true,
             effects: [
               { type: "activate-barrier", barrierId: "double-check" },
               { type: "detect-error", errorId: "wrong-concentration" },
               { type: "correct-error", errorId: "wrong-concentration" },
-              { type: "select-item", itemId: "losartan-50" },
             ],
-            nextStageId: "return-to-counter",
           },
-          {
-            id: "skip-double-check",
-            isCorrect: false,
-            label: "Continuar sin doble chequeo",
-            feedbackTiming: "none",
-            nextStageId: "return-to-counter",
-          },
+          { id: "request-tens2-correction", label: "Solicitar corrección a TENS 2", description: "Pide una nueva preparación antes del despacho.", required: false },
         ],
+        completeLabel: "Preparación revisada",
+        nextStageId: "return-to-counter",
       },
     },
     {
@@ -362,9 +375,8 @@ const case001Definition = {
       competencyIds: ["final-verification", "concentration-verification"],
       criterionIds: [
         "criterion-5-compare-prepared-items",
-        "criterion-6-recheck-identity-before-handoff",
       ],
-      content: `${CONTENT_TRACEABILITY_NOTE} TENS 2 virtual deja la bandeja ficticia en el mesón. Inspecciona sus elementos antes de cerrar la atención.`,
+      content: `${CONTENT_TRACEABILITY_NOTE} La bandeja permanece disponible. Puedes volver a consultar los elementos antes de cerrar la atención.`,
       interaction: {
         type: "operational-check",
         prompt: "Completa las comprobaciones visibles de la bandeja y de identidad ficticias.",
@@ -376,7 +388,7 @@ const case001Definition = {
           },
           {
             id: "inspect-fictional-tray-concentration",
-            label: "Comparar concentración del medicamento ficticio con la solicitud",
+            label: "Abrir detalle de concentración de la bandeja",
             required: true,
             effects: [
               { type: "activate-barrier", barrierId: "final-check" },
@@ -395,13 +407,8 @@ const case001Definition = {
             label: "Comparar cantidad ficticia preparada con la solicitud",
             required: true,
           },
-          {
-            id: "recheck-fictional-identity-before-handoff",
-            label: "Verificar nuevamente identificador y nombre ficticios antes de la entrega",
-            required: true,
-          },
         ],
-        completeLabel: "Continuar al cierre",
+        completeLabel: "Continuar al despacho",
         nextStageId: "dispatch",
       },
     },
@@ -415,17 +422,25 @@ const case001Definition = {
       content: "La interacción solo permite una orientación ficticia previamente definida por el escenario; no entrega consejo clínico.",
       interaction: {
         type: "operational-check",
-        prompt: "Completa la última acción observable del escenario antes de ver el resultado.",
+        prompt: "Completa las acciones que consideres necesarias para cerrar la atención ficticia.",
         actions: [
+          { id: "open-dispatch-summary", label: "Abrir resumen de entrega", description: "Muestra el paciente y los productos preparados.", required: false },
+          {
+            id: "recheck-fictional-identity-before-handoff",
+            label: "Confirmar identidad antes de entregar",
+            description: "Compara el identificador ficticio con el resumen de entrega.",
+            required: true,
+          },
           {
             id: "provide-fictional-authorized-guidance",
-            label: "Entregar la orientación ficticia correspondiente definida por el escenario",
-            description: "No reemplaza indicaciones de un profesional autorizado.",
+            label: "Entregar indicación: 1 comprimido cada 12 horas",
+            description: "Corresponde a la orientación ficticia mostrada en la prescripción.",
             required: true,
           },
         ],
-        completeLabel: "Ver resultado",
+        completeLabel: "Entregar medicamentos al paciente",
         nextStageId: "case-result",
+        completionEffects: [{ type: "intercept-before-handoff", errorId: "wrong-concentration" }],
       },
     },
     {
