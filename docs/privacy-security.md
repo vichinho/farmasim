@@ -13,7 +13,7 @@ Este documento es una guía técnica del prototipo. No reemplaza una revisión j
 | Nombre | `public.profiles.full_name` | Personalizar la experiencia | Personal |
 | Puntajes, XP, progreso y logros | Tablas públicas con RLS | Mostrar avance educativo | Personal asociado a la cuenta |
 
-FarmaSim no debe almacenar RUT, datos biométricos, información clínica real ni datos identificables de pacientes en esta etapa.
+FarmaVerse no debe almacenar RUT, datos biométricos, información clínica real ni datos identificables de pacientes en esta etapa.
 
 ## Controles verificados
 

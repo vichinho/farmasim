@@ -6,8 +6,8 @@ import { LevelSelector } from "@/features/training/level-selector";
 import { loadTrainingLevels } from "@/features/training/load-training-levels";
 
 export const metadata: Metadata = {
-  title: "Elige un nivel | FarmaSim",
-  description: "Selecciona una experiencia de simulación en FarmaSim.",
+  title: "Elige un nivel | FarmaVerse",
+  description: "Selecciona una experiencia de simulación en FarmaVerse.",
 };
 
 export default async function SimulationsPage() {

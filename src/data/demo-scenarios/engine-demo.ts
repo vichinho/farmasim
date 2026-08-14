@@ -4,7 +4,7 @@ export const engineDemoScenario: SimulationScenario = {
   id: "engine-demo",
   title: "Práctica de comunicación",
   description:
-    "Escenario técnico y completamente ficticio para demostrar el motor de decisiones de FarmaSim.",
+    "Escenario técnico y completamente ficticio para demostrar el motor de decisiones de FarmaVerse.",
   initialNodeId: "welcome",
   nodes: [
     {

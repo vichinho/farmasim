@@ -10,8 +10,8 @@ import { closeOtherSessions, logout } from "@/features/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Cuenta y seguridad | FarmaSim",
-  description: "Revisa tu cuenta y controla tus sesiones de FarmaSim.",
+  title: "Cuenta y seguridad | FarmaVerse",
+  description: "Revisa tu cuenta y controla tus sesiones de FarmaVerse.",
 };
 
 type ProfilePageProps = {
@@ -71,7 +71,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
             <h2 className="mt-2 text-xl font-bold">{profile?.full_name || "Usuario"}</h2>
             <p className="mt-2 text-sm text-[var(--muted)]">{maskEmail(verifiedJwt.claims.email)}</p>
             <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-              FarmaSim no solicita RUT, fecha de nacimiento ni datos clínicos reales.
+              FarmaVerse no solicita RUT, fecha de nacimiento ni datos clínicos reales.
             </p>
           </Card>
 

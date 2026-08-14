@@ -1,8 +1,8 @@
-# FarmaSim
+# FarmaVerse
 
 **Aprende. Practica. Simula.**
 
-FarmaSim es una plataforma web gamificada para apoyar procesos de capacitación
+FarmaVerse es una plataforma web gamificada para apoyar procesos de capacitación
 mediante microaprendizaje, simulaciones interactivas y seguimiento del progreso.
 La experiencia está diseñada principalmente para teléfonos, sin excluir el uso
 desde computadores.
@@ -11,7 +11,7 @@ desde computadores.
 
 La incorporación de personal en farmacias puede requerir aprender numerosos
 procedimientos operativos mediante documentos, capacitaciones y experiencia
-directa. FarmaSim busca ofrecer un entorno complementario donde practicar
+directa. FarmaVerse busca ofrecer un entorno complementario donde practicar
 situaciones ficticias antes de enfrentarlas en el trabajo.
 
 ## Solución
@@ -55,7 +55,7 @@ modo turno y la experiencia offline quedan fuera del MVP.
 
 ## Arquitectura
 
-FarmaSim seguirá una arquitectura de monolito modular. Las rutas y layouts
+FarmaVerse seguirá una arquitectura de monolito modular. Las rutas y layouts
 vivirán en `src/app`; cada capacidad del producto tendrá su propio módulo en
 `src/features`; los componentes visuales compartidos estarán en
 `src/components`; y las integraciones externas estarán en `src/lib`.
@@ -124,7 +124,7 @@ ejecuta `npx supabase db push`. Las credenciales reales se mantienen solo en
 
 ## Autenticación
 
-FarmaSim utiliza Supabase Auth con correo y contraseña. Las rutas `/dashboard`,
+FarmaVerse utiliza Supabase Auth con correo y contraseña. Las rutas `/dashboard`,
 `/simulaciones`, `/novedades`, `/aprender`, `/progreso` y `/perfil` requieren una sesión
 validada. Para que los enlaces de recuperación funcionen fuera de desarrollo,
 agrega la URL de producción y `http://localhost:3000/auth/callback` a las
@@ -193,7 +193,7 @@ dispensación farmacéutica.
 
 ## Progreso del usuario
 
-Al completar una simulación, FarmaSim guarda el intento de forma idempotente en
+Al completar una simulación, FarmaVerse guarda el intento de forma idempotente en
 Supabase con su precisión, respuestas correctas e incorrectas, XP y fecha. Una
 función transaccional calcula el resultado en la base de datos, actualiza el XP
 y nivel del perfil y desbloquea la primera insignia sin permitir que el cliente
@@ -257,7 +257,7 @@ Supabase ni reemplaza el escenario estable actual.
 
 ## Landing
 
-La ruta principal presenta FarmaSim, sus beneficios y el flujo de aprendizaje.
+La ruta principal presenta FarmaVerse, sus beneficios y el flujo de aprendizaje.
 Incluye un escenario visual ficticio para explicar la experiencia sin exponer
 contenido clínico ni protocolos reales.
 
@@ -272,7 +272,7 @@ Proyecto desarrollado por Vicente con apoyo de Codex.
 
 ## Disclaimer
 
-FarmaSim es un prototipo de capacitación y simulación. El contenido incluido en
+FarmaVerse es un prototipo de capacitación y simulación. El contenido incluido en
 esta versión es demostrativo y no reemplaza protocolos institucionales,
 instrucciones profesionales, normativa sanitaria ni supervisión del químico
 farmacéutico.

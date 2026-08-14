@@ -8,26 +8,27 @@ const siteUrl =
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "FarmaSim",
+  applicationName: "FarmaVerse",
+  title: "FarmaVerse",
   description: "Aprende, practica y simula situaciones de capacitación.",
   openGraph: {
     description: "Entrenamiento interactivo con casos ficticios, decisiones y feedback.",
     images: [
       {
-        alt: "FarmaSim — Aprende. Practica. Simula.",
-        height: 909,
+        alt: "FarmaVerse — Aprende. Practica. Simula.",
+        height: 630,
         url: "/og.png",
-        width: 1731,
+        width: 1200,
       },
     ],
-    title: "FarmaSim — Aprende. Practica. Simula.",
+    title: "FarmaVerse — Aprende. Practica. Simula.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     description: "Entrenamiento interactivo con casos ficticios, decisiones y feedback.",
     images: ["/og.png"],
-    title: "FarmaSim — Aprende. Practica. Simula.",
+    title: "FarmaVerse — Aprende. Practica. Simula.",
   },
 };
 

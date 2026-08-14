@@ -63,10 +63,10 @@ export function PharmacyScene({
         <header className="flex flex-col gap-3 border-b border-emerald-900 bg-emerald-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <span aria-hidden="true" className="grid size-11 place-items-center rounded-xl border border-emerald-500/40 bg-emerald-900 shadow-inner">
-              <PharmacyMark />
+              <Image alt="" aria-hidden="true" height={44} src="/brand/farmaverse-icon.svg" unoptimized width={44} />
             </span>
             <div>
-              <p className="text-[0.65rem] font-black tracking-[0.2em] text-emerald-300">FARMA SIM · EXPERIENCIA INTERACTIVA</p>
+              <p className="text-[0.65rem] font-black tracking-[0.2em] text-emerald-300">FARMAVERSE · EXPERIENCIA INTERACTIVA</p>
               <h2 className="mt-0.5 text-xl font-bold" id="pharmacy-scene-heading">Puesto de atención</h2>
             </div>
           </div>
@@ -145,15 +145,5 @@ function ContextItem({ label, value }: { label: string; value: string }) {
       <p className="text-[0.62rem] font-black tracking-[0.12em] text-[var(--muted)]">{label.toUpperCase()}</p>
       <p className="mt-1 text-sm font-bold leading-5">{value}</p>
     </div>
-  );
-}
-
-function PharmacyMark() {
-  return (
-    <svg aria-hidden="true" className="size-7" viewBox="0 0 32 32">
-      <path d="M5 7H27V25H5V7Z" fill="none" stroke="white" strokeLinejoin="round" strokeWidth="2.5" />
-      <path d="M16 11V21M11 16H21" stroke="#6ee7b7" strokeLinecap="round" strokeWidth="3" />
-      <path d="M10 4H22" stroke="white" strokeLinecap="round" strokeWidth="2.5" />
-    </svg>
   );
 }

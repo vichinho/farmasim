@@ -24,7 +24,7 @@ export async function generateMetadata({
   const trainingCase = getTrainingCaseBySlug(slug);
 
   return {
-    title: trainingCase ? `${trainingCase.title} | FarmaSim` : "Caso no encontrado | FarmaSim",
+    title: trainingCase ? `${trainingCase.title} | FarmaVerse` : "Caso no encontrado | FarmaVerse",
     description: trainingCase?.description,
   };
 }

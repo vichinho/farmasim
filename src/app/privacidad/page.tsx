@@ -5,14 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "Privacidad y datos personales | FarmaSim",
-  description: "Aviso de privacidad de la demostración FarmaSim.",
+  title: "Privacidad y datos personales | FarmaVerse",
+  description: "Aviso de privacidad de la demostración FarmaVerse.",
 };
 
 const sections = [
   {
     title: "Datos que usa la demostración",
-    body: "Nombre, correo electrónico administrado por Supabase, identificador interno de cuenta y resultados de aprendizaje como puntajes, progreso y logros. La contraseña no es visible para FarmaSim: Supabase Auth la procesa mediante mecanismos de autenticación seguros.",
+    body: "Nombre, correo electrónico administrado por Supabase, identificador interno de cuenta y resultados de aprendizaje como puntajes, progreso y logros. La contraseña no es visible para FarmaVerse: Supabase Auth la procesa mediante mecanismos de autenticación seguros.",
   },
   {
     title: "Finalidad",
@@ -36,7 +36,7 @@ export default function PrivacyPage() {
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
       <Link className="text-sm font-semibold text-[var(--brand-strong)] hover:underline" href="/">
-        ← Volver a FarmaSim
+        ← Volver a FarmaVerse
       </Link>
 
       <header className="mt-8 max-w-3xl">
@@ -45,7 +45,7 @@ export default function PrivacyPage() {
           Privacidad y datos personales
         </h1>
         <p className="mt-4 text-base leading-7 text-[var(--muted)]">
-          Este aviso describe el tratamiento de datos de la demostración y las medidas adoptadas para preparar FarmaSim para la Ley chilena 21.719, que entra en vigencia el 1 de diciembre de 2026.
+          Este aviso describe el tratamiento de datos de la demostración y las medidas adoptadas para preparar FarmaVerse para la Ley chilena 21.719, que entra en vigencia el 1 de diciembre de 2026.
         </p>
       </header>
 

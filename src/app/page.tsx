@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { FarmaVerseLogo } from "@/components/brand/farmaverse-logo";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
@@ -53,13 +54,8 @@ export default function Home() {
   return (
     <main className="overflow-hidden">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
-        <Link className="flex items-center gap-2" href="#inicio">
-          <span className="grid size-10 place-items-center rounded-xl bg-[var(--brand)] text-white shadow-sm">
-            <Icon className="size-5" name="sparkles" />
-          </span>
-          <span className="text-lg font-bold tracking-tight text-[var(--foreground)]">
-            FarmaSim
-          </span>
+        <Link aria-label="FarmaVerse, ir al inicio" href="#inicio">
+          <FarmaVerseLogo className="w-44 sm:w-48" priority />
         </Link>
         <Link
           className="rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-[var(--brand-strong)] transition-colors hover:bg-emerald-100"
@@ -76,7 +72,7 @@ export default function Home() {
             Aprende. Practica. <span className="text-[var(--brand)]">Simula.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-[var(--muted)]">
-            FarmaSim transforma situaciones cotidianas en experiencias breves de
+            FarmaVerse transforma situaciones cotidianas en experiencias breves de
             aprendizaje. Practica decisiones con escenarios ficticios antes de
             enfrentarte a ellas en el trabajo.
           </p>
@@ -219,7 +215,7 @@ export default function Home() {
 
       <footer className="border-t border-[var(--border)] bg-white">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-7 text-sm text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <p className="font-semibold text-[var(--foreground)]">FarmaSim</p>
+          <FarmaVerseLogo className="w-36" />
           <div className="flex flex-col gap-2 sm:items-end">
             <p>
               Prototipo de capacitación y simulación con contenido completamente
