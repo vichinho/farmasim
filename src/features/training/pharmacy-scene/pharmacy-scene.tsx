@@ -3,13 +3,21 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { motion, useReducedMotion } from "motion/react";
+import Image from "next/image";
 import {
   PROFESSIONAL_REVIEW_MARKER,
   type TrainingCase,
   type TrainingStage,
 } from "@/types/training-simulation";
 
-import { getPatientProfile, type SceneFeedbackTone, type WorkspaceArea } from "./scene-types";
+import { PatientActor } from "./patient-actor";
+import {
+  getPatientProfile,
+  type PatientAnimationState,
+  type PatientProfile,
+  type SceneFeedbackTone,
+  type WorkspaceArea,
+} from "./scene-types";
 import { usePatientSceneState } from "./use-patient-scene-state";
 
 type SafetyState = {
@@ -122,6 +130,8 @@ export function PharmacyScene({
             <SupportMonitor
               area={scene.activeWorkspace}
               dialogue={scene.dialogue}
+              patientState={scene.patientState}
+              profile={profile}
               status={scene.status}
               turn={profile.turn}
             />
@@ -184,18 +194,20 @@ function WorkspaceCue({ area }: { area: WorkspaceArea }) {
 function SupportMonitor({
   area,
   dialogue,
+  patientState,
+  profile,
   status,
   turn,
 }: {
   area: WorkspaceArea;
   dialogue: string;
+  patientState: PatientAnimationState;
+  profile: PatientProfile;
   status: string;
   turn: string;
 }) {
   const reduceMotion = useReducedMotion();
-  const isPatientStation = area === "service";
   const isSystemStation = area === "system";
-  const isStorageStation = area === "storage";
 
   return (
     <figure className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -211,32 +223,22 @@ function SupportMonitor({
         </span>
       </figcaption>
 
-      <div aria-label={`Monitor contextual: ${status}`} className="relative aspect-[16/10] overflow-hidden bg-[linear-gradient(150deg,#dce9e2_0%,#b7c9bf_55%,#8ca49a_100%)]" role="img">
-        <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-[31%] bg-[linear-gradient(165deg,#b77d55,#855039)]" />
-        <div aria-hidden="true" className="absolute left-[7%] top-[12%] h-[36%] w-[24%] rounded-md border-[5px] border-slate-700 bg-slate-900 p-1 shadow-lg">
-          <div className="h-full rounded-sm bg-[linear-gradient(135deg,#e8f5ed,#bfe4d1)]">
-            <div className="mx-2 pt-2 h-1.5 rounded bg-emerald-500" />
-            <div className="mx-2 mt-2 h-1 rounded bg-slate-300" />
-            <div className="mx-2 mt-1.5 h-1 w-2/3 rounded bg-slate-300" />
-          </div>
+      <div aria-label={`Monitor contextual: ${status}`} className="relative aspect-[16/10] overflow-hidden bg-[#cbd9cf]" role="img">
+        <Image
+          alt=""
+          className="object-cover object-center"
+          fill
+          sizes="(max-width: 1280px) 100vw, 17rem"
+          src="/scenes/pharmacy-counter-v2.png"
+        />
+        <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(180deg,transparent_42%,rgb(7_20_18/.28)_100%)]" />
+        <div aria-hidden="true" className="absolute inset-x-0 bottom-0 z-10 h-[26%] border-t-[3px] border-[#8d563c]/80 bg-[linear-gradient(165deg,#c99165,#8b5439)]" />
+        <div className="absolute inset-0 z-20 scale-[0.75] origin-bottom">
+          <PatientActor profile={profile} state={patientState} />
         </div>
-        <div aria-hidden="true" className="absolute right-[8%] top-[10%] grid h-[42%] w-[20%] grid-rows-4 gap-1 rounded-md border-2 border-emerald-950/40 bg-emerald-900/85 p-1.5 shadow-lg">
-          {[0, 1, 2, 3].map((row) => (
-            <span className={cn("rounded-sm", isStorageStation && row === 1 ? "bg-amber-300" : "bg-[#e7e4d9]")} key={row} />
-          ))}
-        </div>
-        <motion.div
-          animate={reduceMotion ? undefined : isPatientStation ? { y: [0, -2, 0] } : { opacity: [0.88, 1, 0.88] }}
-          className="absolute bottom-[20%] left-[42%] h-[49%] w-[20%]"
-          transition={{ duration: 2.8, repeat: Infinity }}
-        >
-          <span className="absolute left-1/2 top-0 size-[31%] -translate-x-1/2 rounded-full bg-[#b87858]" />
-          <span className="absolute left-[30%] top-[4%] h-[13%] w-[40%] rounded-t-full bg-slate-700" />
-          <span className="absolute bottom-0 left-[8%] h-[70%] w-[84%] rounded-t-[45%] bg-[#526f69]" />
-        </motion.div>
         <motion.div
           animate={reduceMotion ? undefined : { rotate: [-4, 2, -4], x: [0, 3, 0] }}
-          className={cn("absolute bottom-[19%] left-[48%] h-[18%] w-[26%] rounded-sm border border-slate-300 bg-[#fffdf2] p-1.5 shadow-md", isSystemStation ? "ring-2 ring-emerald-400" : "")}
+          className={cn("absolute bottom-[16%] left-[39%] z-30 h-[18%] w-[27%] rounded-sm border border-slate-300 bg-[#fffdf2] p-1.5 shadow-md", isSystemStation ? "ring-2 ring-emerald-400" : "")}
           transition={{ duration: 2.3, repeat: Infinity }}
         >
           <span className="block h-1 w-3/4 rounded bg-emerald-600" />
@@ -245,7 +247,7 @@ function SupportMonitor({
         </motion.div>
         <motion.span
           animate={reduceMotion ? undefined : { scale: [1, 1.25, 1], opacity: [0.7, 1, 0.7] }}
-          className="absolute bottom-[38%] right-[7%] size-3 rounded-full border-2 border-white bg-emerald-400 shadow-[0_0_14px_rgb(52_211_153/.95)]"
+          className="absolute right-[7%] top-[13%] z-30 size-3 rounded-full border-2 border-white bg-emerald-400 shadow-[0_0_14px_rgb(52_211_153/.95)]"
           transition={{ duration: 1.8, repeat: Infinity }}
         />
         <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-slate-950/85 px-3 py-2 text-[0.62rem] font-bold text-white">
