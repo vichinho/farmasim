@@ -2,13 +2,14 @@ export const PROFESSIONAL_REVIEW_MARKER =
   "[CONTENIDO PENDIENTE DE VALIDACIÓN PROFESIONAL]";
 
 export type ContentValidationStatus =
-  | "demonstrative"
-  | "pending-professional-review"
-  | "professionally-validated";
+  | "documented-base"
+  | "educational-development"
+  | "professionally-reviewed"
+  | "institutionally-approved";
 
-export type ContentApprovalRecord = {
-  approvedAt: string;
-  approvedBy: string;
+export type ContentTraceabilityRecord = {
+  status: ContentValidationStatus;
+  statement: string;
   scope: string;
 };
 
@@ -26,7 +27,7 @@ export type EducationalSourceId =
 export type EducationalSource = {
   authority: "institutional" | "academic" | "catalog";
   id: EducationalSourceId;
-  reviewStatus: "source-identified" | "pending-professional-review" | "approved-for-training";
+  reviewStatus: "documented-base" | "professionally-reviewed" | "institutionally-approved";
   title: string;
   versionLabel: string;
 };

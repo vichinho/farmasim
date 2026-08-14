@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { dispensingCriteria } from "@/data/training/dispensing-criteria";
-import { contentApproval, educationalSources } from "@/data/training/educational-sources";
+import { contentTraceability, educationalSources } from "@/data/training/educational-sources";
 import { ProgressOverview } from "@/features/progress/progress-overview";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -127,11 +127,11 @@ export default async function ProgressPage() {
         xpEarned: attempt.xp_earned,
       }))}
       simulationsCompleted={attempts.length}
-      sourcesApprovedForTraining={educationalSources.filter(
-        (source) => source.reviewStatus === "approved-for-training",
+      documentedSources={educationalSources.filter(
+        (source) => source.reviewStatus === "documented-base",
       ).length}
       totalXp={profileResult.data?.xp ?? 0}
-      validationRecord={contentApproval}
+      traceabilityRecord={contentTraceability}
     />
   );
 }

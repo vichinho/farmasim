@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { getLevelProgress, XP_PER_LEVEL } from "@/lib/progression";
-import type { ContentApprovalRecord } from "@/types/training-simulation";
+import type { ContentTraceabilityRecord } from "@/types/training-simulation";
 
 type AchievementSummary = {
   description: string;
@@ -37,9 +37,9 @@ type ProgressOverviewProps = {
   precision: number;
   recentAttempts: RecentAttempt[];
   simulationsCompleted: number;
-  sourcesApprovedForTraining: number;
+  documentedSources: number;
   totalXp: number;
-  validationRecord: ContentApprovalRecord;
+  traceabilityRecord: ContentTraceabilityRecord;
 };
 
 const dateFormatter = new Intl.DateTimeFormat("es-CL", {
@@ -57,9 +57,9 @@ export function ProgressOverview({
   precision,
   recentAttempts,
   simulationsCompleted,
-  sourcesApprovedForTraining,
+  documentedSources,
   totalXp,
-  validationRecord,
+  traceabilityRecord,
 }: ProgressOverviewProps) {
   const { currentLevelXp, percentage } = getLevelProgress(totalXp);
 
@@ -156,15 +156,15 @@ export function ProgressOverview({
             </Card>
           )}
 
-          <Card className="mt-3 border-emerald-200 bg-emerald-50">
+          <Card className="mt-3 border-sky-200 bg-sky-50">
             <Badge tone="neutral">Gobernanza de contenido</Badge>
-            <p className="mt-3 text-sm font-bold text-emerald-950">
-              {sourcesApprovedForTraining} fuentes aprobadas para uso formativo.
+            <p className="mt-3 text-sm font-bold text-sky-950">
+              {documentedSources} fuentes documentales registradas.
             </p>
-            <p className="mt-2 text-sm leading-6 text-emerald-900">
-              Aprobación registrada el {dateFormatter.format(new Date(`${validationRecord.approvedAt}T12:00:00`))} por {validationRecord.approvedBy}. Alcance: {validationRecord.scope}
+            <p className="mt-2 text-sm leading-6 text-sky-900">
+              {traceabilityRecord.statement} Alcance: {traceabilityRecord.scope}
             </p>
-            <p className="mt-2 text-sm leading-6 text-emerald-900">
+            <p className="mt-2 text-sm leading-6 text-sky-900">
               Estos indicadores no certifican competencia clínica ni reemplazan la evaluación institucional. Las decisiones clínicas y condiciones no previstas se derivan al QF.
             </p>
           </Card>

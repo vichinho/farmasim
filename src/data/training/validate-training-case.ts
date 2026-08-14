@@ -42,13 +42,6 @@ export function validateTrainingCase(
     issues.push(`Duplicate case criterion id: ${duplicate}`);
   }
 
-  if (
-    trainingCase.contentValidation === "pending-professional-review" &&
-    !trainingCase.professionalReviewMarker
-  ) {
-    issues.push("Pending professional content must include the professional review marker");
-  }
-
   for (const competencyId of trainingCase.competencies) {
     if (!competencyIds.has(competencyId)) {
       issues.push(`Unknown case competency: ${competencyId}`);
