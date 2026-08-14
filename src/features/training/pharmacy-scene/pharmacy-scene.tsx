@@ -1,9 +1,10 @@
 "use client";
 
+import dynamic from "next/dynamic";
+
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { motion, useReducedMotion } from "motion/react";
-import Image from "next/image";
 import {
   PROFESSIONAL_REVIEW_MARKER,
   type TrainingCase,
@@ -16,6 +17,14 @@ import {
   type WorkspaceArea,
 } from "./scene-types";
 import { usePatientSceneState } from "./use-patient-scene-state";
+
+const SupportMonitor3D = dynamic(
+  () => import("./support-monitor-3d").then((module) => module.SupportMonitor3D),
+  {
+    loading: () => <div className="absolute inset-0 animate-pulse bg-emerald-100" />,
+    ssr: false,
+  },
+);
 
 type SafetyState = {
   activeAlert: boolean;
@@ -214,24 +223,7 @@ function SupportMonitor({
       </figcaption>
 
       <div aria-label={`Monitor contextual: ${status}`} className="relative aspect-[16/10] overflow-hidden bg-[#cbd9cf]" role="img">
-        <Image
-          alt=""
-          className="object-cover object-center"
-          fill
-          sizes="(max-width: 1280px) 100vw, 17rem"
-          src="/scenes/support-monitor-v1.png"
-        />
-        <motion.div
-          animate={reduceMotion ? undefined : { opacity: [0, 0.36, 0], x: ["-35%", "125%"] }}
-          aria-hidden="true"
-          className="absolute inset-y-0 z-20 w-[22%] bg-[linear-gradient(90deg,transparent,rgb(255_255_255/.65),transparent)]"
-          transition={{ duration: 3.8, ease: "easeInOut", repeat: Infinity, repeatDelay: 1.2 }}
-        />
-        <motion.span
-          animate={reduceMotion ? undefined : { scale: [1, 1.25, 1], opacity: [0.7, 1, 0.7] }}
-          className="absolute bottom-[30%] right-[13%] z-30 size-3 rounded-full border-2 border-white bg-emerald-400 shadow-[0_0_14px_rgb(52_211_153/.95)]"
-          transition={{ duration: 1.8, repeat: Infinity }}
-        />
+        <SupportMonitor3D area={area} />
         <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-slate-950/85 px-3 py-2 text-[0.62rem] font-bold text-white">
           <span>{turn} · Paciente virtual</span>
           <span>{areaDetails[area].title}</span>
