@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
@@ -10,12 +8,14 @@ import {
   type TrainingStage,
 } from "@/types/training-simulation";
 
-import { CounterWorkspace, StorageDrawers, WorkspaceHotspots, type TrayStatus } from "./counter-workspace";
-import { PatientActor } from "./patient-actor";
-import { PatientDialogue } from "./patient-dialogue";
 import { getPatientProfile, type SceneFeedbackTone, type WorkspaceArea } from "./scene-types";
-import { ServiceWindow } from "./service-window";
 import { usePatientSceneState } from "./use-patient-scene-state";
+
+type SafetyState = {
+  activeAlert: boolean;
+  interceptedErrorCount: number;
+  unresolvedErrorCount: number;
+};
 
 type PharmacySceneProps = {
   caseId: string;
@@ -25,6 +25,7 @@ type PharmacySceneProps = {
   outcome: { errorReachedPatient: boolean };
   panel: React.ReactNode;
   professionalReviewMarker?: string;
+  safety: SafetyState;
   stage: TrainingStage;
   statusLabel: string;
 };
@@ -37,6 +38,14 @@ const stationLabels: { id: WorkspaceArea; label: string }[] = [
   { id: "verification", label: "Verificación" },
 ];
 
+const areaDetails: Record<WorkspaceArea, { cue: string; title: string }> = {
+  service: { cue: "Solicitud ficticia en revisión", title: "Ventanilla de atención" },
+  system: { cue: "Datos ficticios listos para contrastar", title: "Consulta en sistema" },
+  storage: { cue: "Selección pendiente en gavetas", title: "Área de almacenamiento" },
+  preparation: { cue: "Bandeja ficticia en preparación", title: "Mesa de preparación" },
+  verification: { cue: "Verificación independiente pendiente", title: "Punto de control final" },
+};
+
 export function PharmacyScene({
   caseId,
   context,
@@ -45,92 +54,74 @@ export function PharmacyScene({
   outcome,
   panel,
   professionalReviewMarker,
+  safety,
   stage,
   statusLabel,
 }: PharmacySceneProps) {
   const profile = getPatientProfile(caseId);
   const scene = usePatientSceneState({ feedbackTone, isComplete, outcome, stage });
-  const trayStatus = getTrayStatus(stage, outcome.errorReachedPatient);
+  const activeStation = stationLabels.find((station) => station.id === scene.activeWorkspace);
+  const details = areaDetails[scene.activeWorkspace];
 
   return (
-    <section aria-labelledby="pharmacy-scene-heading" className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <ContextItem label="Hora simulada" value={context.timeLabel} />
-        <ContextItem label="Puesto" value="Ventanilla 01" />
-        <ContextItem label="Turno actual" value={`${profile.turn} · Paciente virtual`} />
-      </div>
-
-      <div className="overflow-hidden rounded-[2rem] border border-emerald-900/20 bg-white shadow-[0_20px_55px_rgb(19_33_60/.12)]">
-        <header className="flex flex-col gap-3 border-b border-emerald-900 bg-emerald-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <span aria-hidden="true" className="grid size-11 place-items-center rounded-xl border border-emerald-500/40 bg-emerald-900 shadow-inner">
-              <Image alt="" aria-hidden="true" height={44} src="/brand/farmaverse-icon.svg" unoptimized width={44} />
-            </span>
-            <div>
-              <p className="text-[0.65rem] font-black tracking-[0.2em] text-emerald-300">FARMAVERSE · EXPERIENCIA INTERACTIVA</p>
-              <h2 className="mt-0.5 text-xl font-bold" id="pharmacy-scene-heading">Puesto de atención</h2>
-            </div>
+    <section aria-labelledby="pharmacy-scene-heading" className="space-y-3">
+      <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_20px_55px_rgb(19_33_60/.10)]">
+        <header className="flex flex-col gap-3 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[0.62rem] font-black tracking-[0.18em] text-emerald-300">FARMAVERSE · SIMULACIÓN GUIADA</p>
+            <h2 className="mt-1 text-lg font-bold" id="pharmacy-scene-heading">Una tarea a la vez</h2>
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-900 px-3 py-1.5 font-semibold text-emerald-100">
-              <span className="size-2 rounded-full bg-emerald-300" />
-              {scene.status}
-            </span>
-            <span className="font-semibold text-emerald-100">{statusLabel}</span>
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
+            <span className="size-2 rounded-full bg-emerald-400" />
+            {statusLabel}
           </div>
         </header>
 
-        <div className="grid lg:grid-cols-[minmax(0,1.58fr)_minmax(20rem,0.82fr)]">
-          <div className="bg-[#d7e1d8] p-3 sm:p-5">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[1.6rem] border-4 border-white bg-[#cbd9cf] shadow-inner sm:aspect-[16/10] xl:aspect-video">
-              <ServiceWindow>
-                <Image
-                  alt="Farmacia virtual vista desde el puesto de atención, con sala de espera, turnero y equipamiento clínico ficticio"
-                  className="object-cover object-center"
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 68vw"
-                  src="/scenes/pharmacy-counter-v2.png"
-                />
-                <PatientActor profile={profile} state={scene.patientState} />
-                <PatientDialogue dialogue={scene.dialogue} profile={profile} state={scene.patientState} />
-                <StorageDrawers active={scene.activeWorkspace === "storage"} />
-                <CounterWorkspace activeArea={scene.activeWorkspace} trayStatus={trayStatus} />
-              </ServiceWindow>
-              <WorkspaceHotspots activeArea={scene.activeWorkspace} />
+        <div className="grid xl:grid-cols-[15rem_minmax(0,1fr)_17rem]">
+          <aside className="border-b border-slate-200 bg-slate-50 p-5 xl:border-b-0 xl:border-r">
+            <p className="text-[0.62rem] font-black tracking-[0.14em] text-[var(--muted)]">CONTEXTO DEL CASO</p>
+            <dl className="mt-4 space-y-4 text-sm">
+              <ContextRow label="Hora" value={context.timeLabel} />
+              <ContextRow label="Puesto" value="Ventanilla 01" />
+              <ContextRow label="Turno" value={`${profile.turn} · Paciente virtual`} />
+            </dl>
+            <div className="mt-6 border-t border-slate-200 pt-5">
+              <p className="text-[0.62rem] font-black tracking-[0.14em] text-[var(--muted)]">RECORRIDO</p>
+              <ol className="mt-3 space-y-1.5" aria-label="Estaciones de la simulación">
+                {stationLabels.map((station, index) => {
+                  const active = station.id === scene.activeWorkspace;
+                  return (
+                    <li className="flex items-center gap-2 text-sm" key={station.id}>
+                      <span className={cn("grid size-6 place-items-center rounded-full text-[0.7rem] font-black", active ? "bg-emerald-700 text-white" : "bg-slate-200 text-slate-500")}>
+                        {index + 1}
+                      </span>
+                      <span className={cn("font-semibold", active ? "text-emerald-900" : "text-slate-500")}>{station.label}</span>
+                    </li>
+                  );
+                })}
+              </ol>
             </div>
+          </aside>
 
-            <div aria-label="Progreso por estaciones del puesto" className="mt-3 grid grid-cols-3 gap-1.5 sm:grid-cols-5" role="list">
-              {stationLabels.map((station) => {
-                const active = scene.activeWorkspace === station.id;
-                return (
-                  <div
-                    aria-current={active ? "step" : undefined}
-                    className={cn(
-                      "min-h-11 rounded-xl border px-1.5 py-2 text-center text-[0.58rem] font-black tracking-wide sm:text-xs",
-                      active
-                        ? "border-emerald-800 bg-emerald-800 text-white shadow-sm"
-                        : "border-emerald-200 bg-white text-slate-500",
-                    )}
-                    key={station.id}
-                    role="listitem"
-                  >
-                    {station.label}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <aside className="flex min-h-[34rem] flex-col border-t border-[var(--border)] bg-[#fbfcfa] p-5 lg:border-l lg:border-t-0 lg:p-6">
-            <div className="mb-4 flex items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
+          <main className="min-w-0 p-5 sm:p-7">
+            <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-[0.6rem] font-black tracking-[0.14em] text-[var(--muted)]">PACIENTE EN ATENCIÓN</p>
-                <p className="mt-1 text-sm font-bold">{profile.turn} · Solicitud ficticia</p>
+                <Badge tone="brand">{activeStation?.label ?? "Atención"}</Badge>
+                <h3 className="mt-3 text-2xl font-black tracking-tight text-slate-950">Tu tarea ahora</h3>
+                <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{details.title}. {details.cue}</p>
               </div>
-              <Badge tone="brand">{scene.status}</Badge>
+              <WorkspaceCue area={scene.activeWorkspace} />
             </div>
-            {panel}
+            <div className="pt-6">{panel}</div>
+          </main>
+
+          <aside className="border-t border-slate-200 bg-slate-50 p-5 xl:border-l xl:border-t-0">
+            <p className="text-[0.62rem] font-black tracking-[0.14em] text-[var(--muted)]">ESTADO DE SEGURIDAD</p>
+            <SafetyCard safety={safety} />
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
+              <p className="text-[0.62rem] font-black tracking-[0.12em] text-slate-500">PACIENTE VIRTUAL</p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-800">{scene.dialogue}</p>
+            </div>
           </aside>
         </div>
       </div>
@@ -142,18 +133,47 @@ export function PharmacyScene({
   );
 }
 
-function getTrayStatus(stage: TrainingStage, hasPendingError: boolean): TrayStatus {
-  if (hasPendingError) return "intercepted";
-  if (stage.type === "preparation" || stage.type === "safety-barrier") return "preparing";
-  if (stage.type === "final-verification" || stage.type === "dispatch") return "ready-for-review";
-  return "idle";
+function ContextRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-[0.62rem] font-black tracking-[0.12em] text-slate-500">{label.toUpperCase()}</dt>
+      <dd className="mt-1 font-semibold text-slate-800">{value}</dd>
+    </div>
+  );
 }
 
-function ContextItem({ label, value }: { label: string; value: string }) {
+function SafetyCard({ safety }: { safety: SafetyState }) {
+  const requiresReview = safety.activeAlert || safety.unresolvedErrorCount > 0;
+  const hasInterception = safety.interceptedErrorCount > 0;
+  const title = requiresReview
+    ? "Revisión requerida"
+    : hasInterception
+      ? "Barrera aplicada"
+      : "Sin alertas activas";
+  const description = requiresReview
+    ? "Detén el avance y completa la revisión indicada antes de continuar."
+    : hasInterception
+      ? "Se registró una corrección dentro de la actividad ficticia."
+      : "Continúa con la tarea actual y verifica antes de avanzar.";
+
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-white px-4 py-3.5 shadow-[0_4px_14px_rgb(19_33_60/.03)]">
-      <p className="text-[0.62rem] font-black tracking-[0.12em] text-[var(--muted)]">{label.toUpperCase()}</p>
-      <p className="mt-1 text-sm font-bold leading-5">{value}</p>
+    <div className={cn("mt-4 rounded-2xl border p-4", requiresReview ? "border-rose-200 bg-rose-50" : hasInterception ? "border-amber-200 bg-amber-50" : "border-emerald-200 bg-emerald-50")}>
+      <div className="flex items-center gap-2">
+        <span className={cn("size-2.5 rounded-full", requiresReview ? "bg-rose-600" : hasInterception ? "bg-amber-500" : "bg-emerald-600")} />
+        <p className="text-sm font-black text-slate-900">{title}</p>
+      </div>
+      <p className="mt-2 text-sm leading-6 text-slate-700">{description}</p>
+    </div>
+  );
+}
+
+function WorkspaceCue({ area }: { area: WorkspaceArea }) {
+  const label = areaDetails[area].title;
+  const shape = area === "system" ? "▣" : area === "storage" ? "▤" : area === "preparation" ? "▱" : area === "verification" ? "✓" : "▧";
+
+  return (
+    <div aria-label={label} className="grid size-16 shrink-0 place-items-center rounded-2xl border border-emerald-200 bg-emerald-50 text-3xl font-black text-emerald-800" role="img">
+      {shape}
     </div>
   );
 }

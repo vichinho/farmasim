@@ -434,6 +434,13 @@ export function TrainingSession({ levelNumber, mode, trainingCase }: TrainingSes
           />
         }
         professionalReviewMarker={trainingCase.professionalReviewMarker}
+        safety={{
+          activeAlert: safetyAlert !== null,
+          interceptedErrorCount: session.correctedErrorIds.length,
+          unresolvedErrorCount: session.recordedErrorIds.filter(
+            (errorId) => !session.correctedErrorIds.includes(errorId),
+          ).length,
+        }}
         stage={currentStage}
         statusLabel={statusLabel}
       />
