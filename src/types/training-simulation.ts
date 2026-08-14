@@ -6,6 +6,12 @@ export type ContentValidationStatus =
   | "pending-professional-review"
   | "professionally-validated";
 
+export type ContentApprovalRecord = {
+  approvedAt: string;
+  approvedBy: string;
+  scope: string;
+};
+
 export type EducationalSourceId =
   | "dispensing-evaluation-rubric-7-criteria"
   | "daily-storage-review-rubric"

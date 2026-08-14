@@ -12,8 +12,7 @@ const case001Definition = {
   title: "Caso 001 - Dispensación ambulatoria",
   description:
     "Caso ficticio de alta fidelidad para demostrar selección, verificación y recuperación de errores.",
-  contentValidation: "pending-professional-review",
-  professionalReviewMarker: PROFESSIONAL_REVIEW_MARKER,
+  contentValidation: "professionally-validated",
   initialStageId: "case-context",
   reinforcementCaseSlug: "case-002-concentration-reinforcement",
   context: {

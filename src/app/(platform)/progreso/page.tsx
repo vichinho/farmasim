@@ -1,13 +1,12 @@
 import { redirect } from "next/navigation";
 
 import { dispensingCriteria } from "@/data/training/dispensing-criteria";
-import { educationalSources } from "@/data/training/educational-sources";
+import { contentApproval, educationalSources } from "@/data/training/educational-sources";
 import { ProgressOverview } from "@/features/progress/progress-overview";
 import { createClient } from "@/lib/supabase/server";
 import type {
   AttemptCriterionStatus,
   DispensingCriterionId,
-  EducationalSource,
 } from "@/types/training-simulation";
 
 export default async function ProgressPage() {
@@ -128,11 +127,11 @@ export default async function ProgressPage() {
         xpEarned: attempt.xp_earned,
       }))}
       simulationsCompleted={attempts.length}
-      sourcesPendingProfessionalReview={educationalSources.filter(
-        (source) =>
-          (source.reviewStatus as EducationalSource["reviewStatus"]) !== "approved-for-training",
+      sourcesApprovedForTraining={educationalSources.filter(
+        (source) => source.reviewStatus === "approved-for-training",
       ).length}
       totalXp={profileResult.data?.xp ?? 0}
+      validationRecord={contentApproval}
     />
   );
 }

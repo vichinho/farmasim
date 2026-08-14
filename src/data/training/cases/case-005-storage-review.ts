@@ -12,8 +12,7 @@ const case005Definition = {
   title: "Caso 005 - Revisión de almacenamiento",
   description:
     "Caso ficticio para practicar el registro diario de almacenamiento y la separación entre medicamentos e insumos.",
-  contentValidation: "pending-professional-review",
-  professionalReviewMarker: PROFESSIONAL_REVIEW_MARKER,
+  contentValidation: "professionally-validated",
   initialStageId: "storage-context",
   context: {
     timeLabel: "07:45 h",
