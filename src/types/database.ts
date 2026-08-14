@@ -304,6 +304,7 @@ export type Database = {
         Row: {
           completed_at: string | null
           correct_answers: number
+          criterion_results: Json
           id: string
           incorrect_answers: number
           level_number: number | null
@@ -316,6 +317,7 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           correct_answers?: number
+          criterion_results?: Json
           id?: string
           incorrect_answers?: number
           level_number?: number | null
@@ -328,6 +330,7 @@ export type Database = {
         Update: {
           completed_at?: string | null
           correct_answers?: number
+          criterion_results?: Json
           id?: string
           incorrect_answers?: number
           level_number?: number | null
@@ -419,17 +422,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      complete_simulation_attempt: {
-        Args: {
-          p_attempt_id: string
-          p_correct_answers: number
-          p_incorrect_answers: number
-          p_level_number?: number
-          p_scenario_slug: string
-          p_started_at: string
-        }
-        Returns: boolean
-      }
+      complete_simulation_attempt:
+        | {
+            Args: {
+              p_attempt_id: string
+              p_correct_answers: number
+              p_incorrect_answers: number
+              p_scenario_slug: string
+              p_started_at: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              p_attempt_id: string
+              p_correct_answers: number
+              p_incorrect_answers: number
+              p_level_number: number
+              p_scenario_slug: string
+              p_started_at: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              p_attempt_id: string
+              p_correct_answers: number
+              p_criterion_results: Json
+              p_incorrect_answers: number
+              p_level_number: number
+              p_scenario_slug: string
+              p_started_at: string
+            }
+            Returns: boolean
+          }
     }
     Enums: {
       profile_role: "learner" | "supervisor" | "admin"

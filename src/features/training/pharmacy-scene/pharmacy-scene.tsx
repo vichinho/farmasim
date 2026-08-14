@@ -10,7 +10,7 @@ import {
   type TrainingStage,
 } from "@/types/training-simulation";
 
-import { WorkspaceHotspots } from "./counter-workspace";
+import { CounterWorkspace, StorageDrawers, WorkspaceHotspots, type TrayStatus } from "./counter-workspace";
 import { PatientActor } from "./patient-actor";
 import { PatientDialogue } from "./patient-dialogue";
 import { getPatientProfile, type SceneFeedbackTone, type WorkspaceArea } from "./scene-types";
@@ -50,6 +50,7 @@ export function PharmacyScene({
 }: PharmacySceneProps) {
   const profile = getPatientProfile(caseId);
   const scene = usePatientSceneState({ feedbackTone, isComplete, outcome, stage });
+  const trayStatus = getTrayStatus(stage, outcome.errorReachedPatient);
 
   return (
     <section aria-labelledby="pharmacy-scene-heading" className="space-y-4">
@@ -93,6 +94,8 @@ export function PharmacyScene({
                 />
                 <PatientActor profile={profile} state={scene.patientState} />
                 <PatientDialogue dialogue={scene.dialogue} profile={profile} state={scene.patientState} />
+                <StorageDrawers active={scene.activeWorkspace === "storage"} />
+                <CounterWorkspace activeArea={scene.activeWorkspace} trayStatus={trayStatus} />
               </ServiceWindow>
               <WorkspaceHotspots activeArea={scene.activeWorkspace} />
             </div>
@@ -137,6 +140,13 @@ export function PharmacyScene({
       </p>
     </section>
   );
+}
+
+function getTrayStatus(stage: TrainingStage, hasPendingError: boolean): TrayStatus {
+  if (hasPendingError) return "intercepted";
+  if (stage.type === "preparation" || stage.type === "safety-barrier") return "preparing";
+  if (stage.type === "final-verification" || stage.type === "dispatch") return "ready-for-review";
+  return "idle";
 }
 
 function ContextItem({ label, value }: { label: string; value: string }) {

@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
+import type { AttemptCriterionResult } from "@/types/training-simulation";
 
 type SaveSimulationAttemptInput = {
   attemptId: string;
   correctAnswers: number;
+  criterionResults?: AttemptCriterionResult[];
   incorrectAnswers: number;
   levelNumber?: number;
   scenarioSlug: string;
@@ -21,6 +23,8 @@ export type SaveSimulationAttemptResult = {
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+const criterionIdPattern = /^criterion-[1-7]-[a-z0-9-]+$/;
+
 export async function saveSimulationAttempt(
   input: SaveSimulationAttemptInput,
 ): Promise<SaveSimulationAttemptResult> {
@@ -29,6 +33,12 @@ export async function saveSimulationAttempt(
     !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.scenarioSlug) ||
     !Number.isInteger(input.correctAnswers) ||
     !Number.isInteger(input.incorrectAnswers) ||
+    (input.criterionResults !== undefined && !Array.isArray(input.criterionResults)) ||
+    (input.criterionResults ?? []).some(
+      (result) =>
+        !criterionIdPattern.test(result.criterionId) ||
+        !["met", "reinforcement", "intercepted"].includes(result.status),
+    ) ||
     (input.levelNumber !== undefined && !Number.isInteger(input.levelNumber)) ||
     input.correctAnswers < 0 ||
     input.incorrectAnswers < 0 ||
@@ -50,6 +60,7 @@ export async function saveSimulationAttempt(
     p_attempt_id: input.attemptId,
     p_correct_answers: input.correctAnswers,
     p_incorrect_answers: input.incorrectAnswers,
+    p_criterion_results: input.criterionResults ?? [],
     p_scenario_slug: input.scenarioSlug,
     p_started_at: input.startedAt,
     ...(input.levelNumber !== undefined ? { p_level_number: input.levelNumber } : {}),

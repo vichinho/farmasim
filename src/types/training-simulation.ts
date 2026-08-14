@@ -42,6 +42,13 @@ export type DispensingCriterion = {
   trainingBoundary: string;
 };
 
+export type AttemptCriterionStatus = "met" | "reinforcement" | "intercepted";
+
+export type AttemptCriterionResult = {
+  criterionId: DispensingCriterionId;
+  status: AttemptCriterionStatus;
+};
+
 export type TrainingLevelStatus = "available" | "coming-soon" | "completed" | "locked";
 
 export type TrainingMode = {

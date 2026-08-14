@@ -14,6 +14,7 @@ import { PharmacyScene } from "@/features/training/pharmacy-scene/pharmacy-scene
 import { cn } from "@/lib/utils";
 import {
   PROFESSIONAL_REVIEW_MARKER,
+  type AttemptCriterionResult,
   type CompetencyId,
   type CompetencyStatus,
   type DecisionOption,
@@ -156,6 +157,37 @@ function scoreAttempt(session: SessionState, trainingCase: TrainingCase) {
   };
 }
 
+function getCriterionResults(
+  session: SessionState,
+  trainingCase: TrainingCase,
+): AttemptCriterionResult[] {
+  return (trainingCase.dispensingCriterionIds ?? []).map((criterionId) => {
+    const criterionCompetencyIds = trainingCase.stages
+      .filter((stage) => stage.criterionIds?.includes(criterionId))
+      .flatMap((stage) => stage.competencyIds);
+    const relatedErrorIds = trainingCase.errors
+      .filter((error) => criterionCompetencyIds.includes(error.competencyId))
+      .map((error) => error.id);
+    const hasUnresolvedError = relatedErrorIds.some(
+      (errorId) =>
+        session.recordedErrorIds.includes(errorId) && !session.correctedErrorIds.includes(errorId),
+    );
+    const hasInterceptedError = relatedErrorIds.some(
+      (errorId) =>
+        session.recordedErrorIds.includes(errorId) && session.correctedErrorIds.includes(errorId),
+    );
+
+    return {
+      criterionId,
+      status: hasUnresolvedError
+        ? "reinforcement"
+        : hasInterceptedError
+          ? "intercepted"
+          : "met",
+    };
+  });
+}
+
 export function TrainingSession({ levelNumber, mode, trainingCase }: TrainingSessionProps) {
   const [session, setSession] = useState(() => createInitialState(trainingCase));
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
@@ -288,11 +320,13 @@ export function TrainingSession({ levelNumber, mode, trainingCase }: TrainingSes
 
     setIsSaving(true);
     const score = scoreAttempt(session, trainingCase);
+    const criterionResults = getCriterionResults(session, trainingCase);
     const result = await saveSimulationAttempt({
       attemptId: attemptId.current,
       levelNumber,
       scenarioSlug: trainingCase.id,
       startedAt: startedAt.current,
+      criterionResults,
       ...score,
     });
     setSaveResult(result);
