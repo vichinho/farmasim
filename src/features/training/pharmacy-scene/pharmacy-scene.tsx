@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { motion, useReducedMotion } from "motion/react";
 import {
   PROFESSIONAL_REVIEW_MARKER,
   type TrainingCase,
@@ -118,10 +119,12 @@ export function PharmacyScene({
           <aside className="border-t border-slate-200 bg-slate-50 p-5 xl:border-l xl:border-t-0">
             <p className="text-[0.62rem] font-black tracking-[0.14em] text-[var(--muted)]">ESTADO DE SEGURIDAD</p>
             <SafetyCard safety={safety} />
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-[0.62rem] font-black tracking-[0.12em] text-slate-500">PACIENTE VIRTUAL</p>
-              <p className="mt-2 text-sm font-semibold leading-6 text-slate-800">{scene.dialogue}</p>
-            </div>
+            <SupportMonitor
+              area={scene.activeWorkspace}
+              dialogue={scene.dialogue}
+              status={scene.status}
+              turn={profile.turn}
+            />
           </aside>
         </div>
       </div>
@@ -175,5 +178,83 @@ function WorkspaceCue({ area }: { area: WorkspaceArea }) {
     <div aria-label={label} className="grid size-16 shrink-0 place-items-center rounded-2xl border border-emerald-200 bg-emerald-50 text-3xl font-black text-emerald-800" role="img">
       {shape}
     </div>
+  );
+}
+
+function SupportMonitor({
+  area,
+  dialogue,
+  status,
+  turn,
+}: {
+  area: WorkspaceArea;
+  dialogue: string;
+  status: string;
+  turn: string;
+}) {
+  const reduceMotion = useReducedMotion();
+  const isPatientStation = area === "service";
+  const isSystemStation = area === "system";
+  const isStorageStation = area === "storage";
+
+  return (
+    <figure className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <figcaption className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
+        <span className="text-[0.62rem] font-black tracking-[0.12em] text-slate-600">MONITOR DE APOYO</span>
+        <span className="inline-flex items-center gap-1.5 text-[0.68rem] font-bold text-emerald-700">
+          <motion.span
+            animate={reduceMotion ? undefined : { opacity: [0.45, 1, 0.45] }}
+            className="size-2 rounded-full bg-emerald-500"
+            transition={{ duration: 1.6, repeat: Infinity }}
+          />
+          En vivo
+        </span>
+      </figcaption>
+
+      <div aria-label={`Monitor contextual: ${status}`} className="relative aspect-[16/10] overflow-hidden bg-[linear-gradient(150deg,#dce9e2_0%,#b7c9bf_55%,#8ca49a_100%)]" role="img">
+        <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-[31%] bg-[linear-gradient(165deg,#b77d55,#855039)]" />
+        <div aria-hidden="true" className="absolute left-[7%] top-[12%] h-[36%] w-[24%] rounded-md border-[5px] border-slate-700 bg-slate-900 p-1 shadow-lg">
+          <div className="h-full rounded-sm bg-[linear-gradient(135deg,#e8f5ed,#bfe4d1)]">
+            <div className="mx-2 pt-2 h-1.5 rounded bg-emerald-500" />
+            <div className="mx-2 mt-2 h-1 rounded bg-slate-300" />
+            <div className="mx-2 mt-1.5 h-1 w-2/3 rounded bg-slate-300" />
+          </div>
+        </div>
+        <div aria-hidden="true" className="absolute right-[8%] top-[10%] grid h-[42%] w-[20%] grid-rows-4 gap-1 rounded-md border-2 border-emerald-950/40 bg-emerald-900/85 p-1.5 shadow-lg">
+          {[0, 1, 2, 3].map((row) => (
+            <span className={cn("rounded-sm", isStorageStation && row === 1 ? "bg-amber-300" : "bg-[#e7e4d9]")} key={row} />
+          ))}
+        </div>
+        <motion.div
+          animate={reduceMotion ? undefined : isPatientStation ? { y: [0, -2, 0] } : { opacity: [0.88, 1, 0.88] }}
+          className="absolute bottom-[20%] left-[42%] h-[49%] w-[20%]"
+          transition={{ duration: 2.8, repeat: Infinity }}
+        >
+          <span className="absolute left-1/2 top-0 size-[31%] -translate-x-1/2 rounded-full bg-[#b87858]" />
+          <span className="absolute left-[30%] top-[4%] h-[13%] w-[40%] rounded-t-full bg-slate-700" />
+          <span className="absolute bottom-0 left-[8%] h-[70%] w-[84%] rounded-t-[45%] bg-[#526f69]" />
+        </motion.div>
+        <motion.div
+          animate={reduceMotion ? undefined : { rotate: [-4, 2, -4], x: [0, 3, 0] }}
+          className={cn("absolute bottom-[19%] left-[48%] h-[18%] w-[26%] rounded-sm border border-slate-300 bg-[#fffdf2] p-1.5 shadow-md", isSystemStation ? "ring-2 ring-emerald-400" : "")}
+          transition={{ duration: 2.3, repeat: Infinity }}
+        >
+          <span className="block h-1 w-3/4 rounded bg-emerald-600" />
+          <span className="mt-1 block h-1 w-full rounded bg-slate-300" />
+          <span className="mt-1 block h-1 w-2/3 rounded bg-slate-300" />
+        </motion.div>
+        <motion.span
+          animate={reduceMotion ? undefined : { scale: [1, 1.25, 1], opacity: [0.7, 1, 0.7] }}
+          className="absolute bottom-[38%] right-[7%] size-3 rounded-full border-2 border-white bg-emerald-400 shadow-[0_0_14px_rgb(52_211_153/.95)]"
+          transition={{ duration: 1.8, repeat: Infinity }}
+        />
+        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-slate-950/85 px-3 py-2 text-[0.62rem] font-bold text-white">
+          <span>{turn} · Paciente virtual</span>
+          <span>{areaDetails[area].title}</span>
+        </div>
+      </div>
+
+      <p className="px-4 py-3 text-xs font-semibold leading-5 text-slate-600">{dialogue}</p>
+    </figure>
   );
 }
