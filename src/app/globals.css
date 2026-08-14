@@ -30,11 +30,37 @@ body {
   background-size: 28px 28px;
 }
 
+.pharmacy-wall-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 64, 49, 0.08) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+@keyframes patient-arrival {
+  from {
+    opacity: 0;
+    transform: translate(-20%, 2rem);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.patient-arrival {
+  animation: patient-arrival 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .patient-arrival {
+    animation: none;
   }
 }

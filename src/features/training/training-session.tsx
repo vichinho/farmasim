@@ -313,6 +313,7 @@ export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
       <VisualPharmacy
         activeArea={currentStage.area}
         context={trainingCase.context}
+        isComplete={isComplete}
         panel={
           <StagePanel
             elapsedSeconds={elapsedSeconds}
@@ -336,6 +337,7 @@ export function TrainingSession({ mode, trainingCase }: TrainingSessionProps) {
           />
         }
         professionalReviewMarker={trainingCase.professionalReviewMarker}
+        stage={currentStage}
         statusLabel={statusLabel}
       />
     </div>
