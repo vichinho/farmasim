@@ -217,10 +217,15 @@ export default function Home() {
       <footer className="border-t border-[var(--border)] bg-white">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-7 text-sm text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <p className="font-semibold text-[var(--foreground)]">FarmaSim</p>
-          <p>
-            Prototipo de capacitación y simulación con contenido completamente
-            demostrativo.
-          </p>
+          <div className="flex flex-col gap-2 sm:items-end">
+            <p>
+              Prototipo de capacitación y simulación con contenido completamente
+              demostrativo.
+            </p>
+            <Link className="font-semibold text-[var(--brand-strong)] hover:underline" href="/privacidad">
+              Privacidad y datos personales
+            </Link>
+          </div>
         </div>
       </footer>
     </main>

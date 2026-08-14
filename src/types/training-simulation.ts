@@ -86,6 +86,7 @@ export type DecisionOption = {
   feedback?: string;
   feedbackTiming: "deferred" | "immediate" | "none";
   id: string;
+  isCorrect: boolean;
   label: string;
   nextStageId: string;
 };

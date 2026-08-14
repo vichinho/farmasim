@@ -113,6 +113,7 @@ const case001Definition = {
         options: [
           {
             id: "complete-demo-identification",
+            isCorrect: true,
             label: "Revisar todos los campos ficticios solicitados por la actividad",
             feedbackTiming: "immediate",
             feedback: "La identificación demostrativa quedó completa.",
@@ -120,6 +121,7 @@ const case001Definition = {
           },
           {
             id: "skip-demo-identification",
+            isCorrect: false,
             label: "Continuar dejando campos ficticios sin revisar",
             feedbackTiming: "immediate",
             feedback: "La actividad registra una identificación incompleta.",
@@ -142,6 +144,7 @@ const case001Definition = {
         options: [
           {
             id: "review-all-demo-records",
+            isCorrect: true,
             label: "Revisar toda la información ficticia disponible",
             feedbackTiming: "immediate",
             feedback: "Se revisó el conjunto completo de datos demostrativos.",
@@ -149,6 +152,7 @@ const case001Definition = {
           },
           {
             id: "review-first-demo-record",
+            isCorrect: false,
             label: "Abrir solamente el primer registro ficticio",
             feedbackTiming: "immediate",
             feedback: "La revisión demostrativa quedó incompleta.",
@@ -202,6 +206,7 @@ const case001Definition = {
         options: [
           {
             id: "open-losartan-drawer",
+            isCorrect: true,
             label: "Abrir gaveta LOSARTÁN 50 mg",
             feedbackTiming: "none",
             effects: [{ type: "select-item", itemId: "drawer-losartan" }],
@@ -209,6 +214,7 @@ const case001Definition = {
           },
           {
             id: "open-other-drawer-a",
+            isCorrect: false,
             label: "Abrir gaveta A",
             feedbackTiming: "immediate",
             feedback: "La etiqueta ficticia no coincide. Puedes revisar otra gaveta.",
@@ -216,6 +222,7 @@ const case001Definition = {
           },
           {
             id: "open-other-drawer-b",
+            isCorrect: false,
             label: "Abrir gaveta B",
             feedbackTiming: "immediate",
             feedback: "La etiqueta ficticia no coincide. Puedes revisar otra gaveta.",
@@ -241,6 +248,7 @@ const case001Definition = {
         options: [
           {
             id: "select-losartan-50",
+            isCorrect: true,
             label: "Seleccionar Losartán 50 mg",
             feedbackTiming: "deferred",
             effects: [{ type: "select-item", itemId: "losartan-50" }],
@@ -248,6 +256,7 @@ const case001Definition = {
           },
           {
             id: "select-losartan-100",
+            isCorrect: false,
             label: "Seleccionar Losartán 100 mg",
             feedbackTiming: "deferred",
             effects: [
@@ -285,6 +294,7 @@ const case001Definition = {
         options: [
           {
             id: "perform-double-check",
+            isCorrect: true,
             label: "Realizar doble chequeo",
             feedbackTiming: "immediate",
             feedback: "La comparación permite detectar y corregir una posible discrepancia.",
@@ -298,6 +308,7 @@ const case001Definition = {
           },
           {
             id: "skip-double-check",
+            isCorrect: false,
             label: "Continuar sin doble chequeo",
             feedbackTiming: "none",
             nextStageId: "return-to-counter",
@@ -331,6 +342,7 @@ const case001Definition = {
         options: [
           {
             id: "perform-final-check",
+            isCorrect: true,
             label: "Realizar verificación final",
             feedbackTiming: "immediate",
             feedback: "La verificación permite corregir cualquier discrepancia todavía pendiente.",
@@ -344,6 +356,7 @@ const case001Definition = {
           },
           {
             id: "skip-final-check",
+            isCorrect: false,
             label: "Finalizar sin una nueva revisión",
             feedbackTiming: "none",
             nextStageId: "dispatch",

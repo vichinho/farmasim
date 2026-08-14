@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 import { Card } from "@/components/ui/card";
 
@@ -18,6 +19,12 @@ export function AuthShell({ children, description, title }: AuthShellProps) {
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{description}</p>
         </div>
         {children}
+        <p className="mt-6 text-center text-xs leading-5 text-[var(--muted)]">
+          FarmaSim usa datos mínimos para operar la cuenta.{" "}
+          <Link className="font-semibold text-[var(--brand-strong)] hover:underline" href="/privacidad">
+            Ver privacidad
+          </Link>
+        </p>
       </Card>
     </main>
   );

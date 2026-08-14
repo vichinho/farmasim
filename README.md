@@ -106,6 +106,7 @@ La aplicación estará disponible en `http://localhost:3000`.
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | URL pública del proyecto Supabase. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Clave publicable para el cliente. |
+| `NEXT_PUBLIC_SITE_URL` | URL canónica para metadatos y vista previa social. |
 
 No se deben guardar claves secretas ni una clave `service_role` en variables
 expuestas al navegador. `.env.local` está ignorado por Git.
@@ -128,6 +129,17 @@ FarmaSim utiliza Supabase Auth con correo y contraseña. Las rutas `/dashboard`,
 validada. Para que los enlaces de recuperación funcionen fuera de desarrollo,
 agrega la URL de producción y `http://localhost:3000/auth/callback` a las
 Redirect URLs de Supabase Auth.
+
+## Privacidad y sesiones
+
+La ruta pública `/privacidad` informa los datos mínimos usados por la demo. El
+registro exige confirmar su lectura y `/perfil` permite revisar la sesión actual,
+cerrarla localmente o revocar las demás sesiones. Las respuestas autenticadas no
+se almacenan en cachés compartidas. La evaluación técnica y los pendientes para
+producción están en [`docs/privacy-security.md`](docs/privacy-security.md).
+
+La lista operativa y los tres respaldos de la presentación están en
+[`docs/presentation-checklist.md`](docs/presentation-checklist.md).
 
 ## Dashboard
 

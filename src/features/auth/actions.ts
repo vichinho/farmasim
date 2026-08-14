@@ -49,10 +49,12 @@ export async function register(
   const fullName = getRequiredText(formData, "fullName");
   const email = getRequiredText(formData, "email");
   const password = getRequiredText(formData, "password");
+  const privacyAccepted = formData.get("privacyAccepted") === "on";
 
-  if (!fullName || !isValidEmail(email) || password.length < 8) {
+  if (!fullName || !isValidEmail(email) || password.length < 8 || !privacyAccepted) {
     return {
-      error: "Ingresa tu nombre, un correo válido y una contraseña de al menos 8 caracteres.",
+      error:
+        "Ingresa tus datos, usa una contraseña de al menos 8 caracteres y confirma que leíste el aviso de privacidad.",
     };
   }
 
@@ -127,6 +129,18 @@ export async function updatePassword(
 
 export async function logout() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "local" });
   redirect("/login");
+}
+
+export async function closeOtherSessions() {
+  const supabase = await createClient();
+  const { data: verifiedJwt } = await supabase.auth.getClaims();
+
+  if (!verifiedJwt?.claims.sub) {
+    redirect("/login");
+  }
+
+  const { error } = await supabase.auth.signOut({ scope: "others" });
+  redirect(error ? "/perfil?sessions=error" : "/perfil?sessions=closed");
 }

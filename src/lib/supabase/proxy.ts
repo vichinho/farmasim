@@ -18,6 +18,12 @@ function matchesPath(pathname: string, paths: string[]) {
   return paths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
+function preventSharedCaching(response: NextResponse) {
+  response.headers.set("Cache-Control", "private, no-store, max-age=0");
+  response.headers.set("Pragma", "no-cache");
+  return response;
+}
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
   const { url, publishableKey } = getSupabaseConfig();
@@ -43,15 +49,17 @@ export async function updateSession(request: NextRequest) {
   if (matchesPath(pathname, protectedPaths) && !isAuthenticated) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", `${pathname}${search}`);
-    return NextResponse.redirect(loginUrl);
+    return preventSharedCaching(NextResponse.redirect(loginUrl));
   }
 
   if (matchesPath(pathname, authPaths) && isAuthenticated) {
     const dashboardUrl = request.nextUrl.clone();
     dashboardUrl.pathname = "/dashboard";
     dashboardUrl.search = "";
-    return NextResponse.redirect(dashboardUrl);
+    return preventSharedCaching(NextResponse.redirect(dashboardUrl));
   }
 
-  return response;
+  return matchesPath(pathname, [...protectedPaths, ...authPaths])
+    ? preventSharedCaching(response)
+    : response;
 }
