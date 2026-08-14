@@ -43,7 +43,7 @@ export async function saveSimulationAttempt(
     input.correctAnswers < 0 ||
     input.incorrectAnswers < 0 ||
     (input.levelNumber !== undefined &&
-      (input.levelNumber < 1 || input.levelNumber > 6)) ||
+      (input.levelNumber < 1 || input.levelNumber > 7)) ||
     Number.isNaN(Date.parse(input.startedAt))
   ) {
     return { message: "El resultado recibido no es válido.", status: "error" };

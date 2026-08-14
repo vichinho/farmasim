@@ -53,9 +53,9 @@ export const trainingLevels = [
     id: "level-7",
     number: 7,
     title: "Modo experto",
-    description: "Nivel futuro sin orientación inicial.",
+    description: "Resuelve un caso ficticio de cierre con orientación reducida.",
     status: "locked",
-    caseSlugs: [],
+    caseSlugs: ["case-007-expert-mode"],
   },
 ] satisfies TrainingLevel[];
 
@@ -64,6 +64,7 @@ export function resolveTrainingLevels(completedLevelNumbers: number[]) {
   const levelFourUnlocked = [1, 2, 3].every((levelNumber) => completed.has(levelNumber));
   const levelFiveUnlocked = completed.has(4);
   const levelSixUnlocked = completed.has(5);
+  const levelSevenUnlocked = completed.has(6);
 
   return trainingLevels.map((level) => {
     if (completed.has(level.number)) {
@@ -79,6 +80,10 @@ export function resolveTrainingLevels(completedLevelNumbers: number[]) {
     }
 
     if (level.number === 6 && levelSixUnlocked) {
+      return { ...level, status: "available" as const };
+    }
+
+    if (level.number === 7 && levelSevenUnlocked) {
       return { ...level, status: "available" as const };
     }
 

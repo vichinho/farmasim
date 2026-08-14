@@ -49,6 +49,14 @@ export const trainingModes = [
     interruptionStageIds: [],
     notice: "Dos discrepancias ficticias pueden coexistir. El cierre exige que ambas sean interceptadas por una barrera de seguridad.",
   },
+  {
+    id: "expert-closeout",
+    levelId: "level-7",
+    shortLabel: "Cierre experto",
+    guidance: "minimal",
+    interruptionStageIds: [],
+    notice: "Modo experto: la orientación está reducida. La simulación sigue siendo ficticia y cualquier situación no prevista debe derivarse al QF.",
+  },
 ] satisfies TrainingMode[];
 
 export function getTrainingModeByLevelId(levelId: string) {
