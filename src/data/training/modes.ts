@@ -41,6 +41,14 @@ export const trainingModes = [
     interruptionStageIds: [],
     notice: "Los códigos y productos son ficticios. El módulo no sustituye la revisión institucional ni la evaluación del QF.",
   },
+  {
+    id: "multiple-errors",
+    levelId: "level-6",
+    shortLabel: "Discrepancias múltiples",
+    guidance: "standard",
+    interruptionStageIds: [],
+    notice: "Dos discrepancias ficticias pueden coexistir. El cierre exige que ambas sean interceptadas por una barrera de seguridad.",
+  },
 ] satisfies TrainingMode[];
 
 export function getTrainingModeByLevelId(levelId: string) {
