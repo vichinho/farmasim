@@ -6,32 +6,56 @@ import { cn } from "@/lib/utils";
 
 import type { WorkspaceArea } from "./scene-types";
 
-const hotspotPositions: Record<Exclude<WorkspaceArea, "service">, string> = {
-  system: "bottom-[10%] left-[1.5%] h-[39%] w-[25%]",
-  storage: "right-[1%] top-[18%] h-[52%] w-[15%]",
-  preparation: "bottom-[5%] right-[17%] h-[27%] w-[27%]",
-  verification: "bottom-[5%] right-[1.5%] h-[25%] w-[14%]",
+const hotspotAreas: Record<Exclude<WorkspaceArea, "service">, { height: number; label: string; width: number; x: number; y: number }> = {
+  system: { height: 382, label: "Sistema", width: 410, x: 38, y: 423 },
+  storage: { height: 476, label: "Gavetas", width: 244, x: 1409, y: 244 },
+  preparation: { height: 254, label: "Preparación", width: 444, x: 923, y: 633 },
+  verification: { height: 219, label: "Verificación", width: 226, x: 1340, y: 704 },
 };
 
 export function WorkspaceHotspots({ activeArea }: { activeArea: WorkspaceArea }) {
   const reduceMotion = useReducedMotion();
 
   return (
-    <div aria-label="Zonas del puesto de atención" className="pointer-events-none absolute inset-0 z-40" role="group">
-      {Object.entries(hotspotPositions).map(([area, position]) => {
+    <svg
+      aria-label="Zonas del puesto de atención"
+      className="pointer-events-none absolute inset-0 z-40 h-full w-full"
+      preserveAspectRatio="xMidYMid slice"
+      role="group"
+      viewBox="0 0 1680 945"
+    >
+      <defs>
+        <filter height="160%" id="active-workspace-glow" width="160%" x="-30%" y="-30%">
+          <feGaussianBlur result="blur" stdDeviation="7" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      {Object.entries(hotspotAreas).map(([area, bounds]) => {
         const active = activeArea === area;
         return (
-          <motion.div
+          <motion.rect
             animate={active && !reduceMotion ? { opacity: [0.55, 1, 0.55] } : { opacity: active ? 0.85 : 0 }}
-            aria-label={`${area}${active ? ", zona activa" : ""}`}
-            className={cn("absolute rounded-2xl border-2 border-amber-200 bg-amber-100/10 shadow-[0_0_32px_rgb(253_230_138/.72)]", position)}
+            aria-label={`${bounds.label}${active ? ", zona activa" : ""}`}
+            fill="#fef3c7"
+            fillOpacity="0.08"
+            filter="url(#active-workspace-glow)"
+            height={bounds.height}
             key={area}
             role="img"
+            rx="24"
+            stroke="#fde68a"
+            strokeWidth="5"
             transition={{ duration: 1.5, repeat: active && !reduceMotion ? Infinity : 0 }}
+            width={bounds.width}
+            x={bounds.x}
+            y={bounds.y}
           />
         );
       })}
-    </div>
+    </svg>
   );
 }
 
