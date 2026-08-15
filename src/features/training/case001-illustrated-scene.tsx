@@ -87,7 +87,7 @@ export function Case001IllustratedScene({
       })}
 
       {documentVisible ? (
-        <div className="pointer-events-none absolute left-[28%] top-[72%] z-10 w-[5.4rem] -translate-x-1/2 -translate-y-1/2 -rotate-3 rounded-md border border-slate-200/90 bg-white/95 p-2 shadow-[0_5px_14px_rgba(15,23,42,.16)] sm:w-24">
+        <div className="pointer-events-none absolute left-[28%] top-[75.5%] z-10 w-[5.4rem] -translate-x-1/2 -translate-y-1/2 -rotate-2 rounded-md border border-slate-200/90 bg-white/95 p-2 shadow-[0_4px_10px_rgba(15,23,42,.11)] sm:w-24">
           <p className="truncate text-[0.38rem] font-black uppercase tracking-[0.12em] text-violet-600 sm:text-[0.42rem]">Documento ficticio</p>
           <div className="mt-1.5 flex gap-1.5">
             <div className="h-7 w-5 shrink-0 rounded-sm bg-slate-100 sm:h-8 sm:w-6" />
