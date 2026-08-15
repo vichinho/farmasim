@@ -1,5 +1,9 @@
 "use client";
 
+import { CASE001_SCENE_IMAGE_PART_1 } from "@/features/training/case001-scene-image-part-1";
+import { CASE001_SCENE_IMAGE_PART_2 } from "@/features/training/case001-scene-image-part-2";
+import { CASE001_SCENE_IMAGE_PART_3 } from "@/features/training/case001-scene-image-part-3";
+import { CASE001_SCENE_IMAGE_PART_4 } from "@/features/training/case001-scene-image-part-4";
 import { sceneHotspots, type SceneHotspotId } from "@/features/training/case001-scene-hotspots";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +14,13 @@ type Props = {
   activeHotspot?: SceneHotspotId | null;
   onHotspotClick?: (id: SceneHotspotId) => void;
 };
+
+const CASE001_SCENE_IMAGE = `data:image/jpeg;base64,${[
+  CASE001_SCENE_IMAGE_PART_1,
+  CASE001_SCENE_IMAGE_PART_2,
+  CASE001_SCENE_IMAGE_PART_3,
+  CASE001_SCENE_IMAGE_PART_4,
+].join("")}`;
 
 const activeByWorkspace: Record<string, SceneHotspotId[]> = {
   service: ["patient", "reception"],
@@ -33,8 +44,9 @@ export function Case001IllustratedScene({
       <img
         alt="Farmacia ambulatoria ficticia para simulación"
         className="absolute inset-0 h-full w-full object-cover object-center"
+        decoding="async"
         draggable={false}
-        src="/images/farmasim/case001-scene.jpg"
+        src={CASE001_SCENE_IMAGE}
       />
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/5 via-transparent to-white/5" />
