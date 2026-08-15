@@ -127,12 +127,10 @@ h6 {
     object-position: 38% center !important;
   }
 
-  /* El óvalo decorativo de la versión desktop no aporta información en móvil. */
   .case001-responsive [class*="rounded-[45%]"] {
     display: none !important;
   }
 
-  /* Los puntos mantienen un aspecto discreto, pero el área táctil crece a ~44 px. */
   .case001-responsive button[aria-label^="Interactuar con"] {
     min-width: 2.75rem;
     min-height: 2.75rem;
@@ -144,7 +142,6 @@ h6 {
     flex: 0 0 auto;
   }
 
-  /* Bottom sheet compacto: deja visible más escena y puede desplazarse internamente. */
   .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] {
     left: 0 !important;
     right: 0 !important;
@@ -178,14 +175,12 @@ h6 {
     line-height: 1.35;
   }
 
-  /* En tablet la información complementaria queda debajo de la escena. */
   .case001-responsive > div > div.grid > aside {
     border-top: 1px solid rgb(237 233 254);
   }
 }
 
 @media (max-width: 767.98px) {
-  /* En teléfono la escena es la interfaz principal; el panel lateral no roba altura. */
   .case001-responsive > div > div.grid > aside {
     display: none;
   }
@@ -200,6 +195,47 @@ h6 {
 
   .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div {
     max-height: min(35svh, 18.5rem) !important;
+  }
+
+  /* Si el panel no tiene acciones, es solo informativo: se muestra como tarjeta compacta. */
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div:not(:has(button)) {
+    width: calc(100% - 1.1rem) !important;
+    max-height: none !important;
+    margin: 0 auto 0.55rem !important;
+    border-radius: 1.15rem !important;
+    padding: 0.72rem 0.85rem !important;
+    box-shadow: 0 8px 28px rgba(17, 24, 39, 0.13) !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div:not(:has(button))::before {
+    display: none !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div:not(:has(button)) h2 {
+    margin-top: 0.15rem !important;
+    font-size: 1rem !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div:not(:has(button)) h2 + p {
+    margin-top: 0.2rem !important;
+    font-size: 0.72rem !important;
+    line-height: 1.35 !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div:not(:has(button)) > div > div.mt-4 {
+    margin-top: 0.55rem !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div:not(:has(button)) > div > div.mt-4 > div:first-child {
+    padding: 0.65rem 0.75rem !important;
+    font-size: 0.75rem !important;
+    line-height: 1.45 !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div:not(:has(button)) > div > div.mt-4 > p {
+    margin-top: 0.55rem !important;
+    font-size: 0.72rem !important;
+    line-height: 1.4 !important;
   }
 
   .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] h2 {
