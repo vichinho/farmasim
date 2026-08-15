@@ -47,7 +47,7 @@ export function Case001IllustratedScene({
         className="absolute inset-0 h-full w-full object-cover object-center"
         decoding="async"
         draggable={false}
-        src="/images/farmasim/case001-scene.png"
+        src="/images/farmasim/case001-scene.jpg"
       />
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/5 via-transparent to-white/5" />
