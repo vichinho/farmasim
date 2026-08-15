@@ -85,30 +85,30 @@ export default async function TrainingCasePage({
           </p>
         </header>
 
-        {isCase001 ? (
-          <div className="case001-responsive">
+        <div className="case001-responsive">
+          {isCase001 ? (
             <Case001ExperienceV7
               key={`${trainingMode.id}-v7`}
               levelNumber={trainingLevel.number}
               mode={trainingMode}
               trainingCase={trainingCase}
             />
-          </div>
-        ) : isStorageCase ? (
-          <ContextualStorageExperience
-            key={`${trainingMode.id}-storage-contextual`}
-            levelNumber={trainingLevel.number}
-            mode={trainingMode}
-            trainingCase={trainingCase}
-          />
-        ) : (
-          <ContextualDispensingExperience
-            key={`${trainingMode.id}-${trainingCase.id}-contextual`}
-            levelNumber={trainingLevel.number}
-            mode={trainingMode}
-            trainingCase={trainingCase}
-          />
-        )}
+          ) : isStorageCase ? (
+            <ContextualStorageExperience
+              key={`${trainingMode.id}-storage-contextual`}
+              levelNumber={trainingLevel.number}
+              mode={trainingMode}
+              trainingCase={trainingCase}
+            />
+          ) : (
+            <ContextualDispensingExperience
+              key={`${trainingMode.id}-${trainingCase.id}-contextual`}
+              levelNumber={trainingLevel.number}
+              mode={trainingMode}
+              trainingCase={trainingCase}
+            />
+          )}
+        </div>
       </PageContainer>
       <BottomNavigation activeHref="/simulaciones" />
     </>
