@@ -12,7 +12,12 @@ export type PatientAnimationState =
 
 export type SceneFeedbackTone = "positive" | "concerned" | null;
 
-export type WorkspaceArea = "service" | "system" | "storage" | "preparation" | "verification";
+export type WorkspaceArea =
+  | "service"
+  | "system"
+  | "storage"
+  | "preparation"
+  | "verification";
 
 export type PatientProfile = {
   accent: string;
@@ -30,55 +35,55 @@ export type PatientProfile = {
 
 const profiles: Record<string, PatientProfile> = {
   "case-001-ambulatory-dispensing": {
-    accent: "#335f51",
-    coat: "#9a6a43",
-    hair: "#d7d2c8",
+    accent: "#256a68",
+    coat: "#3b6670",
+    hair: "#2d2524",
     id: "patient-a01",
     imageHeight: 1326,
-    imageSrc: "/scenes/patient-jorge-v2.png",
+    imageSrc: "",
     imageWidth: 1186,
     name: "Paciente virtual A-01",
-    shirt: "#7894aa",
-    skin: "#c9875f",
+    shirt: "#d2e7ea",
+    skin: "#bc795b",
     turn: "A-01",
   },
   "case-002-concentration-reinforcement": {
-    accent: "#6b4f75",
-    coat: "#74617e",
-    hair: "#3f302c",
+    accent: "#66518a",
+    coat: "#6c597c",
+    hair: "#45362f",
     id: "patient-a02",
     imageHeight: 1326,
-    imageSrc: "/scenes/patient-a02-v2.png",
+    imageSrc: "",
     imageWidth: 1186,
     name: "Paciente virtual A-02",
-    shirt: "#d5b6a4",
-    skin: "#a96848",
+    shirt: "#e7d9e7",
+    skin: "#9c6048",
     turn: "A-02",
   },
   "case-003-concentration-reinforcement": {
-    accent: "#315b77",
-    coat: "#436c83",
-    hair: "#292a2d",
+    accent: "#2b6685",
+    coat: "#3f7996",
+    hair: "#252c31",
     id: "patient-a03",
     imageHeight: 1325,
-    imageSrc: "/scenes/patient-a03-v2.png",
+    imageSrc: "",
     imageWidth: 1187,
     name: "Paciente virtual A-03",
-    shirt: "#c7d6de",
-    skin: "#d39a73",
+    shirt: "#d4e8ef",
+    skin: "#cc8f69",
     turn: "A-03",
   },
   "case-004-concentration-reinforcement": {
-    accent: "#6b5437",
-    coat: "#a47c55",
-    hair: "#6b5140",
+    accent: "#80633c",
+    coat: "#9a7652",
+    hair: "#6d5040",
     id: "patient-a04",
     imageHeight: 1326,
-    imageSrc: "/scenes/patient-a04-v2.png",
+    imageSrc: "",
     imageWidth: 1186,
     name: "Paciente virtual A-04",
-    shirt: "#dae1c0",
-    skin: "#b87553",
+    shirt: "#e5e5ca",
+    skin: "#ad6c50",
     turn: "A-04",
   },
 };
