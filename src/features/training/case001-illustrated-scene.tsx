@@ -87,14 +87,14 @@ export function Case001IllustratedScene({
       })}
 
       {documentVisible ? (
-        <div className="pointer-events-none absolute bottom-[17%] left-[21%] z-10 w-36 -rotate-3 rounded-lg border border-slate-200 bg-white p-3 shadow-xl">
-          <p className="text-[0.5rem] font-black uppercase tracking-wider text-violet-600">Documento ficticio</p>
-          <div className="mt-2 flex gap-2">
-            <div className="h-10 w-8 rounded bg-slate-100" />
-            <div className="flex-1 space-y-1.5 pt-1">
-              <div className="h-1.5 rounded bg-slate-300" />
-              <div className="h-1.5 w-4/5 rounded bg-slate-200" />
-              <div className="h-1.5 w-3/5 rounded bg-slate-200" />
+        <div className="pointer-events-none absolute left-[28%] top-[72%] z-10 w-[5.4rem] -translate-x-1/2 -translate-y-1/2 -rotate-3 rounded-md border border-slate-200/90 bg-white/95 p-2 shadow-[0_5px_14px_rgba(15,23,42,.16)] sm:w-24">
+          <p className="truncate text-[0.38rem] font-black uppercase tracking-[0.12em] text-violet-600 sm:text-[0.42rem]">Documento ficticio</p>
+          <div className="mt-1.5 flex gap-1.5">
+            <div className="h-7 w-5 shrink-0 rounded-sm bg-slate-100 sm:h-8 sm:w-6" />
+            <div className="flex-1 space-y-1 pt-0.5">
+              <div className="h-1 rounded bg-slate-300" />
+              <div className="h-1 w-4/5 rounded bg-slate-200" />
+              <div className="h-1 w-3/5 rounded bg-slate-200" />
             </div>
           </div>
         </div>
