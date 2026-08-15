@@ -59,7 +59,9 @@ export function Case001IllustratedScene({
         return (
           <button
             aria-label={`Interactuar con ${hotspot.label}`}
-            className="group absolute z-20 -translate-x-1/2 -translate-y-1/2 rounded-xl text-left outline-none transition focus-visible:ring-4 focus-visible:ring-violet-300/60"
+            className="case001-scene-hotspot group absolute z-20 -translate-x-1/2 -translate-y-1/2 rounded-xl text-left outline-none transition focus-visible:ring-4 focus-visible:ring-violet-300/60"
+            data-active={active ? "true" : "false"}
+            data-hotspot-id={hotspot.id}
             key={hotspot.id}
             onClick={() => onHotspotClick?.(hotspot.id)}
             style={{ left: hotspot.x, top: hotspot.y }}
@@ -67,14 +69,14 @@ export function Case001IllustratedScene({
           >
             <span
               className={cn(
-                "mx-auto block size-3.5 rounded-full border-[3px] border-white bg-violet-500/85 shadow-[0_3px_12px_rgba(76,29,149,.35)] transition duration-200 group-hover:scale-125 group-hover:bg-violet-700",
+                "case001-scene-hotspot-dot mx-auto block size-3.5 rounded-full border-[3px] border-white bg-violet-500/85 shadow-[0_3px_12px_rgba(76,29,149,.35)] transition duration-200 group-hover:scale-125 group-hover:bg-violet-700",
                 active && guidance === "guided" && "bg-violet-700 ring-[6px] ring-violet-300/30",
                 guidance === "minimal" && "opacity-45 group-hover:opacity-100",
               )}
             />
             <span
               className={cn(
-                "pointer-events-none mt-1.5 block whitespace-nowrap rounded-xl border border-violet-100 bg-white/95 px-3 py-1.5 text-[0.65rem] font-extrabold text-slate-700 shadow-[0_5px_18px_rgba(15,23,42,.10)] backdrop-blur-sm transition",
+                "case001-scene-hotspot-label pointer-events-none mt-1.5 block whitespace-nowrap rounded-xl border border-violet-100 bg-white/95 px-3 py-1.5 text-[0.65rem] font-extrabold text-slate-700 shadow-[0_5px_18px_rgba(15,23,42,.10)] backdrop-blur-sm transition",
                 showPermanentLabel ? "opacity-100" : "translate-y-1 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:opacity-100",
               )}
             >
