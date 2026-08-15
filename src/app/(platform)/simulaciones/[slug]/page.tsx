@@ -10,7 +10,7 @@ import {
   getTrainingModeByLevelId,
   trainingCases,
 } from "@/data/training";
-import { Case001ExperienceV3 } from "@/features/training/case001-experience-v3";
+import { Case001ExperienceV4 } from "@/features/training/case001-experience-v4";
 import { TrainingSession } from "@/features/training/training-session";
 import { loadTrainingLevels } from "@/features/training/load-training-levels";
 
@@ -84,8 +84,8 @@ export default async function TrainingCasePage({
         </header>
 
         {isInteractiveCase001 ? (
-          <Case001ExperienceV3
-            key={`${trainingMode.id}-v3`}
+          <Case001ExperienceV4
+            key={`${trainingMode.id}-v4`}
             levelNumber={trainingLevel.number}
             mode={trainingMode}
             trainingCase={trainingCase}
