@@ -23,13 +23,13 @@ type SafetyState = {
 
 type PharmacySceneProps = {
   caseId: string;
-  caseTitle: string;
+  caseTitle?: string;
   context: TrainingCase["context"];
   feedbackTone: SceneFeedbackTone;
   isComplete: boolean;
   outcome: { errorReachedPatient: boolean };
   panel: React.ReactNode;
-  progress: number;
+  progress?: number;
   safety: SafetyState;
   stage: TrainingStage;
   statusLabel: string;
@@ -173,6 +173,15 @@ function getSceneConfig(caseId: string) {
   return sceneConfigs[caseId] ?? sceneConfigs["case-001-ambulatory-dispensing"];
 }
 
+function getProgress(statusLabel: string, suppliedProgress?: number) {
+  if (typeof suppliedProgress === "number") return suppliedProgress;
+  const match = statusLabel.match(/Etapa\s+(\d+)\s+de\s+(\d+)/i);
+  if (!match) return 0;
+  const current = Number(match[1]);
+  const total = Number(match[2]);
+  return total > 0 ? Math.round((current / total) * 100) : 0;
+}
+
 export function PharmacyScene({
   caseId,
   caseTitle,
@@ -189,6 +198,8 @@ export function PharmacyScene({
   const profile = getPatientProfile(caseId);
   const config = getSceneConfig(caseId);
   const scene = usePatientSceneState({ feedbackTone, isComplete, outcome, stage });
+  const resolvedProgress = getProgress(statusLabel, progress);
+  const resolvedCaseTitle = caseTitle ?? config.accentLabel;
 
   return (
     <section aria-labelledby="pharmacy-scene-heading" className="space-y-3">
@@ -208,7 +219,7 @@ export function PharmacyScene({
               <span className="max-w-[55%] truncate text-right">{stage.title}</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-violet-100">
-              <div className="h-full rounded-full bg-violet-600 transition-[width]" style={{ width: `${progress}%` }} />
+              <div className="h-full rounded-full bg-violet-600 transition-[width]" style={{ width: `${resolvedProgress}%` }} />
             </div>
           </div>
 
@@ -234,7 +245,7 @@ export function PharmacyScene({
               <div className="absolute left-5 top-5 z-30 hidden max-w-[20rem] rounded-2xl border border-white/80 bg-white/88 px-4 py-3 shadow-lg backdrop-blur md:block">
                 <p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-violet-600">Ubicación</p>
                 <p className="mt-1 text-xs font-bold leading-5 text-slate-700">{context.location}</p>
-                <p className="mt-1 text-[0.68rem] leading-5 text-slate-500">{caseTitle}</p>
+                <p className="mt-1 text-[0.68rem] leading-5 text-slate-500">{resolvedCaseTitle}</p>
               </div>
 
               <div className="absolute right-5 top-5 z-30 max-w-[18rem] rounded-2xl border border-white/80 bg-white/90 px-4 py-3 shadow-lg backdrop-blur">
