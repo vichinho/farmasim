@@ -11,7 +11,8 @@ import {
   trainingCases,
 } from "@/data/training";
 import { Case001ExperienceV7 } from "@/features/training/case001-experience-v7";
-import { RemainingCaseExperience } from "@/features/training/remaining-case-experience";
+import { ContextualDispensingExperience } from "@/features/training/contextual-dispensing-experience";
+import { ContextualStorageExperience } from "@/features/training/contextual-storage-experience";
 import { loadTrainingLevels } from "@/features/training/load-training-levels";
 
 export function generateStaticParams() {
@@ -58,7 +59,8 @@ export default async function TrainingCasePage({
   }
 
   const trainingMode = getTrainingModeByLevelId(trainingLevel.id);
-  const isInteractiveCase001 = trainingCase.id === "case-001-ambulatory-dispensing";
+  const isCase001 = trainingCase.id === "case-001-ambulatory-dispensing";
+  const isStorageCase = trainingCase.id === "case-005-storage-review";
 
   return (
     <>
@@ -83,16 +85,23 @@ export default async function TrainingCasePage({
           </p>
         </header>
 
-        {isInteractiveCase001 ? (
+        {isCase001 ? (
           <Case001ExperienceV7
             key={`${trainingMode.id}-v7`}
             levelNumber={trainingLevel.number}
             mode={trainingMode}
             trainingCase={trainingCase}
           />
+        ) : isStorageCase ? (
+          <ContextualStorageExperience
+            key={`${trainingMode.id}-storage-contextual`}
+            levelNumber={trainingLevel.number}
+            mode={trainingMode}
+            trainingCase={trainingCase}
+          />
         ) : (
-          <RemainingCaseExperience
-            key={`${trainingMode.id}-unified`}
+          <ContextualDispensingExperience
+            key={`${trainingMode.id}-${trainingCase.id}-contextual`}
             levelNumber={trainingLevel.number}
             mode={trainingMode}
             trainingCase={trainingCase}
