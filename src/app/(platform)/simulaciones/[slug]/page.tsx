@@ -86,12 +86,14 @@ export default async function TrainingCasePage({
         </header>
 
         {isCase001 ? (
-          <Case001ExperienceV7
-            key={`${trainingMode.id}-v7`}
-            levelNumber={trainingLevel.number}
-            mode={trainingMode}
-            trainingCase={trainingCase}
-          />
+          <div className="case001-responsive">
+            <Case001ExperienceV7
+              key={`${trainingMode.id}-v7`}
+              levelNumber={trainingLevel.number}
+              mode={trainingMode}
+              trainingCase={trainingCase}
+            />
+          </div>
         ) : isStorageCase ? (
           <ContextualStorageExperience
             key={`${trainingMode.id}-storage-contextual`}

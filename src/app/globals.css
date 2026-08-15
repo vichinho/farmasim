@@ -62,6 +62,288 @@ h6 {
   font-family: var(--font-sans) !important;
 }
 
+/* Caso 001: adaptación responsive aislada. El resto de simulaciones conserva su layout. */
+@media (max-width: 1023.98px) {
+  .case001-responsive > div {
+    border-radius: 1.25rem;
+  }
+
+  .case001-responsive > div > header {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 0.65rem !important;
+    padding: 0.8rem 0.9rem 0.7rem !important;
+  }
+
+  .case001-responsive > div > header > :nth-child(1) {
+    min-width: 0;
+  }
+
+  .case001-responsive > div > header > :nth-child(1) > div:first-child {
+    width: 2.45rem;
+    height: 2.45rem;
+    border-radius: 0.72rem;
+  }
+
+  .case001-responsive > div > header > :nth-child(1) p:first-of-type {
+    font-size: 1.02rem;
+  }
+
+  .case001-responsive > div > header > :nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .case001-responsive > div > header > :nth-child(2) > div:first-child {
+    margin-bottom: 0.4rem !important;
+  }
+
+  .case001-responsive > div > header > :nth-child(3) {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+  }
+
+  .case001-responsive > div > header > :nth-child(3) > span:first-child {
+    display: none;
+  }
+
+  .case001-responsive > div > header > :nth-child(3) > span:last-child {
+    padding: 0.5rem 0.68rem;
+  }
+
+  .case001-responsive > div > div.grid {
+    display: block;
+  }
+
+  .case001-responsive > div > div.grid > div:first-child {
+    border-right: 0 !important;
+  }
+
+  .case001-responsive > div > div.grid > div:first-child > div.relative {
+    min-height: clamp(29rem, 62svh, 35rem) !important;
+  }
+
+  .case001-responsive img[alt="Farmacia ambulatoria ficticia para simulación"] {
+    object-position: 38% center !important;
+  }
+
+  .case001-responsive [class*="rounded-[45%]"] {
+    display: none !important;
+  }
+
+  .case001-responsive .case001-scene-hotspot {
+    width: 3.25rem;
+    height: 3.25rem;
+    min-width: 3.25rem;
+    min-height: 3.25rem;
+    padding: 0 !important;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .case001-responsive .case001-scene-hotspot-dot {
+    margin: 0 !important;
+    position: relative;
+    z-index: 2;
+  }
+
+  .case001-responsive .case001-scene-hotspot-label {
+    position: absolute;
+    left: 50%;
+    top: calc(50% + 0.8rem);
+    margin-top: 0 !important;
+    transform: translateX(-50%) translateY(0.25rem);
+  }
+
+  .case001-responsive .case001-scene-hotspot[data-active="true"] .case001-scene-hotspot-dot,
+  .case001-responsive .case001-scene-hotspot:active .case001-scene-hotspot-dot {
+    transform: scale(1.25);
+    box-shadow: 0 0 0 8px rgba(139, 92, 246, 0.2), 0 4px 14px rgba(76, 29, 149, 0.35);
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] {
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    padding: 0 0.55rem !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div {
+    max-height: min(38svh, 21rem) !important;
+    border-radius: 1.3rem 1.3rem 0 0 !important;
+    padding: 0.9rem 1rem !important;
+    box-shadow: 0 -10px 30px rgba(17, 24, 39, 0.14) !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div::before {
+    content: "";
+    display: block;
+    width: 2.5rem;
+    height: 0.25rem;
+    margin: 0 auto 0.7rem;
+    border-radius: 999px;
+    background: rgb(203 213 225);
+  }
+
+  .case001-responsive > div > footer {
+    padding: 0.6rem 0.9rem 0.75rem;
+    font-size: 0.64rem;
+    line-height: 1.35;
+  }
+
+  .case001-responsive > div > div.grid > aside {
+    border-top: 1px solid rgb(237 233 254);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .case001-responsive > div > div.grid > aside {
+    display: none;
+  }
+
+  /* En móvil la escena y el panel son dos bloques consecutivos: el panel ya no tapa la foto. */
+  .case001-responsive > div > div.grid > div:first-child > div.relative {
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  .case001-responsive > div > div.grid > div:first-child > div.relative > div.absolute.inset-0.overflow-hidden {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: clamp(19rem, 44svh, 23rem) !important;
+    min-height: 19rem !important;
+    border-bottom: 1px solid rgb(237 233 254);
+  }
+
+  .case001-responsive img[alt="Farmacia ambulatoria ficticia para simulación"] {
+    object-position: 35% center !important;
+  }
+
+  /* Áreas táctiles cómodas: el punto sigue pequeño, pero el botón ocupa 56-64px. */
+  .case001-responsive .case001-scene-hotspot {
+    width: 3.5rem;
+    height: 3.5rem;
+    min-width: 3.5rem;
+    min-height: 3.5rem;
+  }
+
+  .case001-responsive .case001-scene-hotspot[data-hotspot-id="patient"],
+  .case001-responsive .case001-scene-hotspot[data-hotspot-id="computer"],
+  .case001-responsive .case001-scene-hotspot[data-hotspot-id="document"],
+  .case001-responsive .case001-scene-hotspot[data-hotspot-id="tray"] {
+    width: 4rem;
+    height: 4rem;
+    min-width: 4rem;
+    min-height: 4rem;
+  }
+
+  .case001-responsive .case001-scene-hotspot[data-hotspot-id="storage"],
+  .case001-responsive .case001-scene-hotspot[data-hotspot-id="preparation"] {
+    width: 3.75rem;
+    height: 3.75rem;
+    min-width: 3.75rem;
+    min-height: 3.75rem;
+  }
+
+  .case001-responsive .case001-scene-hotspot-label {
+    top: calc(50% + 0.95rem);
+  }
+
+  /* El panel contextual entra al flujo debajo de la escena. */
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] {
+    position: relative !important;
+    inset: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    padding: 0.65rem 0.55rem 0.55rem !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div {
+    max-height: min(46svh, 26rem) !important;
+    border-radius: 1.15rem !important;
+    padding: 0.85rem 0.95rem !important;
+    box-shadow: 0 8px 24px rgba(17, 24, 39, 0.1) !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div::before {
+    display: none !important;
+  }
+
+  /* Si el panel no tiene acciones, se mantiene compacto. */
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div:not(:has(button)) {
+    max-height: none !important;
+    padding: 0.72rem 0.85rem !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div:not(:has(button)) h2 {
+    margin-top: 0.15rem !important;
+    font-size: 1rem !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div:not(:has(button)) h2 + p {
+    margin-top: 0.2rem !important;
+    font-size: 0.72rem !important;
+    line-height: 1.35 !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div:not(:has(button)) > div > div.mt-4 {
+    margin-top: 0.55rem !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div:not(:has(button)) > div > div.mt-4 > div:first-child {
+    padding: 0.65rem 0.75rem !important;
+    font-size: 0.75rem !important;
+    line-height: 1.45 !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div:not(:has(button)) > div > div.mt-4 > p {
+    margin-top: 0.55rem !important;
+    font-size: 0.72rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] h2 {
+    font-size: 1.08rem !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] p,
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] button,
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] input {
+    font-size: 0.8rem;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] button {
+    min-height: 2.75rem;
+  }
+}
+
+@media (max-width: 767.98px) and (orientation: landscape) {
+  .case001-responsive > div > div.grid > div:first-child > div.relative > div.absolute.inset-0.overflow-hidden {
+    height: clamp(17rem, 64svh, 22rem) !important;
+    min-height: 17rem !important;
+  }
+
+  .case001-responsive img[alt="Farmacia ambulatoria ficticia para simulación"] {
+    object-position: 42% center !important;
+  }
+
+  .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div {
+    max-height: 52svh !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
