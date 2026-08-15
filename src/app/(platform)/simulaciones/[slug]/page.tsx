@@ -62,7 +62,13 @@ export default async function TrainingCasePage({
 
   return (
     <>
-      <PageContainer className={isInteractiveCase001 ? "max-w-[1600px] space-y-4" : "max-w-6xl space-y-6"}>
+      <PageContainer
+        className={
+          isInteractiveCase001
+            ? "max-w-[1600px] space-y-4 pb-28 md:pb-28"
+            : "max-w-6xl space-y-6 pb-24 md:pb-24"
+        }
+      >
         <header className={isInteractiveCase001 ? "sr-only" : undefined}>
           <Link
             className="inline-flex min-h-11 items-center rounded-xl px-1 text-sm font-semibold text-[var(--brand-strong)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
@@ -99,7 +105,7 @@ export default async function TrainingCasePage({
           />
         )}
       </PageContainer>
-      {!isInteractiveCase001 ? <BottomNavigation activeHref="/simulaciones" /> : null}
+      <BottomNavigation activeHref="/simulaciones" />
     </>
   );
 }
