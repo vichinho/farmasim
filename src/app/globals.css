@@ -131,15 +131,37 @@ h6 {
     display: none !important;
   }
 
-  .case001-responsive button[aria-label^="Interactuar con"] {
-    min-width: 2.75rem;
-    min-height: 2.75rem;
-    padding: 0.8rem;
+  .case001-responsive .case001-scene-hotspot {
+    width: 3.25rem;
+    height: 3.25rem;
+    min-width: 3.25rem;
+    min-height: 3.25rem;
+    padding: 0 !important;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
     touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  .case001-responsive button[aria-label^="Interactuar con"] > span:first-child {
-    flex: 0 0 auto;
+  .case001-responsive .case001-scene-hotspot-dot {
+    margin: 0 !important;
+    position: relative;
+    z-index: 2;
+  }
+
+  .case001-responsive .case001-scene-hotspot-label {
+    position: absolute;
+    left: 50%;
+    top: calc(50% + 0.8rem);
+    margin-top: 0 !important;
+    transform: translateX(-50%) translateY(0.25rem);
+  }
+
+  .case001-responsive .case001-scene-hotspot[data-active="true"] .case001-scene-hotspot-dot,
+  .case001-responsive .case001-scene-hotspot:active .case001-scene-hotspot-dot {
+    transform: scale(1.25);
+    box-shadow: 0 0 0 8px rgba(139, 92, 246, 0.2), 0 4px 14px rgba(76, 29, 149, 0.35);
   }
 
   .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] {
@@ -191,6 +213,36 @@ h6 {
 
   .case001-responsive img[alt="Farmacia ambulatoria ficticia para simulación"] {
     object-position: 35% center !important;
+  }
+
+  /* Áreas táctiles cómodas: el punto sigue pequeño, pero el botón ocupa 56-64px. */
+  .case001-responsive .case001-scene-hotspot {
+    width: 3.5rem;
+    height: 3.5rem;
+    min-width: 3.5rem;
+    min-height: 3.5rem;
+  }
+
+  .case001-responsive .case001-scene-hotspot[data-hotspot-id="patient"],
+  .case001-responsive .case001-scene-hotspot[data-hotspot-id="computer"],
+  .case001-responsive .case001-scene-hotspot[data-hotspot-id="document"],
+  .case001-responsive .case001-scene-hotspot[data-hotspot-id="tray"] {
+    width: 4rem;
+    height: 4rem;
+    min-width: 4rem;
+    min-height: 4rem;
+  }
+
+  .case001-responsive .case001-scene-hotspot[data-hotspot-id="storage"],
+  .case001-responsive .case001-scene-hotspot[data-hotspot-id="preparation"] {
+    width: 3.75rem;
+    height: 3.75rem;
+    min-width: 3.75rem;
+    min-height: 3.75rem;
+  }
+
+  .case001-responsive .case001-scene-hotspot-label {
+    top: calc(50% + 0.95rem);
   }
 
   .case001-responsive [class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div {
