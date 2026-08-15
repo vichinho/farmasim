@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
 :root {
   --background: #f6f8fb;
   --foreground: #13213c;
@@ -17,9 +21,11 @@
   box-sizing: border-box;
 }
 
-html {
-  font-family: var(--font-sans);
+html,
+body {
+  font-family: var(--font-sans) !important;
   font-kerning: normal;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -29,14 +35,31 @@ body {
   min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
-  font-family: inherit;
 }
 
 button,
 input,
 textarea,
-select {
-  font: inherit;
+select,
+option,
+table,
+th,
+td,
+a,
+p,
+span,
+label,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: inherit;
+}
+
+.font-sans {
+  font-family: var(--font-sans) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
