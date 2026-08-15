@@ -11,7 +11,7 @@ import {
   trainingCases,
 } from "@/data/training";
 import { Case001ExperienceV6 } from "@/features/training/case001-experience-v6";
-import { TrainingSession } from "@/features/training/training-session";
+import { RemainingCaseExperience } from "@/features/training/remaining-case-experience";
 import { loadTrainingLevels } from "@/features/training/load-training-levels";
 
 export function generateStaticParams() {
@@ -62,14 +62,8 @@ export default async function TrainingCasePage({
 
   return (
     <>
-      <PageContainer
-        className={
-          isInteractiveCase001
-            ? "max-w-[1600px] space-y-4 pb-28 md:pb-28"
-            : "max-w-6xl space-y-6 pb-24 md:pb-24"
-        }
-      >
-        <header className={isInteractiveCase001 ? "sr-only" : undefined}>
+      <PageContainer className="max-w-[1600px] space-y-4 pb-28 md:pb-28">
+        <header className="sr-only">
           <Link
             className="inline-flex min-h-11 items-center rounded-xl px-1 text-sm font-semibold text-[var(--brand-strong)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
             href="/simulaciones"
@@ -97,8 +91,8 @@ export default async function TrainingCasePage({
             trainingCase={trainingCase}
           />
         ) : (
-          <TrainingSession
-            key={trainingMode.id}
+          <RemainingCaseExperience
+            key={`${trainingMode.id}-unified`}
             levelNumber={trainingLevel.number}
             mode={trainingMode}
             trainingCase={trainingCase}
