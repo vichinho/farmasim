@@ -99,7 +99,7 @@ export default async function TrainingCasePage({
           />
         )}
       </PageContainer>
-      <BottomNavigation activeHref="/simulaciones" />
+      {!isInteractiveCase001 ? <BottomNavigation activeHref="/simulaciones" /> : null}
     </>
   );
 }
