@@ -66,6 +66,12 @@ export default async function TrainingCasePage({
     ? `/simulaciones/${nextTrainingCase.id}?nivel=${trainingLevel.number + 1}`
     : null;
 
+  const simulationClassName = isCase001
+    ? "case001-responsive simulation-desktop-panel simulation-case001"
+    : isStorageCase
+      ? "case001-responsive simulation-desktop-panel simulation-storage-case"
+      : "case001-responsive simulation-desktop-panel simulation-dispensing-case";
+
   return (
     <>
       <PageContainer className="max-w-[1600px] space-y-4 pb-28 md:pb-28">
@@ -89,7 +95,7 @@ export default async function TrainingCasePage({
           </p>
         </header>
 
-        <div className={isStorageCase ? "case001-responsive simulation-desktop-panel simulation-storage-case" : "case001-responsive simulation-desktop-panel"}>
+        <div className={simulationClassName}>
           <style>{`
             .simulation-next-case-link {
               display: none;
@@ -149,33 +155,33 @@ export default async function TrainingCasePage({
                 font-size: 0.86rem !important;
               }
 
-              /* Al terminar se elimina la escena y los hotspots para mostrar solo resultados. */
-              .simulation-desktop-panel:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid {
+              /* Caso 001 conserva su señal de resultado validada. */
+              .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid {
                 display: block !important;
               }
 
-              .simulation-desktop-panel:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid > aside {
+              .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid > aside {
                 display: none !important;
               }
 
-              .simulation-desktop-panel:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid > div:first-child {
+              .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid > div:first-child {
                 border-right: 0 !important;
                 border-bottom: 0 !important;
               }
 
-              .simulation-desktop-panel:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid > div:first-child > div.relative {
+              .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid > div:first-child > div.relative {
                 min-height: 0 !important;
                 overflow: visible !important;
                 background: white !important;
                 padding: 2rem !important;
               }
 
-              .simulation-desktop-panel:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid > div:first-child > div.relative > div.absolute.inset-0.overflow-hidden,
-              .simulation-desktop-panel:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid > div:first-child > div.relative > div[class*="rounded-[45%]"] {
+              .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid > div:first-child > div.relative > div.absolute.inset-0.overflow-hidden,
+              .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid > div:first-child > div.relative > div[class*="rounded-[45%]"] {
                 display: none !important;
               }
 
-              .simulation-desktop-panel:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"] {
+              .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"] {
                 position: relative !important;
                 inset: auto !important;
                 left: auto !important;
@@ -186,28 +192,70 @@ export default async function TrainingCasePage({
                 margin: 0 auto !important;
               }
 
-              .simulation-desktop-panel:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"] > div {
+              .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"] > div {
                 max-height: none !important;
                 padding: 1.35rem !important;
                 box-shadow: 0 12px 34px rgba(17, 24, 39, 0.08) !important;
               }
 
-              .simulation-desktop-panel:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > footer {
-                margin-top: 0 !important;
+              /* Casos 002-007: el resultado real se reconoce cuando su aside queda vacío. */
+              .simulation-desktop-panel:not(.simulation-case001):has(> div > div.grid > aside:empty) > div > div.grid {
+                display: block !important;
               }
 
-              /* CTA de reinicio consistente en la vista final. */
-              .simulation-desktop-panel:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) button.rounded-xl.border.border-violet-200.font-bold.text-violet-700 {
+              .simulation-desktop-panel:not(.simulation-case001):has(> div > div.grid > aside:empty) > div > div.grid > aside {
+                display: none !important;
+              }
+
+              .simulation-desktop-panel:not(.simulation-case001):has(> div > div.grid > aside:empty) > div > div.grid > div:first-child {
+                border-right: 0 !important;
+                border-bottom: 0 !important;
+              }
+
+              .simulation-desktop-panel:not(.simulation-case001):has(> div > div.grid > aside:empty) > div > div.grid > div:first-child > div.relative {
+                min-height: 0 !important;
+                overflow: visible !important;
+                background: white !important;
+                padding: 2rem !important;
+              }
+
+              .simulation-desktop-panel:not(.simulation-case001):has(> div > div.grid > aside:empty) > div > div.grid > div:first-child > div.relative > div.absolute.inset-0.overflow-hidden,
+              .simulation-desktop-panel:not(.simulation-case001):has(> div > div.grid > aside:empty) > div > div.grid > div:first-child > div.relative > div[class*="rounded-[45%]"] {
+                display: none !important;
+              }
+
+              .simulation-desktop-panel:not(.simulation-case001):has(> div > div.grid > aside:empty) > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"] {
+                position: relative !important;
+                inset: auto !important;
+                left: auto !important;
+                right: auto !important;
+                top: auto !important;
+                bottom: auto !important;
+                width: min(52rem, 100%) !important;
+                margin: 0 auto !important;
+              }
+
+              .simulation-desktop-panel:not(.simulation-case001):has(> div > div.grid > aside:empty) > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"] > div {
+                max-height: none !important;
+                padding: 1.35rem !important;
+                box-shadow: 0 12px 34px rgba(17, 24, 39, 0.08) !important;
+              }
+
+              /* CTA de reinicio consistente en las vistas finales. */
+              .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) button.rounded-xl.border.border-violet-200.font-bold.text-violet-700,
+              .simulation-desktop-panel:not(.simulation-case001):has(> div > div.grid > aside:empty) button.rounded-xl.border.border-violet-200.font-bold.text-violet-700 {
                 font-size: 0 !important;
               }
 
-              .simulation-desktop-panel:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) button.rounded-xl.border.border-violet-200.font-bold.text-violet-700::after {
+              .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) button.rounded-xl.border.border-violet-200.font-bold.text-violet-700::after,
+              .simulation-desktop-panel:not(.simulation-case001):has(> div > div.grid > aside:empty) button.rounded-xl.border.border-violet-200.font-bold.text-violet-700::after {
                 content: "Volver a repetir";
                 font-size: 0.9rem;
               }
 
-              /* Siguiente caso solo si no existe ningún resultado de refuerzo/intercepción. */
-              .simulation-desktop-panel:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)):not(:has(span.bg-amber-100)):not(:has(span.bg-rose-100)):not(:has(span.bg-amber-50)):not(:has(span.bg-rose-50)) > .simulation-next-case-link {
+              /* Siguiente caso: solo en resultado y sin refuerzos/intercepciones. */
+              .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)):not(:has(span.bg-amber-100)):not(:has(span.bg-rose-100)):not(:has(span.bg-amber-50)):not(:has(span.bg-rose-50)) > .simulation-next-case-link,
+              .simulation-desktop-panel:not(.simulation-case001):has(> div > div.grid > aside:empty):not(:has(span.bg-amber-100)):not(:has(span.bg-rose-100)):not(:has(span.bg-amber-50)):not(:has(span.bg-rose-50)) > .simulation-next-case-link {
                 display: flex;
                 width: min(52rem, 100%);
                 min-height: 3rem;
@@ -220,51 +268,6 @@ export default async function TrainingCasePage({
                 font-weight: 800;
                 color: white;
                 box-shadow: 0 10px 24px rgba(109, 40, 217, 0.18);
-              }
-
-              /* Caso 005: 100% de campos revisados no equivale a revisión cerrada. */
-              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > div > div.grid {
-                display: grid !important;
-              }
-
-              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > div > div.grid > aside {
-                display: block !important;
-                padding: 30.5rem 1rem 1rem !important;
-              }
-
-              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > div > div.grid > div:first-child {
-                border-bottom: 1px solid rgb(237 233 254) !important;
-                border-right: 1px solid rgb(237 233 254) !important;
-              }
-
-              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > div > div.grid > div:first-child > div.relative {
-                min-height: 720px !important;
-                overflow: visible !important;
-                background: #e9e8ec !important;
-                padding: 0 !important;
-              }
-
-              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > div > div.grid > div:first-child > div.relative > div.absolute.inset-0.overflow-hidden {
-                display: block !important;
-              }
-
-              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"] {
-                position: absolute !important;
-                left: calc(100% + 1rem) !important;
-                right: auto !important;
-                top: 1rem !important;
-                bottom: auto !important;
-                width: 25.5rem !important;
-                margin: 0 !important;
-              }
-
-              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"] > div {
-                max-height: 29rem !important;
-                padding: 1rem !important;
-              }
-
-              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > .simulation-next-case-link {
-                display: none !important;
               }
             }
           `}</style>
