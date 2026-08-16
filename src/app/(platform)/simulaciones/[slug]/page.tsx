@@ -85,14 +85,47 @@ export default async function TrainingCasePage({
           </p>
         </header>
 
-        <div className="case001-responsive">
+        <div className={isCase001 ? "case001-responsive case001-desktop-panel-test" : "case001-responsive"}>
           {isCase001 ? (
-            <Case001ExperienceV7
-              key={`${trainingMode.id}-v7`}
-              levelNumber={trainingLevel.number}
-              mode={trainingMode}
-              trainingCase={trainingCase}
-            />
+            <>
+              <style>{`
+                @media (min-width: 1280px) {
+                  .case001-desktop-panel-test > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] {
+                    left: auto !important;
+                    right: 1.25rem !important;
+                    top: 1.25rem !important;
+                    bottom: auto !important;
+                    width: 20.5rem !important;
+                  }
+
+                  .case001-desktop-panel-test > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] > div {
+                    max-height: calc(720px - 2.5rem) !important;
+                    padding: 1rem !important;
+                    border-radius: 1rem !important;
+                    box-shadow: 0 12px 32px rgba(17, 24, 39, 0.12) !important;
+                  }
+
+                  .case001-desktop-panel-test > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] h2 {
+                    font-size: 1.1rem !important;
+                    line-height: 1.3 !important;
+                  }
+
+                  .case001-desktop-panel-test > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] button {
+                    min-height: 2.5rem !important;
+                  }
+
+                  .case001-desktop-panel-test > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"][class*="w-[min(92%,27rem)]"] .rounded-xl {
+                    border-radius: 0.75rem !important;
+                  }
+                }
+              `}</style>
+              <Case001ExperienceV7
+                key={`${trainingMode.id}-v7`}
+                levelNumber={trainingLevel.number}
+                mode={trainingMode}
+                trainingCase={trainingCase}
+              />
+            </>
           ) : isStorageCase ? (
             <ContextualStorageExperience
               key={`${trainingMode.id}-storage-contextual`}
