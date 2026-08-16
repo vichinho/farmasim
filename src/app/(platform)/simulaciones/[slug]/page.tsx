@@ -253,9 +253,9 @@ export default async function TrainingCasePage({
                 font-size: 0.9rem;
               }
 
-              /* Siguiente caso: solo en resultado y sin refuerzos/intercepciones. */
-              .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)):not(:has(span.bg-amber-100)):not(:has(span.bg-rose-100)):not(:has(span.bg-amber-50)):not(:has(span.bg-rose-50)) > .simulation-next-case-link,
-              .simulation-desktop-panel:not(.simulation-case001):has(> div > div.grid > aside:empty):not(:has(span.bg-amber-100)):not(:has(span.bg-rose-100)):not(:has(span.bg-amber-50)):not(:has(span.bg-rose-50)) > .simulation-next-case-link {
+              /* El CTA global se usa únicamente en Caso 001. Los casos 002-007
+                 gestionan su navegación dentro del resultado después de guardar. */
+              .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)):not(:has(span.bg-amber-100)):not(:has(span.bg-rose-100)):not(:has(span.bg-amber-50)):not(:has(span.bg-rose-50)) > .simulation-next-case-link {
                 display: flex;
                 width: min(52rem, 100%);
                 min-height: 3rem;
@@ -295,7 +295,7 @@ export default async function TrainingCasePage({
             />
           )}
 
-          {nextCaseHref ? (
+          {isCase001 && nextCaseHref ? (
             <Link className="simulation-next-case-link" href={nextCaseHref}>
               Siguiente caso
             </Link>
