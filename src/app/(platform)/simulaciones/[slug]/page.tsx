@@ -89,7 +89,7 @@ export default async function TrainingCasePage({
           </p>
         </header>
 
-        <div className="case001-responsive simulation-desktop-panel">
+        <div className={isStorageCase ? "case001-responsive simulation-desktop-panel simulation-storage-case" : "case001-responsive simulation-desktop-panel"}>
           <style>{`
             .simulation-next-case-link {
               display: none;
@@ -220,6 +220,51 @@ export default async function TrainingCasePage({
                 font-weight: 800;
                 color: white;
                 box-shadow: 0 10px 24px rgba(109, 40, 217, 0.18);
+              }
+
+              /* Caso 005: 100% de campos revisados no equivale a revisión cerrada. */
+              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > div > div.grid {
+                display: grid !important;
+              }
+
+              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > div > div.grid > aside {
+                display: block !important;
+                padding: 30.5rem 1rem 1rem !important;
+              }
+
+              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > div > div.grid > div:first-child {
+                border-bottom: 1px solid rgb(237 233 254) !important;
+                border-right: 1px solid rgb(237 233 254) !important;
+              }
+
+              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > div > div.grid > div:first-child > div.relative {
+                min-height: 720px !important;
+                overflow: visible !important;
+                background: #e9e8ec !important;
+                padding: 0 !important;
+              }
+
+              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > div > div.grid > div:first-child > div.relative > div.absolute.inset-0.overflow-hidden {
+                display: block !important;
+              }
+
+              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"] {
+                position: absolute !important;
+                left: calc(100% + 1rem) !important;
+                right: auto !important;
+                top: 1rem !important;
+                bottom: auto !important;
+                width: 25.5rem !important;
+                margin: 0 !important;
+              }
+
+              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"] > div {
+                max-height: 29rem !important;
+                padding: 1rem !important;
+              }
+
+              .simulation-storage-case:has(> div[data-simulation-complete="false"]) > .simulation-next-case-link {
+                display: none !important;
               }
             }
           `}</style>
