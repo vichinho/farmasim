@@ -6,13 +6,23 @@ import { saveSimulationAttempt, type SaveSimulationAttemptResult } from "@/featu
 import { Case001IllustratedScene } from "@/features/training/case001-illustrated-scene";
 import type { SceneHotspotId } from "@/features/training/case001-scene-hotspots";
 import { cn } from "@/lib/utils";
-import type { AttemptCriterionResult, DispensingCriterionId, TrainingCase, TrainingMode } from "@/types/training-simulation";
+import type { DispensingCriterionId, TrainingCase, TrainingMode } from "@/types/training-simulation";
 
 type Props = { levelNumber: number; mode: TrainingMode; trainingCase: TrainingCase };
 type CriterionStatus = "pending" | "met" | "missed" | "intercepted";
 type PreparationState = "idle" | "preparing" | "delivering" | "delivered";
 type Phase = "active" | "safety-stop" | "result";
 type Field = "name" | "strength" | "form" | "quantity";
+
+type Prescription = {
+  id: string;
+  title: string;
+  medication: string;
+  strength: string;
+  form: string;
+  quantity: string;
+  status: string;
+};
 
 type Medication = {
   id: string;
@@ -28,7 +38,7 @@ type Scenario = {
   caseLabel: string;
   mission: string;
   patient: { name: string; rut: string; dialogue: string };
-  prescriptions: { id: string; title: string; medication: string; strength: string; form: string; quantity: string; status: string }[];
+  prescriptions: Prescription[];
   medications: Medication[];
 };
 
@@ -41,6 +51,13 @@ const criterionLabels: { id: DispensingCriterionId; label: string }[] = [
   { id: "criterion-6-recheck-identity-before-handoff", label: "Vuelve a verificar identidad antes de la entrega" },
   { id: "criterion-7-provide-corresponding-instructions", label: "Entrega las indicaciones correspondientes" },
 ];
+
+const nextCaseByLevel: Partial<Record<number, string>> = {
+  2: "case-003-concentration-reinforcement",
+  3: "case-004-concentration-reinforcement",
+  4: "case-005-storage-review",
+  6: "case-007-expert-mode",
+};
 
 const initialCriteria = () => Object.fromEntries(criterionLabels.map(({ id }) => [id, "pending"])) as Record<DispensingCriterionId, CriterionStatus>;
 const normalizeRut = (value: string) => value.toUpperCase().replace(/[^0-9K]/g, "");
@@ -153,6 +170,8 @@ export function ContextualDispensingExperience({ levelNumber, mode, trainingCase
   const mismatches = scenario.medications.filter((m) => m.strength !== m.expectedStrength || m.quantity !== m.expectedQuantity);
   const mismatchExists = mismatches.length > 0;
   const guidance = mode.guidance;
+  const nextCaseSlug = nextCaseByLevel[levelNumber];
+  const nextCaseHref = nextCaseSlug ? `/simulaciones/${nextCaseSlug}?nivel=${levelNumber + 1}` : null;
 
   useEffect(() => {
     if (preparationState !== "preparing") return;
@@ -246,9 +265,17 @@ export function ContextualDispensingExperience({ levelNumber, mode, trainingCase
   async function persist(finalCriteria: Record<DispensingCriterionId, CriterionStatus>) {
     if (saving) return;
     setSaving(true);
-    const results: AttemptCriterionResult[] = criterionLabels.map(({ id }) => ({ criterionId: id, status: finalCriteria[id] === "met" ? "met" : finalCriteria[id] === "intercepted" ? "intercepted" : "reinforcement" }));
+    const results = criterionLabels.map(({ id }) => ({ criterionId: id, status: finalCriteria[id] === "met" ? "met" : finalCriteria[id] === "intercepted" ? "intercepted" : "reinforcement" }));
     const correctAnswers = results.filter((r) => r.status !== "reinforcement").length;
-    setSaveResult(await saveSimulationAttempt({ attemptId: attemptId.current, correctAnswers, incorrectAnswers: results.length - correctAnswers, criterionResults: results, levelNumber, scenarioSlug: trainingCase.id, startedAt: startedAt.current }));
+    const result = await saveSimulationAttempt({
+      attemptId: attemptId.current,
+      correctAnswers,
+      incorrectAnswers: results.length - correctAnswers,
+      levelNumber,
+      scenarioSlug: trainingCase.id,
+      startedAt: startedAt.current,
+    });
+    setSaveResult(result);
     setSaving(false);
   }
 
@@ -265,6 +292,8 @@ export function ContextualDispensingExperience({ levelNumber, mode, trainingCase
     localStorage.removeItem(storageKey); setPhase("active"); setSelected(null); setCriteria(initialCriteria()); setDocumentVisible(false); setDocumentRead(false); setReasonAsked(false); setRut(""); setPatientLoaded(false); setOpenedPrescriptions([]); setPreparationState("idle"); setInspected({}); setPreparationDecision(null); setDiscrepancyResolved(false); setFinalIdentityChecked(false); setInstructionsGiven(false); setEvent(null); setSaveResult(null); attemptId.current = crypto.randomUUID(); startedAt.current = new Date().toISOString();
   }
 
+  const completionSaved = saveResult?.status === "saved" || saveResult?.status === "duplicate";
+
   return (
     <div className="overflow-hidden rounded-[1.6rem] border border-violet-100 bg-white shadow-[0_22px_70px_rgba(76,48,130,.13)]">
       <header className="grid gap-4 border-b border-violet-100 bg-white px-5 py-4 lg:grid-cols-[1fr_minmax(18rem,32rem)_auto] lg:items-center">
@@ -277,11 +306,19 @@ export function ContextualDispensingExperience({ levelNumber, mode, trainingCase
         <div className="min-w-0 border-b border-violet-100 xl:border-b-0 xl:border-r">
           <div className="relative min-h-[720px] overflow-hidden bg-[#eef1f6]">
             <Case001IllustratedScene workspace={workspace} documentVisible={documentVisible} trayVisible={trayVisible} preparationState={preparationState} guidance={guidance} activeHotspot={selected} onHotspotClick={interact} />
-            <div className="absolute bottom-5 left-5 z-30 w-[min(92%,27rem)]"><div className="max-h-[390px] overflow-auto rounded-[1.2rem] border border-violet-100 bg-white/96 p-5 shadow-[0_16px_42px_rgba(17,24,39,.13)] backdrop-blur-xl">
+            <div className="absolute bottom-5 left-5 z-30 w-[min(92%,27rem)]"><div className="max-h-[470px] overflow-auto rounded-[1.2rem] border border-violet-100 bg-white/96 p-5 shadow-[0_16px_42px_rgba(17,24,39,.13)] backdrop-blur-xl">
               {phase === "safety-stop" ? (
                 <div><p className="text-xs font-black uppercase tracking-[.16em] text-rose-600">🚨 DETENTE</p><h2 className="mt-2 text-2xl font-black text-slate-950">Error de medicación interceptado</h2><p className="mt-2 font-black text-rose-700">NO ENTREGAR</p><div className="mt-4 space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm">{mismatches.map((m) => <p key={m.id}><strong>{m.name}</strong>: esperado {m.expectedStrength}, preparado {m.strength}{m.quantity !== m.expectedQuantity ? ` · cantidad esperada ${m.expectedQuantity}, preparada ${m.quantity}` : ""}.</p>)}</div><div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4"><p className="font-black">💡 NO OLVIDAR</p><p className="mt-1 text-sm">Antes del despacho verifica medicamento, concentración, forma farmacéutica y cantidad.</p></div><button className="mt-4 min-h-11 w-full rounded-xl bg-violet-700 px-4 font-bold text-white" onClick={() => setPhase("result")}>Ver resultados</button></div>
               ) : phase === "result" ? (
-                <div><p className="text-xs font-black uppercase tracking-[.16em] text-violet-600">Resultados</p><h2 className="mt-2 text-2xl font-black">Resultado del caso</h2><div className="mt-4 space-y-2">{criterionLabels.map((c, i) => <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 px-3 py-2" key={c.id}><span className="text-sm font-semibold">{i + 1}. {c.label}</span><span className={cn("rounded-md px-2 py-1 text-xs font-black", criteria[c.id] === "met" ? "bg-emerald-50 text-emerald-700" : criteria[c.id] === "intercepted" ? "bg-amber-50 text-amber-700" : "bg-rose-50 text-rose-700")}>{criteria[c.id] === "met" ? "Cumple" : criteria[c.id] === "intercepted" ? "Interceptado" : "Refuerzo"}</span></div>)}</div>{saveResult ? <p className="mt-3 text-xs text-slate-500">Resultado guardado.</p> : saving ? <p className="mt-3 text-xs text-slate-500">Guardando…</p> : null}<button className="mt-4 min-h-11 w-full rounded-xl border border-violet-200 bg-white px-4 font-bold text-violet-700" onClick={restart}>Repetir caso</button></div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[.16em] text-violet-600">Resultados</p>
+                  <h2 className="mt-2 text-2xl font-black">Resultado del caso</h2>
+                  <div className="mt-4 space-y-2">{criterionLabels.map((c, i) => <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 px-3 py-2" key={c.id}><span className="text-sm font-semibold">{i + 1}. {c.label}</span><span className={cn("rounded-md px-2 py-1 text-xs font-black", criteria[c.id] === "met" ? "bg-emerald-50 text-emerald-700" : criteria[c.id] === "intercepted" ? "bg-amber-50 text-amber-700" : "bg-rose-50 text-rose-700")}>{criteria[c.id] === "met" ? "Cumple" : criteria[c.id] === "intercepted" ? "Interceptado" : "Refuerzo"}</span></div>)}</div>
+                  {saving ? <p className="mt-3 text-xs text-slate-500">Guardando progreso…</p> : saveResult?.status === "error" ? <p className="mt-3 text-xs font-bold text-rose-600">{saveResult.message}</p> : completionSaved ? <p className="mt-3 text-xs font-bold text-emerald-700">Caso completado y progreso actualizado.</p> : null}
+                  {completionSaved && nextCaseHref ? <a className="mt-4 flex min-h-12 w-full items-center justify-center rounded-xl bg-violet-700 px-4 text-center font-bold text-white shadow-sm hover:bg-violet-800" href={nextCaseHref}>Pasar al siguiente caso</a> : null}
+                  {completionSaved && !nextCaseHref ? <a className="mt-4 flex min-h-12 w-full items-center justify-center rounded-xl bg-violet-700 px-4 text-center font-bold text-white shadow-sm hover:bg-violet-800" href="/simulaciones">Volver a simulaciones</a> : null}
+                  <button className="mt-3 min-h-11 w-full rounded-xl border border-violet-200 bg-white px-4 font-bold text-violet-700" onClick={restart}>Repetir caso</button>
+                </div>
               ) : selected === null ? (
                 <div><p className="text-xs font-black uppercase tracking-[.16em] text-violet-600">Nueva atención</p><h2 className="mt-2 text-2xl font-black">Paciente en ventanilla</h2><p className="mt-2 text-sm text-slate-600">“{scenario.patient.dialogue}”</p><p className="mt-4 rounded-xl bg-violet-50 p-3 text-sm font-semibold text-violet-800">Interactúa con el entorno para realizar la atención.</p></div>
               ) : selected === "patient" ? (
@@ -289,7 +326,14 @@ export function ContextualDispensingExperience({ levelNumber, mode, trainingCase
               ) : selected === "document" ? (
                 <div><p className="text-xs font-black uppercase tracking-[.16em] text-violet-600">Documento ficticio</p><h2 className="mt-2 text-xl font-black">Identificación</h2>{documentRead ? <div className="mt-4 rounded-xl border border-violet-100 bg-violet-50 p-4"><p className="font-black">{scenario.patient.name}</p><p className="mt-1 text-sm">RUT {scenario.patient.rut}</p></div> : <button className="mt-4 min-h-11 w-full rounded-xl bg-violet-700 px-4 font-bold text-white" onClick={() => setDocumentRead(true)}>Examinar documento</button>}</div>
               ) : selected === "computer" ? (
-                <div><p className="text-xs font-black uppercase tracking-[.16em] text-violet-600">Sistema ficticio</p><h2 className="mt-2 text-xl font-black">Buscar usuario</h2><div className="mt-4 flex gap-2"><input className="min-h-11 min-w-0 flex-1 rounded-xl border border-violet-200 px-3" value={rut} onChange={(e) => setRut(e.target.value)} placeholder="RUT" /><button className="rounded-xl bg-violet-700 px-4 font-bold text-white" onClick={searchPatient}>Buscar</button></div>{patientLoaded && <div className="mt-4"><div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm"><strong>{scenario.patient.name}</strong><br />Prescripciones disponibles: {scenario.prescriptions.length}</div><div className="mt-3 grid gap-2">{scenario.prescriptions.map((p) => <button key={p.id} className={cn("rounded-xl border px-3 py-2 text-left text-sm font-semibold", openedPrescriptions.includes(p.id) ? "border-violet-400 bg-violet-50" : "border-slate-200")} onClick={() => openPrescription(p.id)}>{p.title}{openedPrescriptions.includes(p.id) ? ` · ${p.medication} ${p.strength} · ${p.status}` : ""}</button>)}</div><button className="mt-4 min-h-11 w-full rounded-xl bg-violet-700 px-4 font-bold text-white" onClick={sendToPreparation}>Enviar solicitud a preparación</button></div>}</div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[.16em] text-violet-600">SISTEMA</p>
+                  <h2 className="mt-2 text-xl font-black">Buscar usuario</h2>
+                  <p className="mt-2 text-sm text-slate-600">Ingresa manualmente el identificador que tengas disponible.</p>
+                  <label className="mb-1 mt-4 block text-xs font-black text-slate-700">RUT</label>
+                  <div className="grid gap-2 sm:grid-cols-[1fr_auto]"><input className="min-h-11 rounded-xl border border-violet-200 px-3 text-sm outline-none focus:border-violet-500" value={rut} onChange={(e) => setRut(e.target.value)} placeholder="RUT" /><button className="rounded-xl bg-violet-700 px-4 text-sm font-bold text-white" onClick={searchPatient}>Buscar</button></div>
+                  {patientLoaded ? <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3"><p className="font-black text-slate-900">{scenario.patient.name}</p><p className="mt-1 text-xs text-slate-500">Prescripciones disponibles: {scenario.prescriptions.length}</p><div className="mt-3 space-y-2">{scenario.prescriptions.map((prescription) => <PrescriptionCard key={prescription.id} prescription={prescription} opened={openedPrescriptions.includes(prescription.id)} onOpen={() => openPrescription(prescription.id)} />)}</div><button className="mt-4 min-h-11 w-full rounded-xl bg-violet-700 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50" onClick={sendToPreparation} disabled={preparationState !== "idle"}>Enviar solicitud a preparación</button></div> : null}
+                </div>
               ) : selected === "preparation" ? (
                 <div><p className="text-xs font-black uppercase tracking-[.16em] text-violet-600">Rol de preparación</p><h2 className="mt-2 text-xl font-black">TENS 2</h2><p className="mt-2 text-sm text-slate-600">Estado: {preparationState === "idle" ? "En espera" : preparationState === "preparing" ? "Preparando" : preparationState === "delivering" ? "Trasladando preparación" : "Preparación entregada"}.</p></div>
               ) : selected === "tray" && trayVisible ? (
@@ -308,4 +352,8 @@ export function ContextualDispensingExperience({ levelNumber, mode, trainingCase
       <footer className="border-t border-violet-100 bg-white px-5 py-3 text-center text-xs font-semibold text-slate-500">ⓘ &nbsp; Simulación interactiva — no reemplaza protocolos institucionales.</footer>
     </div>
   );
+}
+
+function PrescriptionCard({ prescription, opened, onOpen }: { prescription: Prescription; opened: boolean; onOpen: () => void }) {
+  return <div className="rounded-xl border border-slate-200 p-3"><div className="flex items-center justify-between gap-3"><span className="text-sm font-bold">{prescription.title}</span><button className="text-xs font-black text-violet-700" onClick={onOpen}>{opened ? "Abierto" : "Abrir"}</button></div>{opened ? <div className="mt-2 border-t border-slate-100 pt-2 text-xs leading-5 text-slate-600"><p>{prescription.medication} · {prescription.strength}</p><p>{prescription.form} · {prescription.quantity}</p><p>Estado: {prescription.status}</p></div> : null}</div>;
 }
