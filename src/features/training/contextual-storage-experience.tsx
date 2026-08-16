@@ -44,7 +44,7 @@ export function ContextualStorageExperience({ levelNumber, mode, trainingCase }:
   }
 
   return (
-    <div className="overflow-hidden rounded-[1.6rem] border border-violet-100 bg-white shadow-[0_22px_70px_rgba(76,48,130,.13)]">
+    <div data-simulation-complete={finished ? "true" : "false"} className="overflow-hidden rounded-[1.6rem] border border-violet-100 bg-white shadow-[0_22px_70px_rgba(76,48,130,.13)]">
       <header className="grid gap-4 border-b border-violet-100 bg-white px-5 py-4 lg:grid-cols-[1fr_minmax(18rem,32rem)_auto] lg:items-center">
         <div className="flex items-center gap-3"><div className="grid size-11 place-items-center rounded-xl bg-violet-700 text-2xl font-black text-white">+</div><div><p className="text-xl font-black tracking-tight text-violet-800">FarmaSim</p><p className="text-xs font-semibold text-slate-500">Simulaciones · Caso 005</p></div></div>
         <div><div className="mb-2 flex justify-between text-xs font-black text-slate-700"><span>Progreso del caso</span><span>{finished ? 100 : progress}%</span></div><div className="h-2 overflow-hidden rounded-full bg-violet-100"><div className="h-full rounded-full bg-violet-600" style={{ width: `${finished ? 100 : progress}%` }} /></div></div>
