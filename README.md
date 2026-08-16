@@ -1,86 +1,125 @@
-# FarmaVerse
+# FarmaVerse / FarmaSim
 
 **Aprende. Practica. Simula.**
 
-FarmaVerse es una plataforma web gamificada para apoyar procesos de capacitación
-mediante microaprendizaje, simulaciones interactivas y seguimiento del progreso.
-La experiencia está diseñada principalmente para teléfonos, sin excluir el uso
-desde computadores.
+FarmaVerse es una plataforma web de capacitación interactiva. Dentro de la plataforma, **FarmaSim** es el módulo de simulaciones donde el usuario practica casos ficticios de farmacia mediante una escena interactiva, decisiones, verificación de información y retroalimentación final.
 
-## Problema
+> El contenido de la demo es ficticio y no reemplaza protocolos institucionales, normativa sanitaria, instrucciones profesionales ni supervisión del químico farmacéutico.
 
-La incorporación de personal en farmacias puede requerir aprender numerosos
-procedimientos operativos mediante documentos, capacitaciones y experiencia
-directa. FarmaVerse busca ofrecer un entorno complementario donde practicar
-situaciones ficticias antes de enfrentarlas en el trabajo.
+## Estado actual
 
-## Solución
+La aplicación incluye:
 
-La aplicación presentará escenarios definidos mediante datos. Cada escenario
-podrá incluir personajes, diálogos, decisiones, retroalimentación y resultados.
-Un motor genérico interpretará estos datos para evitar programar cada historia
-por separado.
+- landing pública responsive;
+- autenticación con Supabase Auth;
+- dashboard;
+- selector de siete niveles/casos;
+- simulaciones interactivas responsive para escritorio y móvil;
+- progreso persistido en Supabase;
+- pantalla de novedades;
+- perfil y administración básica de sesión;
+- despliegue en Vercel.
 
-## Objetivos
+## Casos de simulación
 
-- Ofrecer simulaciones breves y fáciles de entender.
-- Entregar retroalimentación inmediata después de cada decisión.
-- Registrar intentos, precisión y experiencia del usuario.
-- Permitir que el contenido evolucione sin reescribir el motor.
-- Priorizar una experiencia clara, estable y mobile-first.
+Actualmente existen siete casos en `src/data/training/cases`:
 
-## Alcance del MVP
+1. Caso 001 — dispensación ambulatoria.
+2. Caso 002 — refuerzo de concentración.
+3. Caso 003 — refuerzo de concentración en un contexto distinto.
+4. Caso 004 — consolidación de verificación.
+5. Caso 005 — revisión de almacenamiento.
+6. Caso 006 — múltiples discrepancias.
+7. Caso 007 — modo experto.
 
-- Landing y acceso a la plataforma.
-- Autenticación con correo y contraseña.
-- Dashboard del funcionario.
-- Motor básico de simulaciones ramificadas.
-- Primer escenario completamente ficticio.
-- Resultado, XP y progreso individual.
-- Modo demostración sin datos reales.
-- Diseño responsive.
-- Despliegue público y acceso mediante QR.
+Los casos 001, 002, 003, 004, 006 y 007 comparten la escena de dispensación y una lógica contextual común. El Caso 005 utiliza un flujo específico de revisión de almacenamiento.
 
-El panel de supervisión, el constructor de escenarios, las notificaciones, el
-modo turno y la experiencia offline quedan fuera del MVP.
+## Arquitectura actual
+
+El proyecto sigue un monolito modular con Next.js App Router.
+
+```text
+src/
+  app/                    rutas, metadata y estilos globales
+  components/             componentes visuales compartidos
+  data/                    catálogo y definición de contenido
+  features/                lógica de negocio y experiencias
+  lib/                     utilidades e integración Supabase
+  types/                   contratos TypeScript
+
+supabase/
+  migrations/              historial versionado de base de datos
+
+public/
+  brand/                   branding utilizado por la aplicación
+  images/farmasim/         escena visual de las simulaciones
+```
+
+### Simulaciones activas
+
+La ruta dinámica `src/app/(platform)/simulaciones/[slug]/page.tsx` selecciona una de tres experiencias activas:
+
+```text
+Caso 001
+  -> Case001ExperienceV7
+
+Caso 005
+  -> ContextualStorageExperience
+
+Casos 002, 003, 004, 006 y 007
+  -> ContextualDispensingExperience
+```
+
+La escena interactiva común vive en:
+
+```text
+src/features/training/case001-illustrated-scene.tsx
+src/features/training/case001-scene-hotspots.ts
+```
+
+La imagen actual de la farmacia es:
+
+```text
+public/images/farmasim/case001-scene.jpg
+```
+
+## Comportamiento responsive
+
+La experiencia está diseñada para escritorio y móvil.
+
+En escritorio:
+
+- escena principal a la izquierda;
+- panel contextual a la derecha;
+- misión e información obtenida en una zona secundaria;
+- al finalizar se oculta la escena y se priorizan los resultados.
+
+En móvil:
+
+- escena arriba;
+- hotspots con área táctil ampliada;
+- panel contextual debajo de la escena;
+- navegación inferior persistente.
+
+## Persistencia y progreso
+
+Los intentos de simulación se guardan de forma idempotente mediante Supabase. El backend mantiene el progreso del usuario y el desbloqueo de niveles.
+
+Las migraciones se conservan en `supabase/migrations` y no deben eliminarse durante tareas de limpieza del repositorio.
 
 ## Tecnologías
 
-- Next.js con App Router.
-- React y TypeScript estricto.
-- Tailwind CSS.
-- Supabase para PostgreSQL, autenticación y persistencia.
-- Vercel para despliegue.
-- PWA de forma progresiva después de estabilizar la aplicación web.
-
-## Arquitectura
-
-FarmaVerse seguirá una arquitectura de monolito modular. Las rutas y layouts
-vivirán en `src/app`; cada capacidad del producto tendrá su propio módulo en
-`src/features`; los componentes visuales compartidos estarán en
-`src/components`; y las integraciones externas estarán en `src/lib`.
-
-El motor de simulaciones permanecerá separado del contenido farmacéutico. Los
-escenarios demostrativos se almacenarán como datos ficticios y posteriormente
-podrán migrarse a contenido versionado en Supabase.
-
-## Sistema de diseño
-
-La interfaz utiliza una paleta clara, superficies elevadas, bordes suaves,
-jerarquía tipográfica simple y áreas táctiles de al menos 44 px. Los componentes
-reutilizables actuales están en `src/components`:
-
-- `Button`: variantes primaria, secundaria y sutil; tamaños y estado deshabilitado.
-- `Card`: contenedor de contenido con borde y elevación ligera.
-- `Badge`: indicador de estado o contexto.
-- `ProgressBar`: progreso accesible mediante atributos ARIA.
-- `PageContainer`, `AppHeader` y `BottomNavigation`: composición y navegación
-  mobile-first.
+- Next.js 16 con App Router.
+- React 19.
+- TypeScript.
+- Tailwind CSS 4.
+- Supabase (`@supabase/ssr` y `@supabase/supabase-js`).
+- Vercel.
 
 ## Requisitos
 
-- Node.js 24 LTS.
-- npm 11 o compatible.
+- Node.js 24.
+- npm compatible con el `package-lock.json` versionado.
 
 ## Instalación
 
@@ -92,187 +131,99 @@ cp .env.example .env.local
 npm run dev
 ```
 
-En PowerShell, la copia del archivo de entorno puede hacerse con:
+En PowerShell:
 
 ```powershell
 Copy-Item .env.example .env.local
 ```
 
-La aplicación estará disponible en `http://localhost:3000`.
+La aplicación local queda disponible en:
+
+```text
+http://localhost:3000
+```
 
 ## Variables de entorno
 
-| Variable | Descripción |
+| Variable | Uso |
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | URL pública del proyecto Supabase. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Clave publicable para el cliente. |
-| `NEXT_PUBLIC_SITE_URL` | URL canónica para metadatos y vista previa social. |
+| `NEXT_PUBLIC_SITE_URL` | URL canónica para metadata y previews. |
 
-No se deben guardar claves secretas ni una clave `service_role` en variables
-expuestas al navegador. `.env.local` está ignorado por Git.
-
-## Supabase y seguridad
-
-La estructura versionada de la base de datos está en `supabase/migrations`.
-Incluye perfiles creados al registrarse, contenido de aprendizaje, progreso,
-intentos y logros. Todas las tablas del esquema `public` usan RLS: el contenido
-solo se lee con sesión y cada persona accede únicamente a sus propios datos.
-
-Para aplicar la migración a un proyecto Supabase, primero enlaza el proyecto y
-ejecuta `npx supabase db push`. Las credenciales reales se mantienen solo en
-`.env.local` y en la configuración del proveedor de despliegue.
-
-## Autenticación
-
-FarmaVerse utiliza Supabase Auth con correo y contraseña. Las rutas `/dashboard`,
-`/simulaciones`, `/novedades`, `/aprender`, `/progreso` y `/perfil` requieren una sesión
-validada. Para que los enlaces de recuperación funcionen fuera de desarrollo,
-agrega la URL de producción y `http://localhost:3000/auth/callback` a las
-Redirect URLs de Supabase Auth.
-
-## Privacidad y sesiones
-
-La ruta pública `/privacidad` informa los datos mínimos usados por la demo. El
-registro exige confirmar su lectura y `/perfil` permite revisar la sesión actual,
-cerrarla localmente o revocar las demás sesiones. Las respuestas autenticadas no
-se almacenan en cachés compartidas. La evaluación técnica y los pendientes para
-producción están en [`docs/privacy-security.md`](docs/privacy-security.md).
-
-La lista operativa y los tres respaldos de la presentación están en
-[`docs/presentation-checklist.md`](docs/presentation-checklist.md).
-
-## Despliegue público
-
-La demostración estable está publicada en <https://farmasim.vercel.app>. El QR
-para la presentación está disponible en
-[`public/farmasim-qr.png`](public/farmasim-qr.png). Vercel está conectado al
-repositorio; las variables públicas de Supabase se administran desde el entorno
-del proyecto y no se guardan en Git.
-
-## Dashboard
-
-La ruta protegida `/dashboard` muestra el nombre, nivel y XP del perfil
-autenticado. También consulta el conteo propio de módulos completados y de
-simulaciones de los últimos siete días. Las tarjetas de cápsulas y simulaciones
-preparan la experiencia de las próximas fases y no enlazan a rutas aún no
-implementadas.
-
-## Motor de simulaciones
-
-La ruta protegida `/simulaciones` presenta la ruta visual de siete niveles. El
-primer nivel abre `/simulaciones/case-001-ambulatory-dispensing`, una farmacia
-2D responsive con cuatro áreas navegables. La página y el catálogo se renderizan
-en el servidor; únicamente el plano exploratorio requiere estado en el cliente.
-
-El Caso 001 se interpreta desde datos separados de la interfaz mediante un motor
-de sesión genérico. Sus 16 etapas recorren contexto, paciente, identificación,
-sistema ficticio, solicitud, almacenamiento, selección, preparación, doble
-chequeo, verificación final, resultado y cierre educativo. Al terminar, el
-intento y su resultado se guardan de forma idempotente en Supabase.
-
-Los niveles 1, 2 y 3 reutilizan este mismo escenario con modos distintos. El
-primero ofrece orientación contextual; el segundo conserva el feedback diferido
-de la trampa; y el tercero reduce las ayudas, agrega un objetivo de tiempo e
-interrupciones controladas. Los niveles 4 a 7 permanecen bloqueados para mostrar
-la expansión futura sin ampliar el alcance de la demo.
-
-La capacitación adaptativa incluye cuatro casos completos. Si se registra un
-error de concentración, el cierre recomienda el siguiente caso con la misma
-competencia y un contexto diferente. El resultado clasifica cada competencia
-como `Dominado`, `En progreso` o `En refuerzo`. La ruta protegida `/novedades`
-muestra el catálogo versionado de casos, funciones y entrenamientos agregados a
-la versión educativa 1.1.
-
-## Primer escenario
-
-El Caso 001 representa una dispensación ambulatoria ficticia y pendiente de
-validación profesional. Su primera entrega visual incluye un paciente virtual,
-un trabajador, mesón de atención, computador, almacenamiento con gavetas y
-mesón de preparación. No representa indicaciones, procedimientos ni reglas de
-dispensación farmacéutica.
-
-## Progreso del usuario
-
-Al completar una simulación, FarmaVerse guarda el intento de forma idempotente en
-Supabase con su precisión, respuestas correctas e incorrectas, XP y fecha. Una
-función transaccional calcula el resultado en la base de datos, actualiza el XP
-y nivel del perfil y desbloquea la primera insignia sin permitir que el cliente
-modifique directamente esos valores.
-
-La ruta protegida `/progreso` muestra nivel, avance hacia el siguiente nivel,
-simulaciones y módulos completados, precisión acumulada, insignias y actividad
-reciente. Para esta primera fórmula, cada nivel requiere 250 XP.
+Nunca deben versionarse claves secretas ni `service_role`.
 
 ## Scripts
 
 | Comando | Uso |
 | --- | --- |
-| `npm run dev` | Inicia el entorno local. |
+| `npm run dev` | Inicia Next.js en desarrollo. |
+| `npm run lint` | Ejecuta ESLint. |
+| `npm run typecheck` | Ejecuta TypeScript sin emitir archivos. |
 | `npm run build` | Genera la compilación de producción. |
-| `npm run start` | Ejecuta una compilación de producción. |
-| `npm run lint` | Revisa la calidad estática del código. |
+| `npm run check` | Ejecuta lint, typecheck y build. |
+| `npm run start` | Ejecuta una compilación ya generada. |
 
-## Estructura actual
+Antes de fusionar cambios importantes se recomienda ejecutar:
 
-```text
-src/
-  app/
-    globals.css
-    layout.tsx
-    page.tsx
+```bash
+npm run check
 ```
 
-La estructura crecerá por funcionalidades a medida que se implemente cada fase,
-evitando crear carpetas vacías o abstracciones prematuras.
+## Supabase
 
-## Roadmap
+La base contiene autenticación, perfiles, progreso e intentos. Las tablas sensibles utilizan RLS y el cliente no debe modificar directamente XP, nivel o progreso calculado.
 
-1. Configuración inicial del proyecto.
-2. Sistema de diseño.
-3. Landing pública responsive.
-4. Supabase y políticas RLS.
-5. Autenticación.
-6. Dashboard.
-7. Motor de simulaciones.
-8. Primer escenario ficticio.
-9. Persistencia, XP y progreso.
-10. Arquitectura de la demo de alta fidelidad y definición del Caso 001.
-11. Selección de niveles y farmacia visual navegable.
-12. Caso 001 jugable de principio a fin.
-13. Niveles, trampas, decisiones ramificadas y registro de errores.
-14. Capacitación adaptativa, casos de refuerzo y contenido actualizado.
-15. Estabilización, despliegue, QR y respaldos para la presentación.
+Para aplicar migraciones en un entorno enlazado:
 
-## Demo del 20 de agosto de 2026
+```bash
+npx supabase db push
+```
 
-La línea de presentación amplía el MVP con selección visual de niveles,
-farmacia 2D, etapas ficticias, errores diferidos, barreras, resultados por
-competencia y entrenamiento de refuerzo. La arquitectura y el blueprint del
-Caso 001 están documentados en
-[`docs/demo-architecture.md`](docs/demo-architecture.md).
+## Autenticación
 
-El contenido que hace referencia a medicamentos permanece separado del motor y
-marcado como pendiente de validación profesional. Esta fase no modifica
-Supabase ni reemplaza el escenario estable actual.
+FarmaVerse utiliza Supabase Auth con correo y contraseña. Las rutas de plataforma requieren una sesión válida.
 
-## Landing
+La recuperación de contraseña utiliza el callback:
 
-La ruta principal presenta FarmaVerse, sus beneficios y el flujo de aprendizaje.
-Incluye un escenario visual ficticio para explicar la experiencia sin exponer
-contenido clínico ni protocolos reales.
+```text
+/auth/callback
+```
 
-## Capturas
+Las URLs de desarrollo y producción correspondientes deben estar configuradas en Supabase Auth.
 
-Las capturas se incorporarán cuando el sistema de diseño y las primeras
-pantallas estén terminados.
+## Despliegue
+
+La demo pública está desplegada mediante Vercel y el repositorio mantiene `main` como rama de producción.
+
+El QR utilizado para la presentación se conserva en:
+
+```text
+public/farmasim-qr.png
+```
+
+## Organización del código
+
+Al agregar nuevas funcionalidades:
+
+- mantener contenido de casos en `src/data/training`;
+- evitar duplicar datos de un escenario dentro de varios componentes;
+- reutilizar las experiencias activas antes de crear motores paralelos;
+- evitar nombres versionados (`v2`, `v3`, etc.) cuando una implementación reemplaza definitivamente a otra;
+- eliminar prototipos reemplazados una vez validada la nueva versión;
+- mantener los estados de finalización explícitos y no inferirlos solo desde porcentajes de progreso;
+- preservar `supabase/migrations` como historial de esquema.
+
+## Documentación
+
+- `docs/demo-architecture.md`: arquitectura funcional actual de las simulaciones.
+- `docs/privacy-security.md`: consideraciones de privacidad y seguridad.
+- `docs/presentation-checklist.md`: respaldo operativo para la presentación.
 
 ## Autor
 
-Proyecto desarrollado por Vicente con apoyo de Codex.
+Proyecto desarrollado por Vicente con apoyo de herramientas de IA para desarrollo y revisión técnica.
 
 ## Disclaimer
 
-FarmaVerse es un prototipo de capacitación y simulación. El contenido incluido en
-esta versión es demostrativo y no reemplaza protocolos institucionales,
-instrucciones profesionales, normativa sanitaria ni supervisión del químico
-farmacéutico.
+FarmaVerse/FarmaSim es un prototipo de capacitación y simulación. Todo paciente, medicamento, receta, identificador y situación representada en la demo debe tratarse como contenido ficticio de entrenamiento.
