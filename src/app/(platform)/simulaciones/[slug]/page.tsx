@@ -106,7 +106,6 @@ export default async function TrainingCasePage({
                 overflow: visible !important;
               }
 
-              /* Interacción principal: columna derecha superior. */
               .simulation-desktop-panel > div > div.grid > div:first-child > div.relative > div[class*="bottom-5"][class*="left-5"] {
                 left: calc(100% + 1rem) !important;
                 right: auto !important;
@@ -133,7 +132,6 @@ export default async function TrainingCasePage({
                 min-height: 2.45rem !important;
               }
 
-              /* Misión, información disponible y evento: columna derecha inferior. */
               .simulation-desktop-panel > div > div.grid > aside {
                 padding: 30.5rem 1rem 1rem !important;
                 background: #fcfcfe !important;
@@ -155,7 +153,6 @@ export default async function TrainingCasePage({
                 font-size: 0.86rem !important;
               }
 
-              /* Caso 001 conserva su señal de resultado validada. */
               .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) > div > div.grid {
                 display: block !important;
               }
@@ -198,7 +195,6 @@ export default async function TrainingCasePage({
                 box-shadow: 0 12px 34px rgba(17, 24, 39, 0.08) !important;
               }
 
-              /* Casos 002-007: el resultado real se reconoce cuando su aside queda vacío. */
               .simulation-desktop-panel:not(.simulation-case001):has(> div > div.grid > aside:empty) > div > div.grid {
                 display: block !important;
               }
@@ -241,7 +237,6 @@ export default async function TrainingCasePage({
                 box-shadow: 0 12px 34px rgba(17, 24, 39, 0.08) !important;
               }
 
-              /* CTA de reinicio consistente en las vistas finales. */
               .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)) button.rounded-xl.border.border-violet-200.font-bold.text-violet-700,
               .simulation-desktop-panel:not(.simulation-case001):has(> div > div.grid > aside:empty) button.rounded-xl.border.border-violet-200.font-bold.text-violet-700 {
                 font-size: 0 !important;
@@ -253,9 +248,7 @@ export default async function TrainingCasePage({
                 font-size: 0.9rem;
               }
 
-              /* Siguiente caso: solo en resultado y sin refuerzos/intercepciones. */
-              .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)):not(:has(span.bg-amber-100)):not(:has(span.bg-rose-100)):not(:has(span.bg-amber-50)):not(:has(span.bg-rose-50)) > .simulation-next-case-link,
-              .simulation-desktop-panel:not(.simulation-case001):has(> div > div.grid > aside:empty):not(:has(span.bg-amber-100)):not(:has(span.bg-rose-100)):not(:has(span.bg-amber-50)):not(:has(span.bg-rose-50)) > .simulation-next-case-link {
+              .simulation-case001:has(> div > header [style*="width: 100%"]):not(:has(.text-rose-600)):not(:has(span.bg-amber-100)):not(:has(span.bg-rose-100)):not(:has(span.bg-amber-50)):not(:has(span.bg-rose-50)) > .simulation-next-case-link {
                 display: flex;
                 width: min(52rem, 100%);
                 min-height: 3rem;
@@ -295,7 +288,7 @@ export default async function TrainingCasePage({
             />
           )}
 
-          {nextCaseHref ? (
+          {isCase001 && nextCaseHref ? (
             <Link className="simulation-next-case-link" href={nextCaseHref}>
               Siguiente caso
             </Link>
