@@ -1,187 +1,176 @@
-# Arquitectura de la demo 2026-08-20
+# Arquitectura actual de FarmaSim
 
 ## Objetivo
 
-Construir una demostración visual estable que recorra un caso ficticio desde la
-selección de nivel hasta el entrenamiento de refuerzo. Esta arquitectura amplía
-el motor existente sin reemplazar autenticación, progreso ni persistencia.
+FarmaSim es el módulo interactivo de FarmaVerse para practicar casos ficticios de farmacia desde navegador o teléfono. La arquitectura actual prioriza una experiencia visual consistente, persistencia de progreso y una base de código simple de mantener.
 
-Cada escenario mantiene trazabilidad documental y puede marcarse como contenido
-base documentado, educativo en desarrollo, revisado o validado para uso
-institucional. Ninguno de estos estados bloquea la práctica autónoma de una
-TENS.
-
-## Flujo cerrado
+## Flujo general
 
 ```text
-Selección de nivel
-  -> contexto
-  -> paciente
-  -> identificación ficticia
-  -> sistema clínico ficticio
-  -> prescripción ficticia
-  -> almacenamiento
-  -> gaveta
-  -> selección
-  -> preparación
-  -> doble chequeo
-  -> verificación final
-  -> despacho
-  -> resultado por etapas
-  -> NO OLVIDAR
-  -> entrenamiento recomendado
+Selector de nivel
+  -> carga del caso
+  -> escena interactiva
+  -> interacción contextual
+  -> verificación de criterios
+  -> persistencia del intento
+  -> resultados
+  -> repetir o avanzar al siguiente caso
 ```
 
-## Decisiones técnicas
+## Rutas
 
-### Mantener Next.js
+```text
+/simulaciones
+  selector de niveles
 
-La demo seguirá siendo una aplicación web responsive. No se migrará a Flutter
-antes de la presentación. Esto conserva el acceso desde teléfono o navegador,
-Supabase y la futura configuración PWA.
+/simulaciones/[slug]
+  experiencia interactiva del caso
 
-### Escenarios definidos como datos
+/progreso
+  progreso e historial del usuario
 
-Los casos se describen con `TrainingCase`. La interfaz interpretará etapas,
-interacciones y efectos; no habrá un componente exclusivo para cada historia.
+/novedades
+  contenido y cambios de la plataforma
+```
+
+## Experiencias activas
+
+La ruta `[slug]` selecciona una de tres implementaciones:
+
+```text
+case-001-ambulatory-dispensing
+  -> Case001ExperienceV7
+
+case-005-storage-review
+  -> ContextualStorageExperience
+
+case-002-concentration-reinforcement
+case-003-concentration-reinforcement
+case-004-concentration-reinforcement
+case-006-multiple-errors
+case-007-expert-mode
+  -> ContextualDispensingExperience
+```
+
+No deben agregarse motores paralelos para un caso nuevo si puede representarse mediante una de estas experiencias y datos de configuración.
+
+## Separación por responsabilidad
+
+### Datos
 
 ```text
 src/data/training/
-  competencies.ts
-  levels.ts
-  cases/
-    case-001-ambulatory-dispensing.ts
-  validate-training-case.ts
 ```
 
-Los contratos viven en `src/types/training-simulation.ts`.
+Contiene los casos, niveles, modos, criterios y contenido educativo.
 
-### Separar contenido, motor y presentación
-
-```text
-Datos del caso
-  -> validador estructural
-  -> motor de sesión
-  -> componentes de escena
-  -> resultado normalizado
-  -> persistencia
-```
-
-- Los datos definen qué ocurre.
-- El motor mantiene selecciones, errores y etapa actual.
-- Los componentes muestran cada área.
-- Supabase recibe únicamente el resultado normalizado.
-
-Las páginas y catálogos seguirán siendo Server Components por defecto. El motor
-de sesión y las escenas interactivas formarán un límite cliente específico.
-
-## Estado mínimo de sesión
-
-```text
-attemptId
-caseId
-currentStageId
-visitedStageIds
-selectedItemIds
-recordedErrorIds
-detectedErrorIds
-correctedErrorIds
-activatedBarrierIds
-competencyStatuses
-startedAt
-completedAt
-```
-
-Un efecto `record-error` registra una discrepancia. `detect-error` y
-`correct-error` solo actuarán si la discrepancia corresponde. Así, un mismo
-doble chequeo funciona tanto en el camino correcto como en el incorrecto.
-
-## Feedback diferido
-
-Cada alternativa declara `feedbackTiming`:
-
-- `immediate`: explica la decisión en la misma etapa.
-- `deferred`: registra el efecto sin revelar todavía el resultado.
-- `none`: avanza sin tarjeta de feedback.
-
-La trampa del Caso 001 se activa al seleccionar la presentación ficticia de
-100 mg. Puede revelarse en doble chequeo, verificación final o resultado. Si se
-corrige antes del despacho, el resultado indicará que no alcanzó al paciente
-virtual.
-
-## Componentes previstos
-
-La siguiente fase implementará componentes reales siguiendo esta estructura:
+### Presentación e interacción
 
 ```text
 src/features/training/
-  level-selector.tsx
-  training-session.tsx
-  training-stage-router.tsx
-  training-result.tsx
-  scenes/
-    pharmacy-scene.tsx
-    service-counter-scene.tsx
-    clinical-terminal-scene.tsx
-    storage-scene.tsx
-    preparation-scene.tsx
-  interactions/
-    decision-panel.tsx
-    item-selector.tsx
-    safety-check.tsx
 ```
 
-No se crean componentes o carpetas vacías durante esta fase.
+Contiene las experiencias interactivas actualmente utilizadas.
 
-## Rutas previstas
+### Escena
 
 ```text
-/simulaciones          selector de niveles y casos
-/simulaciones/[slug]   contexto y sesión interactiva
-/progreso              resultados y competencias
-/novedades              contenido agregado o actualizado
+case001-illustrated-scene.tsx
+case001-scene-hotspots.ts
 ```
 
-La fase 10 no agrega rutas nuevas.
+La escena utiliza el asset:
 
-## Caso 001
+```text
+public/images/farmasim/case001-scene.jpg
+```
 
-El blueprint contiene:
+Los hotspots se posicionan sobre la imagen y mantienen áreas táctiles mayores en móvil.
 
-- 16 etapas conectadas.
-- Cinco competencias.
-- Tres errores demostrativos.
-- Dos barreras recuperables.
-- Una trampa con feedback diferido.
-- Resultado por etapas.
-- Tarjeta educativa.
-- Recomendación de refuerzo.
+### Persistencia
 
-El validador comprueba identificadores duplicados, conexiones, competencias,
-efectos, errores, barreras y referencias de las trampas.
+```text
+src/features/progress/actions.ts
+src/lib/supabase/
+supabase/migrations/
+```
 
-## Persistencia
+El cliente solicita el guardado del intento y la base de datos valida/actualiza progreso. Las migraciones son parte del historial del proyecto y no se consideran archivos temporales.
 
-No se modifica Supabase en la fase 10. El esquema actual continúa guardando
-intentos, precisión y XP. Cuando el motor v2 sea estable, una migración separada
-y con RLS añadirá solo la información necesaria sobre competencias y errores.
+## Responsive
 
-## Fuera de alcance
+### Escritorio
 
-- Movimiento libre tipo videojuego o 3D pesado.
-- Contenido clínico definitivo.
-- Panel administrador.
-- Cuatro casos de la misma profundidad.
-- Migración a Flutter.
-- Cambios de Supabase antes de validar el motor v2.
+```text
+┌─────────────────────────────┬───────────────────┐
+│                             │ interacción       │
+│        escena               ├───────────────────┤
+│                             │ misión / info     │
+└─────────────────────────────┴───────────────────┘
+```
 
-## Criterio de cierre
+Al finalizar el caso, la escena deja de ser protagonista y se muestra la vista de resultados.
 
-- Flujo de presentación cerrado.
-- Tipos del motor v2 compilables.
-- Niveles y competencias definidos.
-- Caso 001 expresado completamente como datos.
-- Feedback diferido y recuperaciones representables.
-- Contenido sensible marcado para revisión profesional.
-- Validador estructural disponible.
-- Sin regresiones en el motor actual.
+### Móvil
+
+```text
+┌──────────────────────┐
+│ header               │
+├──────────────────────┤
+│ escena               │
+├──────────────────────┤
+│ interacción          │
+├──────────────────────┤
+│ navegación inferior  │
+└──────────────────────┘
+```
+
+La escena no debe quedar cubierta por un panel contextual grande. Los puntos visibles pueden ser pequeños, pero el área táctil debe mantenerse cómoda.
+
+## Estado de finalización
+
+Un caso no debe considerarse finalizado solo porque la barra de progreso llegue a 100 %.
+
+La finalización debe depender del estado real de la experiencia (`result`, `finished` o equivalente). Esto evita falsos positivos como una revisión con todos los campos inspeccionados pero aún no cerrada.
+
+## Resultados
+
+La vista final debe:
+
+- ocultar interacciones que ya no son necesarias;
+- mostrar los criterios obtenidos;
+- informar si el progreso se guardó;
+- permitir **Volver a repetir**;
+- ofrecer **Siguiente caso** cuando corresponda.
+
+## Datos del dominio
+
+La meta de mantenimiento es que los datos de paciente, prescripciones, medicamentos, discrepancias y criterios vivan en la definición del caso o en una configuración común, evitando repetirlos dentro de múltiples componentes.
+
+Cuando se refactorice una simulación, debe preferirse:
+
+```text
+TrainingCase / configuración
+          ↓
+experiencia reutilizable
+          ↓
+resultado normalizado
+```
+
+antes que crear un componente nuevo con datos duplicados.
+
+## Reglas de mantenimiento
+
+1. No conservar implementaciones `v2`, `v3`, etc. una vez reemplazadas y validadas.
+2. No guardar imágenes binarias fragmentadas dentro de archivos TypeScript.
+3. No mantener escenas o motores alternativos sin una ruta activa.
+4. No inferir estado de negocio mediante selectores CSS o porcentajes cuando puede exponerse un estado explícito.
+5. Mantener los assets de `public` limitados a recursos realmente consumidos o necesarios para documentación/presentación.
+6. Ejecutar `npm run check` antes de fusionar refactors amplios.
+7. Mantener Supabase y sus migraciones separados de la presentación visual.
+
+## Evolución recomendada
+
+La mejora arquitectónica siguiente es consolidar el Caso 001 y los casos de dispensación en un único motor/configuración de dispensación, reduciendo la duplicación entre `Case001ExperienceV7` y `ContextualDispensingExperience`.
+
+Ese refactor debe hacerse por separado de tareas de limpieza para poder probar cada cambio con facilidad.
