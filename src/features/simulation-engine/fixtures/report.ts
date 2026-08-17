@@ -52,6 +52,8 @@ export function buildMinimumScenarioReport() {
       processDeviations: evaluation?.processDeviations ?? [],
       discrepancies: evaluation?.safety.discrepancies ?? [],
       barriers: evaluation?.safety.evaluatedBarriers ?? [],
+      barrierFailures: evaluation?.safety.barrierFailures ?? [],
+      discrepancyTransitions: evaluation?.safety.discrepancyTransitions ?? [],
       safety: evaluation
         ? {
             allowed: evaluation.safety.allowed,
@@ -61,4 +63,21 @@ export function buildMinimumScenarioReport() {
       reinforcement,
     };
   });
+}
+
+export function buildMinimumScenarioSummary() {
+  return buildMinimumScenarioReport().map((item) => ({
+    id: item.id,
+    title: item.title,
+    valid: item.validation.valid,
+    safetyAllowed: item.safety?.allowed ?? null,
+    missedCriteria: item.criteria.filter((criterion) => criterion.status === "missed").length,
+    missedCompetencies: item.competencies.filter((competency) => competency.status === "missed").length,
+    deviations: item.processDeviations.length,
+    discrepancies: item.discrepancies.length,
+    barrierFailures: item.barrierFailures.length,
+    interceptedDiscrepancies: item.discrepancyTransitions.filter(
+      (transition) => transition.to === "intercepted",
+    ).length,
+  }));
 }
