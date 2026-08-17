@@ -10,6 +10,16 @@ import type {
   SimulationState,
 } from "@/features/simulation-engine/types";
 
+const DISPENSING_CRITERIA: DispensingCriterionId[] = [
+  "criterion-1-request-identity-document",
+  "criterion-2-system-identity-match",
+  "criterion-3-identify-all-prescriptions",
+  "criterion-4-confirm-prescription-issued",
+  "criterion-5-compare-prepared-items",
+  "criterion-6-recheck-identity-before-handoff",
+  "criterion-7-provide-corresponding-instructions",
+];
+
 function eventIds(events: readonly SimulationEvent[], type: SimulationEvent["type"]): string[] {
   return events.filter((event) => event.type === type).map((event) => event.id);
 }
@@ -28,6 +38,10 @@ export function evaluateProcessCriteria(
   state: SimulationState,
   events: readonly SimulationEvent[],
 ): ProcessCriterionResult[] {
+  if (session.playerRole === "preparation") {
+    return DISPENSING_CRITERIA.map((criterionId) => result(criterionId, "not-applicable", []));
+  }
+
   const documentRequested = eventIds(events, "document.requested");
   const documentOpened = eventIds(events, "document.opened");
   const rutTyped = eventIds(events, "rut.typed");
@@ -77,16 +91,12 @@ export function evaluateProcessCriteria(
     result(
       "criterion-3-identify-all-prescriptions",
       allRelevantOpened ? "met" : "missed",
-      events
-        .filter((event) => event.type === "prescription.opened")
-        .map((event) => event.id),
+      events.filter((event) => event.type === "prescription.opened").map((event) => event.id),
     ),
     result(
       "criterion-4-confirm-prescription-issued",
       statusCriterion,
-      events
-        .filter((event) => event.type === "prescription.opened")
-        .map((event) => event.id),
+      events.filter((event) => event.type === "prescription.opened").map((event) => event.id),
     ),
     result(
       "criterion-5-compare-prepared-items",
@@ -121,41 +131,50 @@ export function evaluateCompetencies(
   const allPreparedInspected = session.preparation.preparedItems.every((item) =>
     inspectedPresentationIds.has(item.presentationId),
   );
+  const isPreparationRole = session.playerRole === "preparation";
+  const preparationInspectionPerformed = inspectedEvents.length > 0;
 
   const results: Record<CompetencyId, CompetencyResult> = {
     identity_verification: {
       competencyId: "identity_verification",
-      status:
-        byType("document.opened").length > 0 &&
-        byType("rut.typed").length > 0 &&
-        state.activePatientId === session.patientId
+      status: isPreparationRole
+        ? "not-observed"
+        : byType("document.opened").length > 0 && byType("rut.typed").length > 0 && state.activePatientId === session.patientId
           ? "met"
           : "missed",
       evidenceEventIds: [...byType("document.opened"), ...byType("rut.typed"), ...byType("patient_record.opened")],
     },
     record_review: {
       competencyId: "record_review",
-      status: allRelevantOpened ? "met" : "missed",
+      status: isPreparationRole ? "not-observed" : allRelevantOpened ? "met" : "missed",
       evidenceEventIds: byType("prescription.opened"),
     },
     verify_medication: {
       competencyId: "verify_medication",
-      status: state.trayInspected && allPreparedInspected ? "met" : "missed",
+      status: isPreparationRole
+        ? preparationInspectionPerformed ? "met" : "missed"
+        : state.trayInspected && allPreparedInspected ? "met" : "missed",
       evidenceEventIds: [...byType("tray.inspected"), ...byType("medication.inspected")],
     },
     verify_strength: {
       competencyId: "verify_strength",
-      status: state.trayInspected && allPreparedInspected ? "met" : "missed",
+      status: isPreparationRole
+        ? preparationInspectionPerformed ? "met" : "missed"
+        : state.trayInspected && allPreparedInspected ? "met" : "missed",
       evidenceEventIds: inspectedEvents.map((event) => event.id),
     },
     verify_form: {
       competencyId: "verify_form",
-      status: state.trayInspected && allPreparedInspected ? "met" : "missed",
+      status: isPreparationRole
+        ? preparationInspectionPerformed ? "met" : "missed"
+        : state.trayInspected && allPreparedInspected ? "met" : "missed",
       evidenceEventIds: inspectedEvents.map((event) => event.id),
     },
     verify_quantity: {
       competencyId: "verify_quantity",
-      status: state.trayInspected && allPreparedInspected ? "met" : "missed",
+      status: isPreparationRole
+        ? preparationInspectionPerformed ? "met" : "missed"
+        : state.trayInspected && allPreparedInspected ? "met" : "missed",
       evidenceEventIds: inspectedEvents.map((event) => event.id),
     },
     storage_check: {
@@ -165,12 +184,14 @@ export function evaluateCompetencies(
     },
     double_check_performed: {
       competencyId: "double_check_performed",
-      status: state.trayInspected && allPreparedInspected ? "met" : "missed",
+      status: isPreparationRole
+        ? "not-observed"
+        : state.trayInspected && allPreparedInspected ? "met" : "missed",
       evidenceEventIds: [...byType("tray.inspected"), ...byType("medication.inspected")],
     },
     instructions: {
       competencyId: "instructions",
-      status: byType("instructions.given").length > 0 ? "met" : "missed",
+      status: isPreparationRole ? "not-observed" : byType("instructions.given").length > 0 ? "met" : "missed",
       evidenceEventIds: byType("instructions.given"),
     },
     qf_escalation: {
