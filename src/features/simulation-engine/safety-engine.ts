@@ -1,13 +1,18 @@
 import type {
   BarrierExecution,
   DeliverySafetyResult,
+  DiscrepancyTransition,
   MedicationDiscrepancy,
   MedicationPresentation,
   PreparationItem,
+  SafetyBarrierFailure,
+  SimulationEvent,
   SimulationSession,
   SimulationState,
 } from "@/features/simulation-engine/types";
 
+const DOUBLE_CHECK_BARRIER_ID = "tens1-double-check";
+const IDENTITY_RECHECK_BARRIER_ID = "identity-recheck";
 const FINAL_DELIVERY_BARRIER_ID = "final-delivery-system-guard";
 
 function findPresentation(session: SimulationSession, id: string): MedicationPresentation | undefined {
@@ -31,6 +36,10 @@ function createDiscrepancy(
     reachedPatient: false,
     ...input,
   };
+}
+
+function eventIds(events: readonly SimulationEvent[], type: SimulationEvent["type"]): string[] {
+  return events.filter((event) => event.type === type).map((event) => event.id);
 }
 
 export function deriveDeliveryDiscrepancies(
@@ -146,21 +155,79 @@ export function deriveDeliveryDiscrepancies(
 export function evaluateDeliverySafety(
   session: SimulationSession,
   state: SimulationState,
+  events: readonly SimulationEvent[] = [],
 ): DeliverySafetyResult {
   const discrepancies = deriveDeliveryDiscrepancies(session, state);
-  const blockingDiscrepancyIds = discrepancies.map((discrepancy) => discrepancy.id);
+  const medicationDiscrepancies = discrepancies.filter((item) => item.type !== "wrong_patient");
+  const identityDiscrepancies = discrepancies.filter((item) => item.type === "wrong_patient");
+
+  const doubleCheckExecuted = state.trayInspected && eventIds(events, "medication.inspected").length > 0;
+  const identityRecheckExecuted = eventIds(events, "identity.rechecked").length > 0;
 
   const evaluatedBarriers: BarrierExecution[] = [
     {
-      barrierId: FINAL_DELIVERY_BARRIER_ID,
-      executed: state.deliveryAttempted,
-      effective: state.deliveryAttempted && blockingDiscrepancyIds.length > 0,
-      discrepancyIds: blockingDiscrepancyIds,
+      barrierId: DOUBLE_CHECK_BARRIER_ID,
+      executed: doubleCheckExecuted,
+      effective: doubleCheckExecuted && medicationDiscrepancies.length === 0,
+      discrepancyIds: medicationDiscrepancies.map((item) => item.id),
+    },
+    {
+      barrierId: IDENTITY_RECHECK_BARRIER_ID,
+      executed: identityRecheckExecuted,
+      effective: identityRecheckExecuted && identityDiscrepancies.length === 0,
+      discrepancyIds: identityDiscrepancies.map((item) => item.id),
     },
   ];
 
+  const barrierFailures: SafetyBarrierFailure[] = [];
+
+  if (medicationDiscrepancies.length > 0 && (!doubleCheckExecuted || medicationDiscrepancies.length > 0)) {
+    barrierFailures.push({
+      id: `${session.id}:barrier-failure:${DOUBLE_CHECK_BARRIER_ID}`,
+      barrierId: DOUBLE_CHECK_BARRIER_ID,
+      discrepancyIds: medicationDiscrepancies.map((item) => item.id),
+      evidenceEventIds: [
+        ...eventIds(events, "tray.inspected"),
+        ...eventIds(events, "medication.inspected"),
+      ],
+    });
+  }
+
+  if (identityDiscrepancies.length > 0 && (!identityRecheckExecuted || identityDiscrepancies.length > 0)) {
+    barrierFailures.push({
+      id: `${session.id}:barrier-failure:${IDENTITY_RECHECK_BARRIER_ID}`,
+      barrierId: IDENTITY_RECHECK_BARRIER_ID,
+      discrepancyIds: identityDiscrepancies.map((item) => item.id),
+      evidenceEventIds: eventIds(events, "identity.rechecked"),
+    });
+  }
+
+  const blockingDiscrepancyIds = discrepancies
+    .filter((discrepancy) => discrepancy.status === "active")
+    .map((discrepancy) => discrepancy.id);
+
+  evaluatedBarriers.push({
+    barrierId: FINAL_DELIVERY_BARRIER_ID,
+    executed: state.deliveryAttempted,
+    effective: state.deliveryAttempted && blockingDiscrepancyIds.length > 0,
+    discrepancyIds: blockingDiscrepancyIds,
+  });
+
+  const discrepancyTransitions: DiscrepancyTransition[] = [];
+
   if (state.deliveryAttempted && blockingDiscrepancyIds.length > 0) {
     for (const discrepancy of discrepancies) {
+      if (discrepancy.status !== "active") continue;
+
+      discrepancyTransitions.push({
+        discrepancyId: discrepancy.id,
+        from: "active",
+        to: "intercepted",
+        stage: "final_delivery_check",
+        actorId: "system",
+        barrierId: FINAL_DELIVERY_BARRIER_ID,
+      });
+
       discrepancy.status = "intercepted";
       discrepancy.detectedAt = "final_delivery_check";
       discrepancy.detectedBy = "system";
@@ -173,5 +240,7 @@ export function evaluateDeliverySafety(
     discrepancies,
     blockingDiscrepancyIds,
     evaluatedBarriers,
+    barrierFailures,
+    discrepancyTransitions,
   };
 }
