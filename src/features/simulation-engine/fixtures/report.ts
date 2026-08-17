@@ -1,5 +1,6 @@
 import { evaluateSimulation } from "@/features/simulation-engine/engine";
 import { minimumScenarioFixtures } from "@/features/simulation-engine/fixtures/minimum-scenarios";
+import { selectReinforcement } from "@/features/simulation-engine/reinforcement-engine";
 import { validateScenarioSession } from "@/features/simulation-engine/scenario-validator";
 
 export function buildMinimumScenarioReport() {
@@ -8,6 +9,28 @@ export function buildMinimumScenarioReport() {
     const evaluation = validation.valid
       ? evaluateSimulation(fixture.definition, fixture.session, fixture.events)
       : null;
+
+    const failedCompetencies = evaluation?.competencies
+      .filter((item) => item.status === "missed")
+      .map((item) => item.competencyId) ?? [];
+    const requestedPresentationIds = fixture.session.preparation.requestedItems.map((item) => item.presentationId);
+    const requestedMedicationIds = fixture.session.presentations
+      .filter((presentation) => requestedPresentationIds.includes(presentation.id))
+      .map((presentation) => presentation.medicationId);
+
+    const reinforcement = selectReinforcement(
+      failedCompetencies,
+      minimumScenarioFixtures
+        .filter((candidate) => candidate.id !== fixture.id)
+        .map((candidate) => ({ definition: candidate.definition, session: candidate.session })),
+      {
+        scenarioDefinitionIds: [fixture.definition.id],
+        patientIds: [fixture.session.patientId],
+        medicationIds: requestedMedicationIds,
+        presentationIds: requestedPresentationIds,
+        facilityIds: fixture.session.prescriptions.map((prescription) => prescription.facilityId),
+      },
+    );
 
     return {
       id: fixture.id,
@@ -35,6 +58,7 @@ export function buildMinimumScenarioReport() {
             blockingDiscrepancyIds: evaluation.safety.blockingDiscrepancyIds,
           }
         : null,
+      reinforcement,
     };
   });
 }
