@@ -7,6 +7,9 @@ import { createClient } from "@/lib/supabase/server";
 
 import type { AuthFormState } from "./types";
 
+const PASSWORD_REQUIREMENTS_MESSAGE =
+  "La contraseña debe tener al menos 8 caracteres e incluir una mayúscula, una minúscula y un número.";
+
 function getRequiredText(formData: FormData, field: string) {
   const value = formData.get(field);
   return typeof value === "string" ? value.trim() : "";
@@ -14,6 +17,15 @@ function getRequiredText(formData: FormData, field: string) {
 
 function isValidEmail(email: string) {
   return /^\S+@\S+\.\S+$/.test(email);
+}
+
+function isValidPassword(password: string) {
+  return (
+    password.length >= 8 &&
+    /[a-z]/.test(password) &&
+    /[A-Z]/.test(password) &&
+    /\d/.test(password)
+  );
 }
 
 function getSafeRedirectPath(value: string) {
@@ -51,11 +63,14 @@ export async function register(
   const password = getRequiredText(formData, "password");
   const privacyAccepted = formData.get("privacyAccepted") === "on";
 
-  if (!fullName || !isValidEmail(email) || password.length < 8 || !privacyAccepted) {
+  if (!fullName || !isValidEmail(email) || !privacyAccepted) {
     return {
-      error:
-        "Ingresa tus datos, usa una contraseña de al menos 8 caracteres y confirma que leíste el aviso de privacidad.",
+      error: "Ingresa tus datos, usa un correo válido y confirma que leíste el aviso de privacidad.",
     };
+  }
+
+  if (!isValidPassword(password)) {
+    return { error: PASSWORD_REQUIREMENTS_MESSAGE };
   }
 
   const supabase = await createClient();
@@ -109,8 +124,8 @@ export async function updatePassword(
   const password = getRequiredText(formData, "password");
   const confirmation = getRequiredText(formData, "confirmation");
 
-  if (password.length < 8) {
-    return { error: "La contraseña debe tener al menos 8 caracteres." };
+  if (!isValidPassword(password)) {
+    return { error: PASSWORD_REQUIREMENTS_MESSAGE };
   }
 
   if (password !== confirmation) {
