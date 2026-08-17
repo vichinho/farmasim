@@ -70,13 +70,13 @@ export function evaluateSimulation(
   }
 
   const state = deriveSimulationState(session, events);
-  const criteria = evaluateProcessCriteria(definition, session, state, events);
-  const competencies = evaluateCompetencies(session, state, events);
+  const safety = evaluateDeliverySafety(session, state, events);
+  const criteria = evaluateProcessCriteria(definition, session, state, events, safety.discrepancies);
+  const competencies = evaluateCompetencies(session, state, events, safety.discrepancies);
   const processDeviations = [
     ...deriveProcessDeviations(criteria),
     ...deriveStorageDeviations(session, events),
   ];
-  const safety = evaluateDeliverySafety(session, state, events);
 
   return { state, criteria, competencies, processDeviations, safety };
 }
