@@ -47,6 +47,7 @@ export default function SimulationEngineDiagnosticsPage() {
                 <DiagnosticBlock title="Desviaciones" value={item.processDeviations} />
                 <DiagnosticBlock title="Discrepancias" value={item.discrepancies} />
                 <DiagnosticBlock title="Barreras / Safety" value={{ barriers: item.barriers, safety: item.safety }} />
+                <DiagnosticBlock title="Refuerzo sugerido" value={item.reinforcement} />
               </div>
             </section>
           ))}
