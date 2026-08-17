@@ -32,6 +32,18 @@ function getSafeRedirectPath(value: string) {
   return value.startsWith("/") && !value.startsWith("//") ? value : "/dashboard";
 }
 
+function getRegistrationErrorMessage(error: { code?: string }) {
+  if (error.code === "over_email_send_rate_limit") {
+    return "Se alcanzó temporalmente el límite de correos de confirmación. Espera unos minutos y vuelve a intentarlo o revisa si ya recibiste el correo de confirmación.";
+  }
+
+  if (error.code === "user_already_exists") {
+    return "Ya existe una cuenta asociada a este correo. Intenta iniciar sesión o recuperar tu contraseña.";
+  }
+
+  return "No fue posible crear tu cuenta. Inténtalo otra vez.";
+}
+
 export async function login(
   _previousState: AuthFormState,
   formData: FormData,
@@ -81,7 +93,7 @@ export async function register(
   });
 
   if (error) {
-    return { error: "No fue posible crear tu cuenta. Inténtalo otra vez." };
+    return { error: getRegistrationErrorMessage(error) };
   }
 
   if (!data.session) {
