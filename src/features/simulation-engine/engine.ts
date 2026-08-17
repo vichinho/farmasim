@@ -76,7 +76,7 @@ export function evaluateSimulation(
     ...deriveProcessDeviations(criteria),
     ...deriveStorageDeviations(session, events),
   ];
-  const safety = evaluateDeliverySafety(session, state);
+  const safety = evaluateDeliverySafety(session, state, events);
 
   return { state, criteria, competencies, processDeviations, safety };
 }
