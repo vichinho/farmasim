@@ -7,6 +7,26 @@ import type {
   SimulationSession,
 } from "@/features/simulation-engine/types";
 
+function countConfiguredStorageDeviations(session: SimulationSession): number {
+  return session.drawers.reduce((count, drawer) => {
+    let next = count;
+
+    if (drawer.displayedLabel !== drawer.expectedLabel) next += 1;
+
+    if (
+      drawer.expectedMedicationPresentationId &&
+      drawer.contents.some((item) => item.presentationId !== drawer.expectedMedicationPresentationId)
+    ) {
+      next += 1;
+    }
+
+    if (drawer.physicalCondition !== "good") next += 1;
+    if (drawer.stockState === "out-of-stock") next += 1;
+
+    return next;
+  }, 0);
+}
+
 export function validateScenarioSession(
   definition: ScenarioDefinition,
   session: SimulationSession,
@@ -82,11 +102,14 @@ export function validateScenarioSession(
   }
 
   const initialState = deriveSimulationState(session, []);
-  const discrepancyCount = deriveDeliveryDiscrepancies(session, initialState).length;
-  if (discrepancyCount < definition.errorCountRange.min || discrepancyCount > definition.errorCountRange.max) {
+  const materialDiscrepancyCount = deriveDeliveryDiscrepancies(session, initialState).length;
+  const storageDeviationCount = countConfiguredStorageDeviations(session);
+  const configuredErrorCount = materialDiscrepancyCount + storageDeviationCount;
+
+  if (configuredErrorCount < definition.errorCountRange.min || configuredErrorCount > definition.errorCountRange.max) {
     issues.push({
       code: "error-count-out-of-range",
-      message: `La sesión contiene ${discrepancyCount} discrepancias materiales y el escenario permite ${definition.errorCountRange.min}-${definition.errorCountRange.max}.`,
+      message: `La sesión contiene ${configuredErrorCount} discrepancias/desviaciones configuradas y el escenario permite ${definition.errorCountRange.min}-${definition.errorCountRange.max}.`,
     });
   }
 
