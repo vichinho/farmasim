@@ -287,6 +287,15 @@ export type MedicationDiscrepancy = {
   reachedPatient: boolean;
 };
 
+export type DiscrepancyTransition = {
+  discrepancyId: string;
+  from: MedicationDiscrepancyStatus;
+  to: MedicationDiscrepancyStatus;
+  stage: string;
+  actorId?: string;
+  barrierId?: string;
+};
+
 export type SafetyBarrier = {
   id: string;
   stage: string;
@@ -313,6 +322,8 @@ export type DeliverySafetyResult = {
   discrepancies: MedicationDiscrepancy[];
   blockingDiscrepancyIds: string[];
   evaluatedBarriers: BarrierExecution[];
+  barrierFailures: SafetyBarrierFailure[];
+  discrepancyTransitions: DiscrepancyTransition[];
 };
 
 export type ScenarioValidationIssue = {
@@ -323,6 +334,28 @@ export type ScenarioValidationIssue = {
 export type ScenarioValidationResult = {
   valid: boolean;
   issues: ScenarioValidationIssue[];
+};
+
+export type DeterministicRandom = {
+  next: () => number;
+  integer: (min: number, max: number) => number;
+  pick: <T>(values: readonly T[]) => T;
+  chance: (probability: number) => boolean;
+};
+
+export type ScenarioGenerationContext = {
+  attempt: number;
+  seed: string;
+  random: DeterministicRandom;
+};
+
+export type ScenarioCandidateFactory = (
+  context: ScenarioGenerationContext,
+) => SimulationSession;
+
+export type ScenarioGenerationResult = {
+  session: SimulationSession;
+  attempts: number;
 };
 
 export type SimulationEvaluation = {
