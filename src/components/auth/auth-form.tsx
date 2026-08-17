@@ -24,6 +24,9 @@ type AuthFormProps = {
 const inputClassName =
   "min-h-12 w-full rounded-xl border border-[var(--border)] bg-white px-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-emerald-100";
 
+const passwordHelp =
+  "Mínimo 8 caracteres, con una mayúscula, una minúscula y un número.";
+
 export function AuthForm({ action, fields, next, submitLabel }: AuthFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialAuthFormState);
 
@@ -62,6 +65,7 @@ export function AuthForm({ action, fields, next, submitLabel }: AuthFormProps) {
         <label className="block space-y-1.5" htmlFor="password">
           <span className="text-sm font-medium">Contraseña</span>
           <input
+            aria-describedby={fields === "register" ? "password-help" : undefined}
             autoComplete={fields === "login" ? "current-password" : "new-password"}
             className={inputClassName}
             id="password"
@@ -70,6 +74,11 @@ export function AuthForm({ action, fields, next, submitLabel }: AuthFormProps) {
             required
             type="password"
           />
+          {fields === "register" ? (
+            <span className="block text-xs leading-5 text-[var(--muted)]" id="password-help">
+              {passwordHelp}
+            </span>
+          ) : null}
         </label>
       ) : null}
 
@@ -78,6 +87,7 @@ export function AuthForm({ action, fields, next, submitLabel }: AuthFormProps) {
           <label className="block space-y-1.5" htmlFor="password">
             <span className="text-sm font-medium">Nueva contraseña</span>
             <input
+              aria-describedby="password-help"
               autoComplete="new-password"
               className={inputClassName}
               id="password"
@@ -86,6 +96,9 @@ export function AuthForm({ action, fields, next, submitLabel }: AuthFormProps) {
               required
               type="password"
             />
+            <span className="block text-xs leading-5 text-[var(--muted)]" id="password-help">
+              {passwordHelp}
+            </span>
           </label>
           <label className="block space-y-1.5" htmlFor="confirmation">
             <span className="text-sm font-medium">Confirmar contraseña</span>
