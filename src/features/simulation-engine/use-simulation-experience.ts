@@ -53,6 +53,9 @@ export function useSimulationExperience(
 ): UseSimulationExperienceResult {
   const controllerRef = useRef<SimulationExperienceController | null>(null);
   const persistence = input.persistence ?? cloudSimulationExperiencePersistence;
+  const generationPlayerRole = input.generation?.playerRole;
+  const generationMode = input.generation?.mode;
+  const generationMaxAttempts = input.generation?.maxAttempts;
   const [phase, setPhase] = useState<SimulationExperiencePhase>("opening");
   const [state, setState] = useState<SimulationExperienceState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,11 +65,26 @@ export function useSimulationExperience(
 
     async function open() {
       try {
+        const generation =
+          generationPlayerRole !== undefined ||
+          generationMode !== undefined ||
+          generationMaxAttempts !== undefined
+            ? {
+                ...(generationPlayerRole !== undefined
+                  ? { playerRole: generationPlayerRole }
+                  : {}),
+                ...(generationMode !== undefined ? { mode: generationMode } : {}),
+                ...(generationMaxAttempts !== undefined
+                  ? { maxAttempts: generationMaxAttempts }
+                  : {}),
+              }
+            : undefined;
+
         const controller = await SimulationExperienceController.open({
           definition: input.definition,
           seed: input.seed,
           catalogs: input.catalogs,
-          generation: input.generation,
+          generation,
           persistence,
         });
 
@@ -90,7 +108,15 @@ export function useSimulationExperience(
       cancelled = true;
       controllerRef.current = null;
     };
-  }, [input.catalogs, input.definition, input.generation, input.seed, persistence]);
+  }, [
+    generationMaxAttempts,
+    generationMode,
+    generationPlayerRole,
+    input.catalogs,
+    input.definition,
+    input.seed,
+    persistence,
+  ]);
 
   const clearError = useCallback(() => setError(null), []);
 
