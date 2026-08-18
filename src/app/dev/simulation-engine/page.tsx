@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { buildArsenal2026AdapterReport } from "@/features/simulation-engine/arsenal/arsenal-2026-adapter";
+import { buildDifficultyReport } from "@/features/simulation-engine/fixtures/difficulty-report";
 import { buildGenerationReport } from "@/features/simulation-engine/fixtures/generation-report";
 import { runMinimumScenarioRegressionChecks } from "@/features/simulation-engine/fixtures/regression-checks";
 import {
@@ -18,6 +19,7 @@ export default function SimulationEngineDiagnosticsPage() {
   const report = buildMinimumScenarioReport();
   const summary = buildMinimumScenarioSummary();
   const generation = buildGenerationReport();
+  const difficulty = buildDifficultyReport();
   const arsenal = buildArsenal2026AdapterReport();
 
   return (
@@ -27,7 +29,7 @@ export default function SimulationEngineDiagnosticsPage() {
           <p className="text-xs font-black uppercase tracking-[0.24em] text-violet-300">FarmaVerse · Development</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight">Dynamic Simulation Engine</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
-            Diagnóstico local del motor pedagógico, del generador determinista y del adapter del Arsenal 2026. Esta vista no contiene reglas 3D ni componentes especiales por escenario.
+            Diagnóstico local del motor pedagógico, del generador determinista, de la dificultad y del adapter del Arsenal 2026. Esta vista no contiene reglas 3D ni componentes especiales por escenario.
           </p>
           <div className="mt-4 inline-flex rounded-full bg-emerald-400/10 px-3 py-1.5 text-xs font-black text-emerald-300">
             Regresión interna: {regression.checks.length} comprobaciones OK
@@ -38,17 +40,80 @@ export default function SimulationEngineDiagnosticsPage() {
           <header className="border-b border-white/10 px-5 py-4 sm:px-6">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Arsenal 2026 · Atención Abierta</p>
             <h2 className="mt-1 text-xl font-black">Adapter de catálogo real</h2>
-            <p className="mt-2 max-w-3xl text-xs leading-5 text-slate-400">
-              Fuente importada desde el arsenal entregado. La descripción original y los códigos de origen permanecen asociados a cada presentación.
+            <p className="mt-2 max-w-4xl text-xs leading-5 text-slate-400">
+              Se prioriza la descripción de ARSENAL HT 2025 y solo se usa ARSENAL HT con descripcion como fuente suplementaria cuando la concentración no aparece en la fuente primaria. Los conflictos permanecen marcados para revisión; no se inventan concentraciones.
             </p>
           </header>
 
-          <div className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-5">
+          <div className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-3 xl:grid-cols-6">
             <Stat label="Filas fuente" value={arsenal.sourceRows} />
-            <Stat label="Presentaciones" value={arsenal.presentations} />
             <Stat label="Con concentración" value={arsenal.withParsedStrength} />
-            <Stat label="Requieren revisión" value={arsenal.withoutParsedStrength} />
+            <Stat label="Desde fuente primaria" value={arsenal.primaryStrengthParsed} />
+            <Stat label="Recuperadas de fuente secundaria" value={arsenal.supplementalStrengthParsed} />
+            <Stat label="Requieren revisión" value={arsenal.requiresReview} />
             <Stat label="Grupos con dosis alternas" value={arsenal.alternateStrengthGroups} />
+          </div>
+
+          <div className="grid gap-4 border-t border-white/10 p-5 sm:p-6 lg:grid-cols-[220px_220px_1fr]">
+            <Stat label="Sin concentración en fuente" value={arsenal.noStrengthInSource} />
+            <Stat label="Conflictos de fuente" value={arsenal.sourceConflicts} />
+            <DiagnosticBlock title="Filas pendientes de revisión" value={arsenal.reviewItems} />
+          </div>
+        </section>
+
+        <section className="mb-8 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-2xl">
+          <header className="border-b border-white/10 px-5 py-4 sm:px-6">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Difficulty Engine</p>
+            <h2 className="mt-1 text-xl font-black">Complejidad operativa por nivel</h2>
+            <p className="mt-2 max-w-4xl text-xs leading-5 text-slate-400">
+              La dificultad modifica volumen y ruido operacional, no las reglas clínicas: cantidad de registros, recetas pertinentes, diversidad de establecimientos, orden de registros, pacientes distractores y antecedentes del mismo medicamento.
+            </p>
+          </header>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1050px] text-left text-xs">
+              <thead className="bg-black/20 text-slate-400">
+                <tr>
+                  <th className="px-5 py-3 font-black">Nivel</th>
+                  <th className="px-3 py-3 font-black">Registros</th>
+                  <th className="px-3 py-3 font-black">Recetas pertinentes</th>
+                  <th className="px-3 py-3 font-black">Establecimientos</th>
+                  <th className="px-3 py-3 font-black">1ª pertinente en posición</th>
+                  <th className="px-3 py-3 font-black">Antecedentes mismo medicamento</th>
+                  <th className="px-3 py-3 font-black">Distractor similar</th>
+                  <th className="px-5 py-3 font-black">Paciente / distractor</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {difficulty.map((item) => (
+                  <tr key={item.difficulty} className="align-top">
+                    <td className="px-5 py-4">
+                      <div className="font-black uppercase text-violet-200">{item.difficulty}</div>
+                      <div className="mt-1 text-slate-500">
+                        rango {item.profile.recordCount.min}-{item.profile.recordCount.max}
+                      </div>
+                    </td>
+                    <td className="px-3 py-4 font-black text-slate-300">{item.recordCount}</td>
+                    <td className="px-3 py-4 font-black text-slate-300">{item.relevantPrescriptionCount}</td>
+                    <td className="px-3 py-4 font-black text-slate-300">{item.facilityCount}</td>
+                    <td className="px-3 py-4 font-black text-slate-300">{item.firstRelevantRecordPosition ?? "N/D"}</td>
+                    <td className="px-3 py-4 font-black text-slate-300">{item.historicalSameMedicationDistractors}</td>
+                    <td className="px-3 py-4">
+                      <StatusPill
+                        ok={item.similarPatientDistractor}
+                        okLabel="Sí"
+                        failLabel="No"
+                        failTone="amber"
+                      />
+                    </td>
+                    <td className="px-5 py-4 text-slate-300">
+                      <div>{item.targetPatient ?? "N/D"}</div>
+                      <div className="mt-1 text-slate-500">vs {item.distractorPatient ?? "N/D"}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
 
@@ -113,7 +178,7 @@ export default function SimulationEngineDiagnosticsPage() {
             <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">ScenarioGenerator</p>
             <h2 className="mt-1 text-xl font-black">Generación por seed · Arsenal 2026</h2>
             <p className="mt-2 max-w-3xl text-xs leading-5 text-slate-400">
-              Las sesiones de esta tabla ya se generan usando el catálogo de Atención Abierta importado y pacientes completamente sintéticos.
+              Las sesiones de esta tabla se generan usando el catálogo de Atención Abierta importado y pacientes completamente sintéticos.
             </p>
           </header>
 
