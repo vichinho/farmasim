@@ -1,9 +1,13 @@
 "use client";
 
-import { useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 
 import { SimulationHud } from "@/features/farmasim-3d/hud/simulation-hud";
+import {
+  InteractionSystem,
+  type FocusedWorldInteraction,
+} from "@/features/farmasim-3d/interaction/interaction-system";
 import {
   CASE001_3D_CATALOGS,
   CASE001_3D_DEFINITION,
@@ -27,6 +31,9 @@ export function FarmaSim3DExperience() {
     lookY: 0,
     interact: false,
   });
+  const [focusedInteraction, setFocusedInteraction] =
+    useState<FocusedWorldInteraction | null>(null);
+  const [interactionMessage, setInteractionMessage] = useState<string | null>(null);
 
   const experience = useSimulationExperience({
     definition: CASE001_3D_DEFINITION,
@@ -40,6 +47,44 @@ export function FarmaSim3DExperience() {
   const snapshot = experience.state?.snapshot ?? null;
   const patient = snapshot?.patients.find(
     (candidate) => candidate.id === snapshot.session.patientId,
+  );
+
+  const handleInteract = useCallback(
+    (interaction: FocusedWorldInteraction) => {
+      const current = experience.state?.snapshot;
+      if (!current) return;
+
+      if (interaction.kind === "patient") {
+        const receipt = experience.dispatch({
+          type: "document.requested",
+          targetType: "document",
+          targetId: `${current.session.patientId}-document`,
+        });
+
+        if (receipt) {
+          setInteractionMessage("Documento solicitado al paciente · evento registrado");
+        }
+        return;
+      }
+
+      if (interaction.kind === "computer") {
+        if (!current.capabilities.canUseClinicalSystem) {
+          setInteractionMessage("El sistema clínico no está disponible para este rol");
+          return;
+        }
+
+        const receipt = experience.dispatch({
+          type: "computer.focused",
+          targetType: "computer",
+          targetId: interaction.id,
+        });
+
+        if (receipt) {
+          setInteractionMessage("Computador enfocado · evento registrado");
+        }
+      }
+    },
+    [experience],
   );
 
   return (
@@ -60,10 +105,17 @@ export function FarmaSim3DExperience() {
               <fog attach="fog" args={["#cfc8c0", 10, 22]} />
               <PharmacyWorld />
               <FirstPersonPlayer inputRef={inputRef} />
+              <InteractionSystem
+                inputRef={inputRef}
+                onFocusChange={setFocusedInteraction}
+                onInteract={handleInteract}
+              />
             </Canvas>
 
             <SimulationHud
               dirty={experience.state?.dirty ?? false}
+              focusedInteraction={focusedInteraction}
+              interactionMessage={interactionMessage}
               patientName={patient?.displayName ?? "Paciente asignado"}
               snapshot={snapshot}
               source={experience.state?.source ?? "generated"}
