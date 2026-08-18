@@ -352,6 +352,7 @@ export class SimulationRuntime {
   constructor(
     private readonly definition: ScenarioDefinition,
     private readonly session: SimulationSession,
+    initialEvents: readonly SimulationEvent[] = [],
   ) {
     const validation = validateScenarioSession(definition, session);
     if (!validation.valid) {
@@ -361,7 +362,7 @@ export class SimulationRuntime {
       );
     }
 
-    this.#eventLog = new SimulationEventLog(session.id);
+    this.#eventLog = new SimulationEventLog(session.id, initialEvents);
   }
 
   dispatch(action: SimulationActionInput): SimulationDispatchReceipt {
