@@ -1,5 +1,6 @@
 "use client";
 
+import type { FocusedWorldInteraction } from "@/features/farmasim-3d/interaction/interaction-system";
 import type { SimulationIntegrationSnapshot } from "@/features/simulation-engine/presentation";
 
 type Props = {
@@ -7,15 +8,24 @@ type Props = {
   patientName: string;
   source: "generated" | "resumed";
   dirty: boolean;
+  focusedInteraction: FocusedWorldInteraction | null;
+  interactionMessage: string | null;
 };
 
-export function SimulationHud({ snapshot, patientName, source, dirty }: Props) {
+export function SimulationHud({
+  snapshot,
+  patientName,
+  source,
+  dirty,
+  focusedInteraction,
+  interactionMessage,
+}: Props) {
   const checks = [
     { label: "Sesión del motor abierta", done: true },
     { label: "Paciente dinámico asignado", done: Boolean(snapshot.session.patientId) },
     { label: "Sistema clínico cargado", done: snapshot.clinicalSystem.records.length > 0 },
     { label: "Arsenal disponible", done: snapshot.medicationCatalog.length > 0 },
-    { label: "Interacciones 3D conectadas", done: false },
+    { label: "Interacciones 3D conectadas", done: true },
   ];
   const completedChecks = checks.filter((item) => item.done).length;
 
@@ -55,6 +65,11 @@ export function SimulationHud({ snapshot, patientName, source, dirty }: Props) {
           <span>{snapshot.session.eventCount} eventos</span>
           <span>{dirty ? "Cambios sin guardar" : "Sin cambios pendientes"}</span>
         </div>
+        {snapshot.session.lastEventType ? (
+          <p className="mt-1 truncate text-[0.6rem] font-semibold text-violet-200/70">
+            Último: {snapshot.session.lastEventType}
+          </p>
+        ) : null}
       </div>
 
       <div className="absolute right-5 top-32 hidden w-[18rem] rounded-2xl border border-white/10 bg-[#17131f]/90 p-5 shadow-2xl backdrop-blur-xl lg:block">
@@ -80,10 +95,15 @@ export function SimulationHud({ snapshot, patientName, source, dirty }: Props) {
             </div>
           ))}
         </div>
+        {interactionMessage ? (
+          <div className="mt-4 rounded-xl border border-emerald-300/15 bg-emerald-400/8 px-3 py-2 text-[0.68rem] font-bold leading-5 text-emerald-200">
+            {interactionMessage}
+          </div>
+        ) : null}
       </div>
 
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-        <div className="relative size-5 opacity-90">
+        <div className={focusedInteraction ? "relative size-5 opacity-100" : "relative size-5 opacity-75"}>
           <span className="absolute left-1/2 top-0 h-1.5 w-px -translate-x-1/2 bg-white" />
           <span className="absolute bottom-0 left-1/2 h-1.5 w-px -translate-x-1/2 bg-white" />
           <span className="absolute left-0 top-1/2 h-px w-1.5 -translate-y-1/2 bg-white" />
@@ -91,18 +111,25 @@ export function SimulationHud({ snapshot, patientName, source, dirty }: Props) {
         </div>
       </div>
 
-      <div className="absolute bottom-5 left-1/2 hidden -translate-x-1/2 rounded-xl border border-violet-300/30 bg-[#24192f]/92 px-5 py-3 text-sm font-black shadow-2xl backdrop-blur-lg md:block">
-        Motor conectado · interacción física en el siguiente bloque
-      </div>
+      {focusedInteraction ? (
+        <div className="absolute bottom-5 left-1/2 hidden -translate-x-1/2 rounded-xl border border-violet-300/30 bg-[#24192f]/94 px-5 py-3 text-sm font-black shadow-2xl backdrop-blur-lg md:block">
+          <span className="mr-3 rounded-md bg-violet-600 px-2 py-1 text-xs">E</span>
+          {focusedInteraction.label}
+        </div>
+      ) : (
+        <div className="absolute bottom-5 left-1/2 hidden -translate-x-1/2 rounded-xl border border-white/10 bg-black/55 px-5 py-3 text-xs font-bold text-white/55 shadow-xl backdrop-blur-lg md:block">
+          Acércate y apunta a un objeto interactuable
+        </div>
+      )}
 
       <div className="absolute bottom-5 right-5 hidden rounded-xl border border-white/10 bg-black/65 px-4 py-3 text-xs font-bold leading-6 text-white/80 shadow-xl backdrop-blur-lg md:block">
         <p><span className="mr-2 rounded border border-white/30 px-1.5 py-0.5">W A S D</span> Mover</p>
         <p><span className="mr-2 rounded border border-white/30 px-1.5 py-0.5">Mouse</span> Mirar</p>
-        <p><span className="mr-2 rounded border border-white/30 px-1.5 py-0.5">E</span> Próximo: interactuar</p>
+        <p><span className="mr-2 rounded border border-white/30 px-1.5 py-0.5">E</span> Interactuar</p>
       </div>
 
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/45 px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.16em] text-white/55 md:hidden">
-        Engine conectado · {snapshot.session.eventCount} eventos
+        {focusedInteraction ? focusedInteraction.label : `Engine conectado · ${snapshot.session.eventCount} eventos`}
       </div>
     </div>
   );
