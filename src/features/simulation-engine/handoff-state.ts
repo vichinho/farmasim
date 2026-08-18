@@ -15,6 +15,7 @@ export type RuntimeHandoffState = {
   trayReceivedEventId: string | null;
   correctionRequestedEventId: string | null;
   simulatedInitialSend: boolean;
+  simulatedInitialReceipt: boolean;
 };
 
 export function deriveRuntimeHandoffState(
@@ -25,6 +26,7 @@ export function deriveRuntimeHandoffState(
   const lastCorrection = correctionEvents.at(-1);
   const cycleStartSequence = lastCorrection?.sequence ?? 0;
   const simulatedInitialSend = correctionEvents.length === 0 && session.playerRole === "attention";
+  const simulatedInitialReceipt = simulatedInitialSend;
 
   const traySentEvent = [...events]
     .reverse()
@@ -35,11 +37,12 @@ export function deriveRuntimeHandoffState(
 
   const sent = Boolean(traySentEvent) || simulatedInitialSend;
   const sentSequence = traySentEvent?.sequence ?? (simulatedInitialSend ? 0 : Number.POSITIVE_INFINITY);
-  const received = Boolean(
+  const explicitReceipt = Boolean(
     trayReceivedEvent &&
       sent &&
       trayReceivedEvent.sequence > sentSequence,
   );
+  const received = explicitReceipt || simulatedInitialReceipt;
 
   const owner: RuntimeHandoffOwner = !sent
     ? "preparation"
@@ -54,8 +57,9 @@ export function deriveRuntimeHandoffState(
     received,
     correctionRequested: Boolean(lastCorrection),
     traySentEventId: traySentEvent?.id ?? null,
-    trayReceivedEventId: received ? trayReceivedEvent?.id ?? null : null,
+    trayReceivedEventId: explicitReceipt ? trayReceivedEvent?.id ?? null : null,
     correctionRequestedEventId: lastCorrection?.id ?? null,
     simulatedInitialSend,
+    simulatedInitialReceipt,
   };
 }
