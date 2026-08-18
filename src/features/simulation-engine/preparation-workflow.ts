@@ -5,18 +5,29 @@ export type RuntimePreparationWorkflowState = {
   traySent: boolean;
   confirmedEventId: string | null;
   traySentEventId: string | null;
+  correctionRequestedEventId: string | null;
 };
+
+function lastEvent(events: readonly SimulationEvent[], type: SimulationEvent["type"]) {
+  return [...events].reverse().find((event) => event.type === type);
+}
 
 export function deriveRuntimePreparationWorkflow(
   events: readonly SimulationEvent[],
 ): RuntimePreparationWorkflowState {
-  const confirmedEvent = [...events].reverse().find((event) => event.type === "preparation.confirmed");
-  const traySentEvent = [...events].reverse().find((event) => event.type === "tray.sent");
+  const confirmedEvent = lastEvent(events, "preparation.confirmed");
+  const traySentEvent = lastEvent(events, "tray.sent");
+  const correctionRequestedEvent = lastEvent(events, "correction.requested");
+  const correctionSequence = correctionRequestedEvent?.sequence ?? 0;
+
+  const confirmed = Boolean(confirmedEvent && confirmedEvent.sequence > correctionSequence);
+  const traySent = Boolean(traySentEvent && traySentEvent.sequence > correctionSequence);
 
   return {
-    confirmed: Boolean(confirmedEvent),
-    traySent: Boolean(traySentEvent),
-    confirmedEventId: confirmedEvent?.id ?? null,
-    traySentEventId: traySentEvent?.id ?? null,
+    confirmed,
+    traySent,
+    confirmedEventId: confirmed ? confirmedEvent?.id ?? null : null,
+    traySentEventId: traySent ? traySentEvent?.id ?? null : null,
+    correctionRequestedEventId: correctionRequestedEvent?.id ?? null,
   };
 }
