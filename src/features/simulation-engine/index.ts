@@ -1,4 +1,14 @@
 export {
+  bootstrapSimulationRuntime,
+  SimulationBootstrapError,
+} from "@/features/simulation-engine/bootstrap";
+export type {
+  SimulationBootstrapInput,
+  SimulationBootstrapResult,
+  SimulationBootstrapSource,
+  SimulationCheckpointLoader,
+} from "@/features/simulation-engine/bootstrap";
+export {
   arsenal2026SimulationCatalogs,
   technicalSimulationCatalogs,
 } from "@/features/simulation-engine/catalogs";
