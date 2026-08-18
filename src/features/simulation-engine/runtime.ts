@@ -11,6 +11,7 @@ import {
   runtimeEffectiveSession,
 } from "@/features/simulation-engine/material-state";
 import type { RuntimeMaterialState } from "@/features/simulation-engine/material-state";
+import { deriveRuntimePreparationWorkflow } from "@/features/simulation-engine/preparation-workflow";
 import { validateScenarioSession } from "@/features/simulation-engine/scenario-validator";
 import type {
   ScenarioDefinition,
@@ -67,10 +68,21 @@ function inventoryItemQuantity(
 }
 
 function assertExternalActionTarget(session: SimulationSession, action: SimulationActionInput) {
-  if (!session.actors.some((actor) => actor.id === action.actorId)) {
+  const actor = session.actors.find((item) => item.id === action.actorId);
+  if (!actor) {
     throw new SimulationRuntimeError(
       "unknown_actor",
       `Actor ${action.actorId} does not exist in session ${session.id}.`,
+    );
+  }
+
+  if (
+    (action.type === "preparation.confirmed" || action.type === "tray.sent") &&
+    actor.role !== "preparation"
+  ) {
+    throw new SimulationRuntimeError(
+      "actor_role_not_allowed",
+      `${action.type} must be performed by an actor with the preparation role.`,
     );
   }
 
@@ -181,6 +193,16 @@ function assertMaterialActionState(
       );
     }
 
+    const drawerOpened = events.some(
+      (event) => event.type === "drawer.opened" && event.targetId === source.drawerId,
+    );
+    if (!drawerOpened) {
+      throw new SimulationRuntimeError(
+        "drawer_not_open",
+        `Cannot take ${presentationId} because ${source.drawerId} has not been opened.`,
+      );
+    }
+
     const inventory = deriveRuntimeInventoryState(session, events);
     const available = inventoryItemQuantity(inventory, source.drawerId, source.itemId);
     if (available < quantity) {
@@ -211,6 +233,54 @@ function assertMaterialActionState(
         `Cannot return ${quantity} of ${presentationId}; only ${available} is held or on the tray.`,
       );
     }
+  }
+}
+
+function assertPreparationWorkflowState(
+  session: SimulationSession,
+  events: readonly SimulationEvent[],
+  action: SimulationActionInput,
+) {
+  if (action.type !== "preparation.confirmed" && action.type !== "tray.sent") return;
+
+  const workflow = deriveRuntimePreparationWorkflow(events);
+  const material = deriveRuntimeMaterialState(session, events);
+  const heldQuantity = material.heldItems.reduce((total, item) => total + item.quantity, 0);
+
+  if (heldQuantity > 0) {
+    throw new SimulationRuntimeError(
+      "held_medication_pending",
+      `Cannot ${action.type} while ${heldQuantity} medication unit(s) remain held.`,
+    );
+  }
+
+  if (action.type === "preparation.confirmed") {
+    if (workflow.traySent) {
+      throw new SimulationRuntimeError(
+        "tray_already_sent",
+        "Cannot confirm a preparation after the current tray has already been sent.",
+      );
+    }
+    if (workflow.confirmed) {
+      throw new SimulationRuntimeError(
+        "preparation_already_confirmed",
+        "The current preparation is already confirmed.",
+      );
+    }
+    return;
+  }
+
+  if (!workflow.confirmed) {
+    throw new SimulationRuntimeError(
+      "preparation_not_confirmed",
+      "The tray cannot be sent before preparation.confirmed.",
+    );
+  }
+  if (workflow.traySent) {
+    throw new SimulationRuntimeError(
+      "tray_already_sent",
+      "The current tray has already been sent.",
+    );
   }
 }
 
@@ -252,6 +322,7 @@ export class SimulationRuntime {
     const previousEvents = this.#eventLog.all();
     assertExternalActionTarget(this.session, action);
     assertMaterialActionState(this.session, previousEvents, action);
+    assertPreparationWorkflowState(this.session, previousEvents, action);
 
     const actionEvent = this.#eventLog.append(action);
     const generatedEvents: SimulationEvent[] = [];
@@ -294,6 +365,10 @@ export class SimulationRuntime {
 
   inventorySnapshot(): RuntimeInventoryState {
     return deriveRuntimeInventoryState(this.session, this.#eventLog.all());
+  }
+
+  preparationWorkflowSnapshot() {
+    return deriveRuntimePreparationWorkflow(this.#eventLog.all());
   }
 
   snapshot(): SimulationRuntimeSnapshot {
