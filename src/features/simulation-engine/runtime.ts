@@ -33,14 +33,14 @@ function actionQuantity(action: SimulationActionInput): number {
   const value = action.metadata?.quantity;
   if (value === undefined) return 1;
 
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+  if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) {
     throw new SimulationRuntimeError(
       "invalid_quantity",
-      `${action.type} metadata.quantity must be a positive number.`,
+      `${action.type} metadata.quantity must be a positive integer.`,
     );
   }
 
-  return Math.floor(value);
+  return value;
 }
 
 function materialQuantity(
