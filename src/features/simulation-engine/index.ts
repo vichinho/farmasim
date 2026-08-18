@@ -4,14 +4,10 @@ export {
 } from "@/features/simulation-engine/catalogs";
 export type { SimulationCatalogs } from "@/features/simulation-engine/catalogs";
 export {
-  arsenal2026OpenCarePresentations,
-  buildArsenal2026AdapterReport,
-  parseArsenalDescription,
-} from "@/features/simulation-engine/arsenal/arsenal-2026-adapter";
-export {
-  healthcareFacilityCatalog,
-  syntheticPatientCatalog,
-} from "@/features/simulation-engine/synthetic-catalogs";
+  DIFFICULTY_PROFILES,
+  getDifficultyProfile,
+} from "@/features/simulation-engine/difficulty-engine";
+export type { DifficultyProfile } from "@/features/simulation-engine/difficulty-engine";
 export {
   describeGeneratedPatient,
   generateDynamicScenarioSession,
