@@ -381,3 +381,29 @@ export type SimulationEvaluation = {
   processDeviations: ProcessDeviation[];
   safety: DeliverySafetyResult;
 };
+
+export type SimulationRuntimeStatus = "running" | "delivery-blocked" | "completed";
+
+export type SimulationActionInput = {
+  actorId: string;
+  type: Exclude<SimulationEventType, "delivery.blocked" | "delivery.completed">;
+  targetType?: string;
+  targetId?: string;
+  metadata?: Record<string, unknown>;
+  timestamp?: string;
+};
+
+export type SimulationRuntimeSnapshot = {
+  sessionId: string;
+  status: SimulationRuntimeStatus;
+  eventCount: number;
+  events: readonly SimulationEvent[];
+  state: SimulationState;
+  evaluation: SimulationEvaluation;
+};
+
+export type SimulationDispatchReceipt = {
+  actionEvent: SimulationEvent;
+  generatedEvents: SimulationEvent[];
+  snapshot: SimulationRuntimeSnapshot;
+};
