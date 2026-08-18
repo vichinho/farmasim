@@ -164,7 +164,8 @@ function createPrescriptionSet(
     definition.type === "incomplete_prescription_review"
       ? Math.max(3, profile.recordCount.min)
       : profile.recordCount.min;
-  const recordCount = random.integer(minimumRecords, profile.recordCount.max);
+  const maximumRecords = Math.max(minimumRecords, profile.recordCount.max);
+  const recordCount = random.integer(minimumRecords, maximumRecords);
   const relevantCount = Math.min(
     recordCount,
     random.integer(
