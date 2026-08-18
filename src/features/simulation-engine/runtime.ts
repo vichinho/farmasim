@@ -1,5 +1,6 @@
 import { evaluateSimulation } from "@/features/simulation-engine/engine";
 import { SimulationEventLog } from "@/features/simulation-engine/event-log";
+import { deriveRuntimeHandoffState } from "@/features/simulation-engine/handoff-state";
 import {
   deriveRuntimeInventoryState,
   resolveMedicationStockSource,
@@ -83,6 +84,18 @@ function assertExternalActionTarget(session: SimulationSession, action: Simulati
     throw new SimulationRuntimeError(
       "actor_role_not_allowed",
       `${action.type} must be performed by an actor with the preparation role.`,
+    );
+  }
+
+  if (
+    (action.type === "tray.received" ||
+      action.type === "correction.requested" ||
+      action.type === "delivery.attempted") &&
+    actor.role !== "attention"
+  ) {
+    throw new SimulationRuntimeError(
+      "actor_role_not_allowed",
+      `${action.type} must be performed by an actor with the attention role.`,
     );
   }
 
@@ -284,6 +297,46 @@ function assertPreparationWorkflowState(
   }
 }
 
+function assertHandoffWorkflowState(
+  session: SimulationSession,
+  events: readonly SimulationEvent[],
+  action: SimulationActionInput,
+) {
+  if (
+    action.type !== "tray.received" &&
+    action.type !== "tray.inspected" &&
+    action.type !== "correction.requested" &&
+    action.type !== "delivery.attempted"
+  ) {
+    return;
+  }
+
+  const handoff = deriveRuntimeHandoffState(session, events);
+
+  if (action.type === "tray.received") {
+    if (!handoff.sent) {
+      throw new SimulationRuntimeError(
+        "tray_not_sent",
+        "The attention role cannot receive a tray that has not been sent by preparation.",
+      );
+    }
+    if (handoff.received) {
+      throw new SimulationRuntimeError(
+        "tray_already_received",
+        "The current tray has already been received by attention.",
+      );
+    }
+    return;
+  }
+
+  if (!handoff.received) {
+    throw new SimulationRuntimeError(
+      "tray_not_received",
+      `${action.type} requires the current tray to be received by attention first.`,
+    );
+  }
+}
+
 function deriveRuntimeStatus(events: readonly SimulationEvent[]): SimulationRuntimeStatus {
   if (events.some((event) => event.type === "delivery.completed")) return "completed";
 
@@ -323,6 +376,7 @@ export class SimulationRuntime {
     assertExternalActionTarget(this.session, action);
     assertMaterialActionState(this.session, previousEvents, action);
     assertPreparationWorkflowState(this.session, previousEvents, action);
+    assertHandoffWorkflowState(this.session, previousEvents, action);
 
     const actionEvent = this.#eventLog.append(action);
     const generatedEvents: SimulationEvent[] = [];
@@ -369,6 +423,10 @@ export class SimulationRuntime {
 
   preparationWorkflowSnapshot() {
     return deriveRuntimePreparationWorkflow(this.#eventLog.all());
+  }
+
+  handoffSnapshot() {
+    return deriveRuntimeHandoffState(this.session, this.#eventLog.all());
   }
 
   snapshot(): SimulationRuntimeSnapshot {
