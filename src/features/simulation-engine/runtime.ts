@@ -1,6 +1,11 @@
 import { evaluateSimulation } from "@/features/simulation-engine/engine";
 import { SimulationEventLog } from "@/features/simulation-engine/event-log";
 import {
+  deriveRuntimeInventoryState,
+  resolveMedicationStockSource,
+} from "@/features/simulation-engine/inventory-state";
+import type { RuntimeInventoryState } from "@/features/simulation-engine/inventory-state";
+import {
   deriveRuntimeMaterialState,
   resolveMedicationPresentationId,
   runtimeEffectiveSession,
@@ -49,6 +54,16 @@ function materialQuantity(
   presentationId: string,
 ): number {
   return material[location].find((item) => item.presentationId === presentationId)?.quantity ?? 0;
+}
+
+function inventoryItemQuantity(
+  inventory: RuntimeInventoryState,
+  drawerId: string,
+  itemId: string,
+): number {
+  return inventory.drawers
+    .find((drawer) => drawer.drawerId === drawerId)
+    ?.items.find((item) => item.itemId === itemId)?.quantity ?? 0;
 }
 
 function assertExternalActionTarget(session: SimulationSession, action: SimulationActionInput) {
@@ -157,6 +172,25 @@ function assertMaterialActionState(
   const quantity = actionQuantity(action);
   const material = deriveRuntimeMaterialState(session, events);
 
+  if (action.type === "medication.taken") {
+    const source = resolveMedicationStockSource(session, action.targetId, action.metadata);
+    if (!source) {
+      throw new SimulationRuntimeError(
+        "medication_source_required",
+        `Cannot take ${presentationId} because its source drawer/item is ambiguous or unavailable.`,
+      );
+    }
+
+    const inventory = deriveRuntimeInventoryState(session, events);
+    const available = inventoryItemQuantity(inventory, source.drawerId, source.itemId);
+    if (available < quantity) {
+      throw new SimulationRuntimeError(
+        "insufficient_stock",
+        `Cannot take ${quantity} of ${presentationId}; only ${available} remains in ${source.drawerId}.`,
+      );
+    }
+  }
+
   if (action.type === "medication.added_to_tray") {
     const held = materialQuantity(material, "heldItems", presentationId);
     if (held < quantity) {
@@ -256,6 +290,10 @@ export class SimulationRuntime {
 
   materialSnapshot(): RuntimeMaterialState {
     return deriveRuntimeMaterialState(this.session, this.#eventLog.all());
+  }
+
+  inventorySnapshot(): RuntimeInventoryState {
+    return deriveRuntimeInventoryState(this.session, this.#eventLog.all());
   }
 
   snapshot(): SimulationRuntimeSnapshot {
