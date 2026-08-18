@@ -1,5 +1,6 @@
-// Generated from ARSENAL 2026.xlsx, sheet "ARSENAL HT 2025".
-// Scope: rows explicitly marked "X" in ATENCIÓN ABIERTA.
+// Generated from ARSENAL 2026.xlsx.
+// Primary source: sheet "ARSENAL HT 2025", rows marked "X" in ATENCIÓN ABIERTA.
+// Supplemental source: sheet "ARSENAL HT con descripcion", matched by CODIGO TRAKCARE when available.
 // Do not edit medication rows manually; regenerate from the source workbook when the arsenal changes.
 
 import { ARSENAL_2026_OPEN_CARE_CHUNK_01 } from "@/features/simulation-engine/arsenal/generated/open-care-chunk-01";
@@ -15,6 +16,8 @@ export type Arsenal2026OpenCareTuple = readonly [
   pharmaceuticalForm: string,
   unit: string | null,
   exclusiveUse: string | null,
+  sourceGroup: string | null,
+  supplementalDescription: string | null,
 ];
 
 export const ARSENAL_2026_OPEN_CARE_ROWS: readonly Arsenal2026OpenCareTuple[] = [
