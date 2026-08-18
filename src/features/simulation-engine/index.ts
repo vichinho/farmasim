@@ -1,3 +1,10 @@
+export { technicalSimulationCatalogs } from "@/features/simulation-engine/catalogs";
+export type { SimulationCatalogs } from "@/features/simulation-engine/catalogs";
+export {
+  describeGeneratedPatient,
+  generateDynamicScenarioSession,
+} from "@/features/simulation-engine/dynamic-session-generator";
+export type { DynamicScenarioGenerationOptions } from "@/features/simulation-engine/dynamic-session-generator";
 export { evaluateSimulation } from "@/features/simulation-engine/engine";
 export { SimulationEventLog } from "@/features/simulation-engine/event-log";
 export { selectReinforcement } from "@/features/simulation-engine/reinforcement-engine";
