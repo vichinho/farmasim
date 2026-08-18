@@ -2,6 +2,7 @@ import { buildArsenal2026AdapterReport } from "@/features/simulation-engine/arse
 import { getDifficultyProfile } from "@/features/simulation-engine/difficulty-engine";
 import { buildDifficultyReport } from "@/features/simulation-engine/fixtures/difficulty-report";
 import { buildGenerationReport } from "@/features/simulation-engine/fixtures/generation-report";
+import { buildIntegrationContractReport } from "@/features/simulation-engine/fixtures/integration-report";
 import { buildMinimumScenarioReport } from "@/features/simulation-engine/fixtures/report";
 import {
   buildBlockedDeliveryRecoveryReport,
@@ -227,6 +228,21 @@ export function runMinimumScenarioRegressionChecks(): SimulationEngineRegression
   assert(handoff.guards.correctionBeforeReceiveRejected, "TENS 1 cannot request tray correction before receiving the current handoff");
   assert(handoff.guards.correctionBeforeReceiveEventCount === 9, "rejected pre-receipt correction must not append an extra event");
   checks.push("Role handoff: TENS 2 → TENS 1 → correction → TENS 2 → TENS 1 remains ordered, role-owned, and auditable");
+
+  const integration = buildIntegrationContractReport();
+  assert(integration.contractVersion === 1, "presentation contract must expose explicit version 1");
+  assert(integration.attention.role === "attention", "attention contract must resolve the local player role");
+  assert(integration.attention.actorIdHiddenFromCommand, "dispatchPlayer must accept commands without caller-supplied actorId");
+  assert(integration.attention.canUseClinicalSystem, "attention player must receive clinical-system capability");
+  assert(!integration.attention.canAccessStorage, "attention player must not receive preparation storage capability");
+  assert(integration.attention.eventCountAfterCommand === 1, "player command must append exactly one accepted action");
+  assert(integration.preparation.canAccessStorageInitially, "preparation player must receive storage capability");
+  assert(!integration.preparation.canSendBeforeConfirmation, "presentation contract must not advertise tray send before confirmation");
+  assert(integration.preparation.canSendAfterConfirmation, "presentation contract must advertise tray send after confirmation");
+  assert(integration.preparation.handoffAfterSend.owner === "transit", "presentation snapshot must expose transit ownership after send");
+  assert(!integration.preparation.canSendAfterSend, "presentation contract must disable duplicate send after handoff");
+  assert(integration.privacy.leakedKeys.length === 0, `presentation contract leaked hidden pedagogical fields: ${integration.privacy.leakedKeys.join(", ")}`);
+  checks.push("Integration contract: UI snapshot is versioned, role-aware, operational, and does not expose hidden pedagogical answers");
 
   return { passed: true, checks };
 }
