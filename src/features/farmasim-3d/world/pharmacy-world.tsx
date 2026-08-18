@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { CanvasTexture, Color, SRGBColorSpace, type Texture } from "three";
 
+import { interactableUserData } from "@/features/farmasim-3d/interaction/interaction-system";
+
 const BRAND = "#6f3cc3";
 const DARK = "#2b2338";
 const OFF_WHITE = "#f6f4f2";
@@ -240,7 +242,15 @@ function FrontCounter() {
 
 function ComputerStation() {
   return (
-    <group position={[-2.35, 1.12, 1.03]}>
+    <group
+      position={[-2.35, 1.12, 1.03]}
+      userData={interactableUserData({
+        id: "clinical-terminal",
+        kind: "computer",
+        label: "Usar computador",
+        maxDistance: 2.45,
+      })}
+    >
       <mesh castShadow position={[0, 0.66, 0]}>
         <boxGeometry args={[1.72, 1.03, 0.11]} />
         <meshStandardMaterial color="#222027" metalness={0.18} roughness={0.48} />
@@ -275,7 +285,15 @@ function ComputerStation() {
 
 function PatientPlaceholder() {
   return (
-    <group position={[0, 0, 2.48]}>
+    <group
+      position={[0, 0, 2.48]}
+      userData={interactableUserData({
+        id: "patient-counter",
+        kind: "patient",
+        label: "Hablar con paciente",
+        maxDistance: 2.35,
+      })}
+    >
       <mesh castShadow position={[0, 2.03, 0]}>
         <sphereGeometry args={[0.3, 22, 18]} />
         <meshStandardMaterial color="#d7aa8d" roughness={0.72} />
