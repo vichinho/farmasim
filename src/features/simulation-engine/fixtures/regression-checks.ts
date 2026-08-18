@@ -1,4 +1,6 @@
 import { buildArsenal2026AdapterReport } from "@/features/simulation-engine/arsenal/arsenal-2026-adapter";
+import { getDifficultyProfile } from "@/features/simulation-engine/difficulty-engine";
+import { buildDifficultyReport } from "@/features/simulation-engine/fixtures/difficulty-report";
 import { buildGenerationReport } from "@/features/simulation-engine/fixtures/generation-report";
 import { buildMinimumScenarioReport } from "@/features/simulation-engine/fixtures/report";
 
@@ -90,11 +92,16 @@ export function runMinimumScenarioRegressionChecks(): SimulationEngineRegression
     arsenalReport.presentations === arsenalReport.sourceRows,
     "each imported open-care row must create one traceable medication presentation",
   );
+  assert(arsenalReport.primaryStrengthParsed === 291, "291 strengths must remain parsed from the primary arsenal sheet");
+  assert(arsenalReport.supplementalStrengthParsed === 2, "two previously unresolved strengths must be recovered from the supplemental sheet");
+  assert(arsenalReport.requiresReview === 11, "eleven rows must remain explicitly flagged for source review");
+  assert(arsenalReport.noStrengthInSource === 9, "nine review rows must have no usable strength in the available source text");
+  assert(arsenalReport.sourceConflicts === 2, "two review rows must be flagged as conflicting supplemental source descriptions");
   assert(
     arsenalReport.alternateStrengthGroups > 0,
     "real arsenal must expose at least one same-medication/same-form alternate-strength group",
   );
-  checks.push("Arsenal 2026: 304 Atención Abierta rows are loaded with traceable presentations");
+  checks.push("Arsenal 2026: unresolved strengths are classified without inventing source data");
 
   const generationReport = buildGenerationReport();
   assert(generationReport.length === 5, "dynamic generation must cover the five minimum definitions");
@@ -112,6 +119,26 @@ export function runMinimumScenarioRegressionChecks(): SimulationEngineRegression
     );
   }
   checks.push("Generator: all five definitions reproduce deterministically from the real 2026 arsenal");
+
+  const difficultyReport = buildDifficultyReport();
+  assert(difficultyReport.length === 4, "difficulty diagnostics must cover initial, medium, high and expert");
+  for (const item of difficultyReport) {
+    const profile = getDifficultyProfile(item.difficulty);
+    assert(
+      item.recordCount >= profile.recordCount.min && item.recordCount <= profile.recordCount.max,
+      `${item.difficulty} record count must stay inside its configured range`,
+    );
+    assert(
+      item.relevantPrescriptionCount >= profile.relevantPrescriptionCount.min &&
+        item.relevantPrescriptionCount <= profile.relevantPrescriptionCount.max,
+      `${item.difficulty} relevant prescription count must stay inside its configured range`,
+    );
+    assert(
+      item.facilityCount >= profile.facilityCount.min && item.facilityCount <= profile.facilityCount.max,
+      `${item.difficulty} facility diversity must stay inside its configured range`,
+    );
+  }
+  checks.push("Difficulty: all four levels obey deterministic complexity profiles");
 
   return { passed: true, checks };
 }
