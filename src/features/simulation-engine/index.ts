@@ -22,6 +22,18 @@ export type {
   RuntimeHandoffState,
 } from "@/features/simulation-engine/handoff-state";
 export {
+  deriveSimulationIntegrationSnapshot,
+  resolvePlayerActor,
+  SIMULATION_INTEGRATION_CONTRACT_VERSION,
+} from "@/features/simulation-engine/integration-contract";
+export type {
+  SimulationIntegrationCapabilities,
+  SimulationIntegrationDispatchReceipt,
+  SimulationIntegrationSnapshot,
+  SimulationPlayerActionInput,
+} from "@/features/simulation-engine/integration-contract";
+export { SimulationIntegrationRuntime } from "@/features/simulation-engine/integration-runtime";
+export {
   deriveRuntimeInventoryState,
   resolveMedicationStockSource,
 } from "@/features/simulation-engine/inventory-state";
