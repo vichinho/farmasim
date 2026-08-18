@@ -7,11 +7,16 @@ import type {
   SimulationIntegrationSnapshot,
   SimulationPlayerActionInput,
 } from "@/features/simulation-engine/integration-contract";
+import {
+  createSimulationCheckpoint,
+} from "@/features/simulation-engine/persistence";
+import type { SimulationCheckpoint } from "@/features/simulation-engine/persistence";
 import { SimulationRuntime } from "@/features/simulation-engine/runtime";
 import type {
   ScenarioDefinition,
   SimulationActionInput,
   SimulationDispatchReceipt,
+  SimulationEvent,
   SimulationSession,
 } from "@/features/simulation-engine/types";
 
@@ -42,16 +47,34 @@ export class SimulationIntegrationRuntime {
   readonly #runtime: SimulationRuntime;
 
   constructor(
-    definition: ScenarioDefinition,
+    private readonly definition: ScenarioDefinition,
     private readonly session: SimulationSession,
+    initialEvents: readonly SimulationEvent[] = [],
   ) {
-    this.#runtime = new SimulationRuntime(definition, session);
+    this.#runtime = new SimulationRuntime(definition, session, initialEvents);
+  }
+
+  static fromCheckpoint(checkpoint: SimulationCheckpoint) {
+    return new SimulationIntegrationRuntime(
+      checkpoint.definition,
+      checkpoint.session,
+      checkpoint.events,
+    );
   }
 
   snapshot(): SimulationIntegrationSnapshot {
     return deriveSimulationIntegrationSnapshot(
       this.session,
       this.#runtime.snapshot().events,
+    );
+  }
+
+  checkpoint(savedAt?: string): SimulationCheckpoint {
+    return createSimulationCheckpoint(
+      this.definition,
+      this.session,
+      this.#runtime.snapshot().events,
+      savedAt,
     );
   }
 
