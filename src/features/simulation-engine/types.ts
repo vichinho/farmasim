@@ -25,13 +25,24 @@ export type HealthcareFacility = {
   type: "hospital" | "cesfam" | "cosam" | "other";
 };
 
+export type MedicationPresentationSource = {
+  catalog: "technical" | "arsenal-2026";
+  sourceRow?: number;
+  trakcareCode?: string;
+  reyimenCode?: string;
+  rawDescription?: string;
+  unit?: string;
+  exclusiveUse?: string;
+};
+
 export type MedicationPresentation = {
   id: string;
   medicationId: string;
   genericName: string;
-  strength: string;
+  strength?: string;
   pharmaceuticalForm: string;
-  packageQuantity: number;
+  packageQuantity?: number;
+  source?: MedicationPresentationSource;
 };
 
 export type PrescriptionStatus =
