@@ -1,4 +1,7 @@
-import type { SimulationEvent } from "@/features/simulation-engine/types";
+import type {
+  SimulationEvent,
+  SimulationSession,
+} from "@/features/simulation-engine/types";
 
 export type RuntimeHandoffOwner = "preparation" | "transit" | "attention";
 
@@ -11,18 +14,17 @@ export type RuntimeHandoffState = {
   traySentEventId: string | null;
   trayReceivedEventId: string | null;
   correctionRequestedEventId: string | null;
+  simulatedInitialSend: boolean;
 };
 
-function lastEvent(events: readonly SimulationEvent[], type: SimulationEvent["type"]) {
-  return [...events].reverse().find((event) => event.type === type);
-}
-
 export function deriveRuntimeHandoffState(
+  session: SimulationSession,
   events: readonly SimulationEvent[],
 ): RuntimeHandoffState {
   const correctionEvents = events.filter((event) => event.type === "correction.requested");
   const lastCorrection = correctionEvents.at(-1);
   const cycleStartSequence = lastCorrection?.sequence ?? 0;
+  const simulatedInitialSend = correctionEvents.length === 0 && session.playerRole === "attention";
 
   const traySentEvent = [...events]
     .reverse()
@@ -31,11 +33,12 @@ export function deriveRuntimeHandoffState(
     .reverse()
     .find((event) => event.type === "tray.received" && event.sequence > cycleStartSequence);
 
-  const sent = Boolean(traySentEvent);
+  const sent = Boolean(traySentEvent) || simulatedInitialSend;
+  const sentSequence = traySentEvent?.sequence ?? (simulatedInitialSend ? 0 : Number.POSITIVE_INFINITY);
   const received = Boolean(
     trayReceivedEvent &&
-      traySentEvent &&
-      trayReceivedEvent.sequence > traySentEvent.sequence,
+      sent &&
+      trayReceivedEvent.sequence > sentSequence,
   );
 
   const owner: RuntimeHandoffOwner = !sent
@@ -53,5 +56,6 @@ export function deriveRuntimeHandoffState(
     traySentEventId: traySentEvent?.id ?? null,
     trayReceivedEventId: received ? trayReceivedEvent?.id ?? null : null,
     correctionRequestedEventId: lastCorrection?.id ?? null,
+    simulatedInitialSend,
   };
 }
