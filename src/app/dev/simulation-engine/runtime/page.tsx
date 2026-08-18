@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import {
   buildBlockedDeliveryRecoveryReport,
+  buildPreparationWorkflowReport,
   buildRuntimeReport,
   buildRuntimeStockReport,
 } from "@/features/simulation-engine/fixtures/runtime-report";
@@ -15,6 +16,7 @@ export default function SimulationRuntimeDiagnosticsPage() {
   const runtime = buildRuntimeReport();
   const recovery = buildBlockedDeliveryRecoveryReport();
   const stock = buildRuntimeStockReport();
+  const preparation = buildPreparationWorkflowReport();
 
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-8 text-slate-100 sm:px-6 lg:px-10">
@@ -79,23 +81,17 @@ export default function SimulationRuntimeDiagnosticsPage() {
                     <td className="px-3 py-4 font-black text-slate-300">{item.generatedEvents}</td>
                     <td className="px-3 py-4 font-black text-slate-300">{item.eventCount}</td>
                     <td className="px-3 py-4">
-                      <span
-                        className={`font-black ${item.safetyAllowed ? "text-emerald-300" : "text-amber-300"}`}
-                      >
+                      <span className={`font-black ${item.safetyAllowed ? "text-emerald-300" : "text-amber-300"}`}>
                         {item.safetyAllowed ? "Permite" : "Bloquea"}
                       </span>
                     </td>
-                    <td className="px-3 py-4 font-black text-slate-300">
-                      {item.blockingDiscrepancies}
-                    </td>
+                    <td className="px-3 py-4 font-black text-slate-300">{item.blockingDiscrepancies}</td>
                     <td className="px-3 py-4 font-mono text-[10px] text-slate-300">
                       {item.trayItems.length > 0
                         ? item.trayItems.map((trayItem) => `${trayItem.presentationId} ×${trayItem.quantity}`).join(", ")
                         : "vacía"}
                     </td>
-                    <td className="px-5 py-4 font-mono text-[11px] text-slate-300">
-                      {item.finalEvent ?? "N/D"}
-                    </td>
+                    <td className="px-5 py-4 font-mono text-[11px] text-slate-300">{item.finalEvent ?? "N/D"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -105,9 +101,7 @@ export default function SimulationRuntimeDiagnosticsPage() {
 
         <section className="mt-8 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-2xl">
           <header className="border-b border-white/10 px-5 py-4 sm:px-6">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">
-              Recovery flow
-            </p>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Recovery flow</p>
             <h2 className="mt-1 text-xl font-black">Entrega bloqueada → corrección → reintento</h2>
             <p className="mt-2 max-w-4xl text-xs leading-5 text-slate-400">
               La Prueba B se bloquea por concentración incorrecta. El mismo runtime conserva el historial, permite corregir la bandeja y vuelve a consultar Safety al reintentar la entrega.
@@ -147,9 +141,7 @@ export default function SimulationRuntimeDiagnosticsPage() {
 
         <section className="mt-8 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-2xl">
           <header className="border-b border-white/10 px-5 py-4 sm:px-6">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">
-              Runtime inventory
-            </p>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Runtime inventory</p>
             <h2 className="mt-1 text-xl font-black">Stock de gaveta derivado del EventLog</h2>
             <p className="mt-2 max-w-4xl text-xs leading-5 text-slate-400">
               Un intento de retiro superior al stock se rechaza antes de escribir el evento. Los retiros válidos cambian available → low → out-of-stock y devolver una unidad restaura el stock.
@@ -177,6 +169,29 @@ export default function SimulationRuntimeDiagnosticsPage() {
           </div>
         </section>
 
+        <section className="mt-8 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-2xl">
+          <header className="border-b border-white/10 px-5 py-4 sm:px-6">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">TENS 2 preparation flow</p>
+            <h2 className="mt-1 text-xl font-black">Arsenal → bandeja → confirmación → envío</h2>
+            <p className="mt-2 max-w-4xl text-xs leading-5 text-slate-400">
+              Las protecciones son operativas. Una preparación clínicamente equivocada puede enviarse a TENS 1 para que la siguiente barrera tenga oportunidad de interceptarla.
+            </p>
+          </header>
+
+          <div className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-4">
+            <WorkflowStat label="Preparación confirmada" value={preparation.correct.workflow.confirmed ? "Sí" : "No"} ok={preparation.correct.workflow.confirmed} />
+            <WorkflowStat label="Bandeja enviada" value={preparation.correct.workflow.traySent ? "Sí" : "No"} ok={preparation.correct.workflow.traySent} />
+            <WorkflowStat label="Discrepancias correctas" value={String(preparation.correct.blockingDiscrepancies)} ok={preparation.correct.blockingDiscrepancies === 0} />
+            <WorkflowStat label="Evento final" value={preparation.correct.finalEvent ?? "N/D"} ok={preparation.correct.finalEvent === "tray.sent"} />
+          </div>
+
+          <div className="grid gap-4 border-t border-white/10 p-5 sm:p-6 xl:grid-cols-3">
+            <DiagnosticBlock title="Preparación correcta" value={preparation.correct} />
+            <DiagnosticBlock title="Protecciones operativas" value={preparation.guards} />
+            <DiagnosticBlock title="Handoff incorrecto deliberado" value={preparation.wrongHandoff} />
+          </div>
+        </section>
+
         <section className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:p-6">
           <h2 className="text-lg font-black">Contrato de integración</h2>
           <pre className="mt-4 overflow-auto whitespace-pre-wrap text-[11px] leading-5 text-slate-300">{`UI / 3D / Sistema clínico
@@ -185,7 +200,7 @@ runtime.dispatch({ type, actorId, targetId, metadata })
         ↓
 SimulationEventLog (append-only)
         ↓
-RuntimeMaterialState + RuntimeInventoryState + SimulationState
+RuntimeMaterialState + RuntimeInventoryState + PreparationWorkflow
         ↓
 Evaluators + SafetyEngine
         ↓
@@ -193,49 +208,37 @@ SimulationRuntimeSnapshot
 
 La presentación nunca modifica stock ni bandeja directamente.
 Tampoco emite delivery.completed ni delivery.blocked.
-Esos cambios se derivan o son propiedad del motor.
 
-Después de delivery.blocked el usuario puede corregir el estado material
-sin reiniciar la sesión; el EventLog conserva ambos intentos.`}</pre>
+TENS 2 debe abrir la gaveta antes de retirar, no puede confirmar con
+medicamentos aún en mano y debe confirmar antes de enviar la bandeja.
+Una selección clínica incorrecta sí puede pasar a TENS 1 para ser interceptada.`}</pre>
         </section>
       </div>
     </main>
   );
 }
 
-function Stat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: "amber" | "emerald";
-}) {
+function Stat({ label, value, tone }: { label: string; value: string; tone: "amber" | "emerald" }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-      <div className={`text-lg font-black ${tone === "emerald" ? "text-emerald-300" : "text-amber-300"}`}>
-        {value}
-      </div>
+      <div className={`text-lg font-black ${tone === "emerald" ? "text-emerald-300" : "text-amber-300"}`}>{value}</div>
       <div className="mt-1 text-xs font-bold text-slate-400">{label}</div>
     </div>
   );
 }
 
-function StockStat({
-  label,
-  drawer,
-}: {
-  label: string;
-  drawer: { totalQuantity: number; stockState: string } | undefined;
-}) {
+function WorkflowStat({ label, value, ok }: { label: string; value: string; ok: boolean }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div className={`text-lg font-black ${ok ? "text-emerald-300" : "text-rose-300"}`}>{value}</div>
+      <div className="mt-1 text-xs font-bold text-slate-400">{label}</div>
+    </div>
+  );
+}
+
+function StockStat({ label, drawer }: { label: string; drawer: { totalQuantity: number; stockState: string } | undefined }) {
   const state = drawer?.stockState ?? "N/D";
-  const tone =
-    state === "available"
-      ? "text-emerald-300"
-      : state === "low"
-        ? "text-amber-300"
-        : "text-rose-300";
+  const tone = state === "available" ? "text-emerald-300" : state === "low" ? "text-amber-300" : "text-rose-300";
 
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
