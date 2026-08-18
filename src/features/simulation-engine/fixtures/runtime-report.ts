@@ -33,6 +33,7 @@ export function buildRuntimeReport() {
     const actions = fixture.events.map(eventToAction);
     const receipts = runtime.dispatchMany(actions);
     const snapshot = runtime.snapshot();
+    const material = runtime.materialSnapshot();
     const generatedEventCount = receipts.reduce(
       (total, receipt) => total + receipt.generatedEvents.length,
       0,
@@ -49,9 +50,98 @@ export function buildRuntimeReport() {
       activePatientId: snapshot.state.activePatientId,
       safetyAllowed: snapshot.evaluation.safety.allowed,
       blockingDiscrepancies: snapshot.evaluation.safety.blockingDiscrepancyIds.length,
+      trayItems: material.trayItems,
+      heldItems: material.heldItems,
       finalEvent: snapshot.events.at(-1)?.type ?? null,
     };
   });
+}
+
+export function buildBlockedDeliveryRecoveryReport() {
+  const fixture = minimumScenarioFixtures.find((item) => item.id === "B");
+  if (!fixture) throw new Error("Minimum scenario B is required for runtime recovery diagnostics.");
+
+  const runtime = new SimulationRuntime(fixture.definition, fixture.session);
+  runtime.dispatchMany(fixture.events.map(eventToAction));
+  const blocked = runtime.snapshot();
+
+  const correctionActions: SimulationActionInput[] = [
+    {
+      actorId: "actor-attention",
+      type: "correction.requested",
+      targetType: "tray",
+      targetId: "tray-1",
+      timestamp: "2026-08-17T21:30:00.000Z",
+    },
+    {
+      actorId: "actor-attention",
+      type: "medication.returned",
+      targetType: "medication",
+      targetId: "losartan-100",
+      metadata: { quantity: 1 },
+      timestamp: "2026-08-17T21:31:00.000Z",
+    },
+    {
+      actorId: "actor-attention",
+      type: "medication.taken",
+      targetType: "medication",
+      targetId: "drawer-l-01-item-1",
+      metadata: { quantity: 1 },
+      timestamp: "2026-08-17T21:32:00.000Z",
+    },
+    {
+      actorId: "actor-attention",
+      type: "medication.added_to_tray",
+      targetType: "medication",
+      targetId: "drawer-l-01-item-1",
+      metadata: { quantity: 1 },
+      timestamp: "2026-08-17T21:33:00.000Z",
+    },
+    {
+      actorId: "actor-attention",
+      type: "tray.inspected",
+      targetType: "tray",
+      targetId: "tray-1",
+      timestamp: "2026-08-17T21:34:00.000Z",
+    },
+    {
+      actorId: "actor-attention",
+      type: "medication.inspected",
+      targetType: "medication",
+      targetId: "losartan-50",
+      timestamp: "2026-08-17T21:35:00.000Z",
+    },
+    {
+      actorId: "actor-attention",
+      type: "delivery.attempted",
+      targetType: "patient",
+      targetId: "patient-marta",
+      timestamp: "2026-08-17T21:36:00.000Z",
+    },
+  ];
+
+  const receipts = runtime.dispatchMany(correctionActions);
+  const completed = runtime.snapshot();
+  const material = runtime.materialSnapshot();
+
+  return {
+    blockedStatus: blocked.status,
+    blockedEvent: blocked.events.at(-1)?.type ?? null,
+    blockedDiscrepancies: blocked.evaluation.safety.blockingDiscrepancyIds.length,
+    correctionActions: correctionActions.length,
+    correctionGeneratedEvents: receipts.reduce(
+      (total, receipt) => total + receipt.generatedEvents.length,
+      0,
+    ),
+    completedStatus: completed.status,
+    completedEvent: completed.events.at(-1)?.type ?? null,
+    finalBlockingDiscrepancies: completed.evaluation.safety.blockingDiscrepancyIds.length,
+    deliveryBlockedEvents: completed.events.filter((event) => event.type === "delivery.blocked").length,
+    deliveryCompletedEvents: completed.events.filter((event) => event.type === "delivery.completed").length,
+    trayItems: material.trayItems,
+    heldItems: material.heldItems,
+    eventCount: completed.eventCount,
+  };
 }
 
 export function runtimeRejectsInvalidAction(): boolean {
