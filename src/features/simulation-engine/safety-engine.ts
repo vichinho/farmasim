@@ -19,10 +19,12 @@ function findPresentation(session: SimulationSession, id: string): MedicationPre
   return session.presentations.find((presentation) => presentation.id === id);
 }
 
-function sumQuantity(items: PreparationItem[], presentationId: string): number {
-  return items
-    .filter((item) => item.presentationId === presentationId)
-    .reduce((total, item) => total + item.quantity, 0);
+function aggregateQuantities(items: readonly PreparationItem[]): Map<string, number> {
+  const quantities = new Map<string, number>();
+  for (const item of items) {
+    quantities.set(item.presentationId, (quantities.get(item.presentationId) ?? 0) + item.quantity);
+  }
+  return quantities;
 }
 
 function createDiscrepancy(
@@ -60,29 +62,33 @@ export function deriveDeliveryDiscrepancies(
     );
   }
 
-  for (const requested of session.preparation.requestedItems) {
-    const exactPreparedQuantity = sumQuantity(session.preparation.preparedItems, requested.presentationId);
-    const requestedPresentation = findPresentation(session, requested.presentationId);
+  const requestedQuantities = aggregateQuantities(session.preparation.requestedItems);
+  const preparedQuantities = aggregateQuantities(session.preparation.preparedItems);
 
+  for (const [presentationId, requestedQuantity] of requestedQuantities) {
+    const requestedPresentation = findPresentation(session, presentationId);
     if (!requestedPresentation) continue;
 
-    if (exactPreparedQuantity === 0) {
-      const alternative = session.preparation.preparedItems
-        .map((item) => ({ item, presentation: findPresentation(session, item.presentationId) }))
-        .find(({ presentation }) => presentation?.medicationId === requestedPresentation.medicationId);
+    const exactPreparedQuantity = preparedQuantities.get(presentationId) ?? 0;
+    const alternatives = [...preparedQuantities.entries()]
+      .map(([preparedPresentationId, quantity]) => ({
+        presentation: findPresentation(session, preparedPresentationId),
+        quantity,
+      }))
+      .filter(
+        (candidate): candidate is { presentation: MedicationPresentation; quantity: number } =>
+          Boolean(
+            candidate.presentation &&
+              candidate.presentation.id !== requestedPresentation.id &&
+              candidate.presentation.medicationId === requestedPresentation.medicationId,
+          ),
+      );
 
-      if (!alternative?.presentation) {
-        discrepancies.push(
-          createDiscrepancy(session, ++index, {
-            type: "omission",
-            originStage: "preparation",
-            expected: { presentationId: requested.presentationId, quantity: requested.quantity },
-            actual: { quantity: 0 },
-          }),
-        );
-        continue;
-      }
+    const alternativeQuantity = alternatives.reduce((total, item) => total + item.quantity, 0);
+    const sameMedicationPreparedQuantity = exactPreparedQuantity + alternativeQuantity;
 
+    if (alternatives.length > 0) {
+      const alternative = alternatives[0];
       const type =
         alternative.presentation.strength !== requestedPresentation.strength
           ? "wrong_strength"
@@ -100,53 +106,77 @@ export function deriveDeliveryDiscrepancies(
             medicationId: requestedPresentation.medicationId,
             strength: requestedPresentation.strength,
             form: requestedPresentation.pharmaceuticalForm,
-            quantity: requested.quantity,
+            quantity: requestedQuantity,
           },
           actual: {
             presentationId: alternative.presentation.id,
             medicationId: alternative.presentation.medicationId,
             strength: alternative.presentation.strength,
             form: alternative.presentation.pharmaceuticalForm,
-            quantity: alternative.item.quantity,
+            quantity: alternativeQuantity,
           },
+        }),
+      );
+
+      if (sameMedicationPreparedQuantity !== requestedQuantity) {
+        discrepancies.push(
+          createDiscrepancy(session, ++index, {
+            type: "wrong_quantity",
+            originStage: "preparation",
+            createdBy: session.preparation.preparedBy,
+            expected: { presentationId, quantity: requestedQuantity },
+            actual: { medicationId: requestedPresentation.medicationId, quantity: sameMedicationPreparedQuantity },
+          }),
+        );
+      }
+      continue;
+    }
+
+    if (exactPreparedQuantity === 0) {
+      discrepancies.push(
+        createDiscrepancy(session, ++index, {
+          type: "omission",
+          originStage: "preparation",
+          expected: { presentationId, quantity: requestedQuantity },
+          actual: { quantity: 0 },
         }),
       );
       continue;
     }
 
-    if (exactPreparedQuantity !== requested.quantity) {
+    if (exactPreparedQuantity !== requestedQuantity) {
       discrepancies.push(
         createDiscrepancy(session, ++index, {
           type: "wrong_quantity",
           originStage: "preparation",
           createdBy: session.preparation.preparedBy,
-          expected: { presentationId: requested.presentationId, quantity: requested.quantity },
-          actual: { presentationId: requested.presentationId, quantity: exactPreparedQuantity },
+          expected: { presentationId, quantity: requestedQuantity },
+          actual: { presentationId, quantity: exactPreparedQuantity },
         }),
       );
     }
   }
 
-  for (const prepared of session.preparation.preparedItems) {
-    const requestedQuantity = sumQuantity(session.preparation.requestedItems, prepared.presentationId);
-    if (requestedQuantity === 0) {
-      const preparedPresentation = findPresentation(session, prepared.presentationId);
-      const matchesRequestedMedication = session.preparation.requestedItems.some((requested) => {
-        const requestedPresentation = findPresentation(session, requested.presentationId);
-        return requestedPresentation?.medicationId === preparedPresentation?.medicationId;
-      });
+  const requestedMedicationIds = new Set(
+    [...requestedQuantities.keys()]
+      .map((presentationId) => findPresentation(session, presentationId)?.medicationId)
+      .filter((id): id is string => typeof id === "string"),
+  );
 
-      if (!matchesRequestedMedication) {
-        discrepancies.push(
-          createDiscrepancy(session, ++index, {
-            type: "extra_product",
-            originStage: "preparation",
-            createdBy: session.preparation.preparedBy,
-            actual: { presentationId: prepared.presentationId, quantity: prepared.quantity },
-          }),
-        );
-      }
-    }
+  for (const [presentationId, preparedQuantity] of preparedQuantities) {
+    if ((requestedQuantities.get(presentationId) ?? 0) > 0) continue;
+
+    const preparedPresentation = findPresentation(session, presentationId);
+    if (!preparedPresentation || requestedMedicationIds.has(preparedPresentation.medicationId)) continue;
+
+    discrepancies.push(
+      createDiscrepancy(session, ++index, {
+        type: "extra_product",
+        originStage: "preparation",
+        createdBy: session.preparation.preparedBy,
+        actual: { presentationId, quantity: preparedQuantity },
+      }),
+    );
   }
 
   return discrepancies;
@@ -181,7 +211,7 @@ export function evaluateDeliverySafety(
 
   const barrierFailures: SafetyBarrierFailure[] = [];
 
-  if (medicationDiscrepancies.length > 0 && (!doubleCheckExecuted || medicationDiscrepancies.length > 0)) {
+  if (medicationDiscrepancies.length > 0) {
     barrierFailures.push({
       id: `${session.id}:barrier-failure:${DOUBLE_CHECK_BARRIER_ID}`,
       barrierId: DOUBLE_CHECK_BARRIER_ID,
@@ -193,7 +223,7 @@ export function evaluateDeliverySafety(
     });
   }
 
-  if (identityDiscrepancies.length > 0 && (!identityRecheckExecuted || identityDiscrepancies.length > 0)) {
+  if (identityDiscrepancies.length > 0) {
     barrierFailures.push({
       id: `${session.id}:barrier-failure:${IDENTITY_RECHECK_BARRIER_ID}`,
       barrierId: IDENTITY_RECHECK_BARRIER_ID,
