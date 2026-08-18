@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { buildArsenal2026AdapterReport } from "@/features/simulation-engine/arsenal/arsenal-2026-adapter";
 import { buildGenerationReport } from "@/features/simulation-engine/fixtures/generation-report";
 import { runMinimumScenarioRegressionChecks } from "@/features/simulation-engine/fixtures/regression-checks";
 import {
@@ -17,6 +18,7 @@ export default function SimulationEngineDiagnosticsPage() {
   const report = buildMinimumScenarioReport();
   const summary = buildMinimumScenarioSummary();
   const generation = buildGenerationReport();
+  const arsenal = buildArsenal2026AdapterReport();
 
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-8 text-slate-100 sm:px-6 lg:px-10">
@@ -25,12 +27,30 @@ export default function SimulationEngineDiagnosticsPage() {
           <p className="text-xs font-black uppercase tracking-[0.24em] text-violet-300">FarmaVerse · Development</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight">Dynamic Simulation Engine</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
-            Diagnóstico local del motor pedagógico y del generador determinista. Esta vista no contiene reglas 3D ni componentes especiales por escenario.
+            Diagnóstico local del motor pedagógico, del generador determinista y del adapter del Arsenal 2026. Esta vista no contiene reglas 3D ni componentes especiales por escenario.
           </p>
           <div className="mt-4 inline-flex rounded-full bg-emerald-400/10 px-3 py-1.5 text-xs font-black text-emerald-300">
             Regresión interna: {regression.checks.length} comprobaciones OK
           </div>
         </div>
+
+        <section className="mb-8 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-2xl">
+          <header className="border-b border-white/10 px-5 py-4 sm:px-6">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Arsenal 2026 · Atención Abierta</p>
+            <h2 className="mt-1 text-xl font-black">Adapter de catálogo real</h2>
+            <p className="mt-2 max-w-3xl text-xs leading-5 text-slate-400">
+              Fuente importada desde el arsenal entregado. La descripción original y los códigos de origen permanecen asociados a cada presentación.
+            </p>
+          </header>
+
+          <div className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-5">
+            <Stat label="Filas fuente" value={arsenal.sourceRows} />
+            <Stat label="Presentaciones" value={arsenal.presentations} />
+            <Stat label="Con concentración" value={arsenal.withParsedStrength} />
+            <Stat label="Requieren revisión" value={arsenal.withoutParsedStrength} />
+            <Stat label="Grupos con dosis alternas" value={arsenal.alternateStrengthGroups} />
+          </div>
+        </section>
 
         <section className="mb-8 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-2xl">
           <header className="border-b border-white/10 px-5 py-4 sm:px-6">
@@ -91,9 +111,9 @@ export default function SimulationEngineDiagnosticsPage() {
         <section className="mb-8 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-2xl">
           <header className="border-b border-white/10 px-5 py-4 sm:px-6">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">ScenarioGenerator</p>
-            <h2 className="mt-1 text-xl font-black">Generación por seed</h2>
+            <h2 className="mt-1 text-xl font-black">Generación por seed · Arsenal 2026</h2>
             <p className="mt-2 max-w-3xl text-xs leading-5 text-slate-400">
-              Catálogo técnico de desarrollo. El arsenal validado se conectará como dependencia sin modificar el motor.
+              Las sesiones de esta tabla ya se generan usando el catálogo de Atención Abierta importado y pacientes completamente sintéticos.
             </p>
           </header>
 
@@ -192,6 +212,15 @@ export default function SimulationEngineDiagnosticsPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div className="text-2xl font-black text-violet-200">{value}</div>
+      <div className="mt-1 text-xs font-bold text-slate-400">{label}</div>
+    </div>
   );
 }
 
