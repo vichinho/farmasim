@@ -33,6 +33,6 @@ export class SimulationEventLog {
   }
 
   all(): readonly SimulationEvent[] {
-    return this.#events;
+    return [...this.#events];
   }
 }
