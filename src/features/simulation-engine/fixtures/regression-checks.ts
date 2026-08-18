@@ -4,6 +4,7 @@ import { buildDifficultyReport } from "@/features/simulation-engine/fixtures/dif
 import { buildGenerationReport } from "@/features/simulation-engine/fixtures/generation-report";
 import { buildMinimumScenarioReport } from "@/features/simulation-engine/fixtures/report";
 import {
+  buildBlockedDeliveryRecoveryReport,
   buildRuntimeReport,
   runtimeRejectsInvalidAction,
 } from "@/features/simulation-engine/fixtures/runtime-report";
@@ -159,6 +160,24 @@ export function runMinimumScenarioRegressionChecks(): SimulationEngineRegression
   }
   assert(runtimeRejectsInvalidAction(), "runtime must reject actions from actors outside the session");
   checks.push("Runtime: player actions are replayed incrementally and delivery decisions remain engine-owned");
+
+  const recovery = buildBlockedDeliveryRecoveryReport();
+  assert(recovery.blockedStatus === "delivery-blocked", "recovery flow must begin from a blocked delivery");
+  assert(recovery.blockedEvent === "delivery.blocked", "first delivery decision must remain blocked");
+  assert(recovery.blockedDiscrepancies === 1, "wrong-strength delivery must begin with one blocking discrepancy");
+  assert(recovery.completedStatus === "completed", "corrected preparation must complete on retry");
+  assert(recovery.completedEvent === "delivery.completed", "retry must generate delivery.completed");
+  assert(recovery.finalBlockingDiscrepancies === 0, "corrected preparation must have zero blocking discrepancies");
+  assert(recovery.deliveryBlockedEvents === 1, "blocked delivery history must remain in the append-only log");
+  assert(recovery.deliveryCompletedEvents === 1, "successful retry must be recorded once");
+  assert(
+    recovery.trayItems.length === 1 &&
+      recovery.trayItems[0]?.presentationId === "losartan-50" &&
+      recovery.trayItems[0]?.quantity === 1,
+    "corrected tray must contain exactly the requested Losartan 50 presentation",
+  );
+  assert(recovery.heldItems.length === 0, "no medication may remain held after the correction flow");
+  checks.push("Runtime material state: blocked preparation can be corrected and safely re-delivered without resetting history");
 
   return { passed: true, checks };
 }
