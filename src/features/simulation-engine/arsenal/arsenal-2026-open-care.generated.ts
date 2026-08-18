@@ -2,24 +2,24 @@
 // Scope: rows explicitly marked "X" in ATENCIÓN ABIERTA.
 // Do not edit medication rows manually; regenerate from the source workbook when the arsenal changes.
 
-export type Arsenal2026OpenCareRow = {
-  sourceRow: number;
-  reyimenCode: string | null;
-  trakcareCode: string | null;
-  description: string;
-  pharmaceuticalForm: string;
-  unit: string | null;
-  exclusiveUse: string | null;
-};
+import { ARSENAL_2026_OPEN_CARE_CHUNK_01 } from "@/features/simulation-engine/arsenal/generated/open-care-chunk-01";
+import { ARSENAL_2026_OPEN_CARE_CHUNK_02 } from "@/features/simulation-engine/arsenal/generated/open-care-chunk-02";
+import { ARSENAL_2026_OPEN_CARE_CHUNK_03 } from "@/features/simulation-engine/arsenal/generated/open-care-chunk-03";
+import { ARSENAL_2026_OPEN_CARE_CHUNK_04 } from "@/features/simulation-engine/arsenal/generated/open-care-chunk-04";
 
-export const ARSENAL_2026_OPEN_CARE_ROWS: readonly Arsenal2026OpenCareRow[] = [
-  {
-    "sourceRow": 8,
-    "reyimenCode": "42",
-    "trakcareCode": "004-0001",
-    "description": "ACENOCUMAROL CM 4MG",
-    "pharmaceuticalForm": "COMPRIMIDO ORAL",
-    "unit": "CM",
-    "exclusiveUse": "POLI TACO"
-  }
-] as const;
+export type Arsenal2026OpenCareTuple = readonly [
+  sourceRow: number,
+  reyimenCode: string | null,
+  trakcareCode: string | null,
+  description: string,
+  pharmaceuticalForm: string,
+  unit: string | null,
+  exclusiveUse: string | null,
+];
+
+export const ARSENAL_2026_OPEN_CARE_ROWS: readonly Arsenal2026OpenCareTuple[] = [
+  ...ARSENAL_2026_OPEN_CARE_CHUNK_01,
+  ...ARSENAL_2026_OPEN_CARE_CHUNK_02,
+  ...ARSENAL_2026_OPEN_CARE_CHUNK_03,
+  ...ARSENAL_2026_OPEN_CARE_CHUNK_04,
+];
