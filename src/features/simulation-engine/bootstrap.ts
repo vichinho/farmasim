@@ -3,12 +3,10 @@ import {
   generateDynamicScenarioSession,
   type DynamicScenarioGenerationOptions,
 } from "@/features/simulation-engine/dynamic-session-generator";
+import type { SimulationIntegrationSnapshot } from "@/features/simulation-engine/integration-contract";
 import { SimulationIntegrationRuntime } from "@/features/simulation-engine/integration-runtime";
 import { parseSimulationCheckpoint } from "@/features/simulation-engine/persistence";
-import type {
-  ScenarioDefinition,
-  SimulationIntegrationSnapshot,
-} from "@/features/simulation-engine/integration-contract";
+import type { ScenarioDefinition } from "@/features/simulation-engine/types";
 
 export type SimulationBootstrapSource = "generated" | "resumed";
 
