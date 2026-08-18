@@ -114,16 +114,76 @@ export function parseArsenalDescription(description: string): ParsedArsenalDescr
   };
 }
 
+function supplementalConflictDescriptions(): Set<string> {
+  const candidates = new Map<string, Set<string>>();
+
+  for (const tuple of ARSENAL_2026_OPEN_CARE_ROWS) {
+    const [, , , description, , , , , supplementalDescription] = tuple;
+    if (parseArsenalDescription(description).strength || !supplementalDescription) continue;
+    if (!parseArsenalDescription(supplementalDescription).strength) continue;
+
+    const normalizedSupplemental = normalizeWhitespace(supplementalDescription).toLocaleUpperCase("es-CL");
+    const descriptions = candidates.get(normalizedSupplemental) ?? new Set<string>();
+    descriptions.add(normalizeWhitespace(description).toLocaleUpperCase("es-CL"));
+    candidates.set(normalizedSupplemental, descriptions);
+  }
+
+  return new Set(
+    [...candidates.entries()]
+      .filter(([, rawDescriptions]) => rawDescriptions.size > 1)
+      .map(([supplementalDescription]) => supplementalDescription),
+  );
+}
+
+const CONFLICTING_SUPPLEMENTAL_DESCRIPTIONS = supplementalConflictDescriptions();
+
 function tupleToPresentation(tuple: (typeof ARSENAL_2026_OPEN_CARE_ROWS)[number]): MedicationPresentation {
-  const [sourceRow, reyimenCode, trakcareCode, description, pharmaceuticalForm, unit, exclusiveUse] = tuple;
-  const parsed = parseArsenalDescription(description);
+  const [
+    sourceRow,
+    reyimenCode,
+    trakcareCode,
+    description,
+    pharmaceuticalForm,
+    unit,
+    exclusiveUse,
+    sourceGroup,
+    supplementalDescription,
+  ] = tuple;
+  const parsedPrimary = parseArsenalDescription(description);
+  const parsedSupplemental = supplementalDescription
+    ? parseArsenalDescription(supplementalDescription)
+    : undefined;
+  const normalizedSupplemental = supplementalDescription
+    ? normalizeWhitespace(supplementalDescription).toLocaleUpperCase("es-CL")
+    : undefined;
+  const supplementalConflict = normalizedSupplemental
+    ? CONFLICTING_SUPPLEMENTAL_DESCRIPTIONS.has(normalizedSupplemental)
+    : false;
+
+  let strength = parsedPrimary.strength;
+  let strengthSource: "primary" | "supplemental" | "none" = strength ? "primary" : "none";
+  let reviewStatus: "parsed" | "supplemental-parsed" | "requires-review" = strength
+    ? "parsed"
+    : "requires-review";
+  let reviewReason: "no-strength-in-source" | "conflicting-supplemental-description" | undefined;
+
+  if (!strength && parsedSupplemental?.strength && !supplementalConflict) {
+    strength = parsedSupplemental.strength;
+    strengthSource = "supplemental";
+    reviewStatus = "supplemental-parsed";
+  } else if (!strength) {
+    reviewReason = supplementalConflict
+      ? "conflicting-supplemental-description"
+      : "no-strength-in-source";
+  }
+
   const sourceIdentity = trakcareCode ?? `row-${sourceRow}`;
 
   return {
     id: `arsenal-2026-${slug(sourceIdentity)}`,
-    medicationId: `med-${slug(parsed.genericName)}`,
-    genericName: parsed.genericName,
-    strength: parsed.strength,
+    medicationId: `med-${slug(parsedPrimary.genericName)}`,
+    genericName: parsedPrimary.genericName,
+    strength,
     pharmaceuticalForm: normalizeWhitespace(pharmaceuticalForm),
     source: {
       catalog: "arsenal-2026",
@@ -131,8 +191,13 @@ function tupleToPresentation(tuple: (typeof ARSENAL_2026_OPEN_CARE_ROWS)[number]
       trakcareCode: trakcareCode ?? undefined,
       reyimenCode: reyimenCode ?? undefined,
       rawDescription: description,
+      supplementalDescription: supplementalDescription ?? undefined,
+      sourceGroup: sourceGroup ?? undefined,
       unit: unit ?? undefined,
       exclusiveUse: exclusiveUse ?? undefined,
+      strengthSource,
+      reviewStatus,
+      reviewReason,
     },
   };
 }
@@ -140,16 +205,43 @@ function tupleToPresentation(tuple: (typeof ARSENAL_2026_OPEN_CARE_ROWS)[number]
 export const arsenal2026OpenCarePresentations: readonly MedicationPresentation[] =
   ARSENAL_2026_OPEN_CARE_ROWS.map(tupleToPresentation);
 
+export type Arsenal2026ReviewItem = {
+  sourceRow: number;
+  trakcareCode?: string;
+  rawDescription: string;
+  supplementalDescription?: string;
+  reason: "no-strength-in-source" | "conflicting-supplemental-description";
+};
+
 export type Arsenal2026AdapterReport = {
   sourceRows: number;
   presentations: number;
+  primaryStrengthParsed: number;
+  supplementalStrengthParsed: number;
   withParsedStrength: number;
-  withoutParsedStrength: number;
+  requiresReview: number;
+  noStrengthInSource: number;
+  sourceConflicts: number;
   alternateStrengthGroups: number;
+  reviewItems: Arsenal2026ReviewItem[];
 };
 
 export function buildArsenal2026AdapterReport(): Arsenal2026AdapterReport {
-  const withParsedStrength = arsenal2026OpenCarePresentations.filter((item) => item.strength).length;
+  const primaryStrengthParsed = arsenal2026OpenCarePresentations.filter(
+    (item) => item.source?.strengthSource === "primary",
+  ).length;
+  const supplementalStrengthParsed = arsenal2026OpenCarePresentations.filter(
+    (item) => item.source?.strengthSource === "supplemental",
+  ).length;
+  const reviewItems = arsenal2026OpenCarePresentations
+    .filter((item) => item.source?.reviewStatus === "requires-review")
+    .map((item) => ({
+      sourceRow: item.source?.sourceRow ?? -1,
+      trakcareCode: item.source?.trakcareCode,
+      rawDescription: item.source?.rawDescription ?? item.genericName,
+      supplementalDescription: item.source?.supplementalDescription,
+      reason: item.source?.reviewReason ?? "no-strength-in-source",
+    }));
   const groups = new Map<string, Set<string>>();
 
   for (const presentation of arsenal2026OpenCarePresentations) {
@@ -163,8 +255,15 @@ export function buildArsenal2026AdapterReport(): Arsenal2026AdapterReport {
   return {
     sourceRows: ARSENAL_2026_OPEN_CARE_ROWS.length,
     presentations: arsenal2026OpenCarePresentations.length,
-    withParsedStrength,
-    withoutParsedStrength: arsenal2026OpenCarePresentations.length - withParsedStrength,
+    primaryStrengthParsed,
+    supplementalStrengthParsed,
+    withParsedStrength: primaryStrengthParsed + supplementalStrengthParsed,
+    requiresReview: reviewItems.length,
+    noStrengthInSource: reviewItems.filter((item) => item.reason === "no-strength-in-source").length,
+    sourceConflicts: reviewItems.filter(
+      (item) => item.reason === "conflicting-supplemental-description",
+    ).length,
     alternateStrengthGroups: [...groups.values()].filter((strengths) => strengths.size >= 2).length,
+    reviewItems,
   };
 }
