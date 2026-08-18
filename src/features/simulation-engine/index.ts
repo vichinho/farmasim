@@ -14,7 +14,14 @@ export {
 } from "@/features/simulation-engine/dynamic-session-generator";
 export type { DynamicScenarioGenerationOptions } from "@/features/simulation-engine/dynamic-session-generator";
 export { evaluateSimulation } from "@/features/simulation-engine/engine";
+export type { EvaluateSimulationOptions } from "@/features/simulation-engine/engine";
 export { SimulationEventLog } from "@/features/simulation-engine/event-log";
+export {
+  deriveRuntimeMaterialState,
+  resolveMedicationPresentationId,
+  runtimeEffectiveSession,
+} from "@/features/simulation-engine/material-state";
+export type { RuntimeMaterialState } from "@/features/simulation-engine/material-state";
 export { selectReinforcement } from "@/features/simulation-engine/reinforcement-engine";
 export {
   SimulationRuntime,
