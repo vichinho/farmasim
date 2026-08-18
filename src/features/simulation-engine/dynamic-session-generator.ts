@@ -1,50 +1,26 @@
 import type { SimulationCatalogs } from "@/features/simulation-engine/catalogs";
+import {
+  getDifficultyProfile,
+  selectDistractorPatient,
+  selectFacilityPool,
+  selectHistoricalPresentation,
+  shuffleDeterministically,
+} from "@/features/simulation-engine/difficulty-engine";
 import { generateScenarioSession } from "@/features/simulation-engine/scenario-generator";
 import type {
   ClinicalRecord,
   DeterministicRandom,
   Drawer,
   GameMode,
+  HealthcareFacility,
   MedicationPresentation,
   Prescription,
-  PrescriptionStatus,
   ScenarioDefinition,
   ScenarioGenerationResult,
   SimulationRole,
   SimulationSession,
   SyntheticPatient,
 } from "@/features/simulation-engine/types";
-
-type DifficultyProfile = {
-  recordCount: { min: number; max: number };
-  relevantPrescriptionCount: { min: number; max: number };
-};
-
-const DIFFICULTY_PROFILES: Record<ScenarioDefinition["difficulty"], DifficultyProfile> = {
-  initial: {
-    recordCount: { min: 1, max: 2 },
-    relevantPrescriptionCount: { min: 1, max: 1 },
-  },
-  medium: {
-    recordCount: { min: 3, max: 5 },
-    relevantPrescriptionCount: { min: 1, max: 2 },
-  },
-  high: {
-    recordCount: { min: 6, max: 10 },
-    relevantPrescriptionCount: { min: 2, max: 4 },
-  },
-  expert: {
-    recordCount: { min: 10, max: 15 },
-    relevantPrescriptionCount: { min: 2, max: 5 },
-  },
-};
-
-const NON_CURRENT_STATUSES: PrescriptionStatus[] = [
-  "dispensed",
-  "completed",
-  "rejected",
-  "historical",
-];
 
 export type DynamicScenarioGenerationOptions = {
   playerRole?: SimulationRole;
@@ -59,16 +35,6 @@ function stableToken(value: string): string {
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0).toString(36);
-}
-
-function uniquePick<T extends { id: string }>(
-  random: DeterministicRandom,
-  values: readonly T[],
-  excludedIds: ReadonlySet<string> = new Set(),
-): T {
-  const available = values.filter((value) => !excludedIds.has(value.id));
-  if (available.length === 0) throw new Error("No catalog values available after exclusions.");
-  return random.pick(available);
 }
 
 function addDays(iso: string, days: number): string {
@@ -91,9 +57,9 @@ function findAlternateStrength(
 
   return presentations.find(
     (candidate) =>
-      Boolean(candidate.strength) &&
       candidate.medicationId === requested.medicationId &&
       candidate.id !== requested.id &&
+      Boolean(candidate.strength) &&
       candidate.strength !== requested.strength &&
       candidate.pharmaceuticalForm === requested.pharmaceuticalForm,
   );
@@ -105,12 +71,6 @@ function strengthCapablePresentations(
   return presentations.filter(
     (presentation) => Boolean(presentation.strength) && findAlternateStrength(presentation, presentations),
   );
-}
-
-function presentationLabel(presentation: MedicationPresentation): string {
-  return presentation.strength
-    ? `${presentation.genericName.toUpperCase()} ${presentation.strength}`
-    : presentation.genericName.toUpperCase();
 }
 
 function assertCatalogs(catalogs: SimulationCatalogs, definition: ScenarioDefinition) {
@@ -169,8 +129,12 @@ function createPrescriptionSet(
   catalogs: SimulationCatalogs,
   generatedAt: string,
   primaryPresentation: MedicationPresentation,
-): { prescriptions: Prescription[]; records: ClinicalRecord[] } {
-  const profile = DIFFICULTY_PROFILES[definition.difficulty];
+): {
+  prescriptions: Prescription[];
+  records: ClinicalRecord[];
+  facilitiesUsed: HealthcareFacility[];
+} {
+  const profile = getDifficultyProfile(definition.difficulty);
   const minimumRecords =
     definition.type === "incomplete_prescription_review"
       ? Math.max(3, profile.recordCount.min)
@@ -184,23 +148,33 @@ function createPrescriptionSet(
       profile.relevantPrescriptionCount.max,
     ),
   );
+  const facilitiesUsed = selectFacilityPool(catalogs.facilities, random, profile);
 
-  const prescriptions: Prescription[] = [];
-  const records: ClinicalRecord[] = [];
+  const entries: Array<{ prescription: Prescription; record: ClinicalRecord }> = [];
 
   for (let index = 0; index < recordCount; index += 1) {
     const isRelevant = index < relevantCount;
-    const presentation = index === 0 ? primaryPresentation : random.pick(catalogs.presentations);
-    const facility = random.pick(catalogs.facilities);
-    const daysAgo = random.integer(1, 150) + index;
+    const presentation =
+      index === 0
+        ? primaryPresentation
+        : isRelevant
+          ? random.pick(catalogs.presentations)
+          : selectHistoricalPresentation(
+              primaryPresentation,
+              catalogs.presentations,
+              random,
+              profile,
+            );
+    const facility = random.pick(facilitiesUsed);
+    const daysAgo = random.integer(1, definition.difficulty === "initial" ? 45 : 180) + index;
     const issuedAt = addDays(generatedAt, -daysAgo);
     const prescriptionId = `rx-${index + 1}-${presentation.id}`;
 
-    prescriptions.push({
+    const prescription: Prescription = {
       id: prescriptionId,
       presentationId: presentation.id,
       quantity: random.integer(1, 2),
-      status: isRelevant ? "pending" : random.pick(NON_CURRENT_STATUSES),
+      status: isRelevant ? "pending" : random.pick(profile.historicalStatuses),
       facilityId: facility.id,
       relevantForCurrentWithdrawal: isRelevant,
       issuedAt,
@@ -210,17 +184,34 @@ function createPrescriptionSet(
       dispatchDate: !isRelevant && random.chance(0.55) ? addDays(issuedAt, random.integer(1, 20)) : undefined,
       nextWithdrawalDate: isRelevant && random.chance(0.35) ? addDays(generatedAt, random.integer(20, 45)) : undefined,
       repetitionStatus: random.pick(["yes", "no", "review"] as const),
-    });
+    };
 
-    records.push({
-      id: `record-${index + 1}`,
-      patientId: "__TARGET_PATIENT__",
-      facilityId: facility.id,
-      prescriptionIds: [prescriptionId],
+    entries.push({
+      prescription,
+      record: {
+        id: `record-${index + 1}`,
+        patientId: "__TARGET_PATIENT__",
+        facilityId: facility.id,
+        prescriptionIds: [prescriptionId],
+      },
     });
   }
 
-  return { prescriptions, records };
+  const orderedEntries = profile.shuffleRecordOrder
+    ? shuffleDeterministically(entries, random)
+    : entries;
+
+  return {
+    prescriptions: orderedEntries.map((entry) => entry.prescription),
+    records: orderedEntries.map((entry) => entry.record),
+    facilitiesUsed,
+  };
+}
+
+function presentationLabel(presentation: MedicationPresentation): string {
+  return [presentation.genericName.toLocaleUpperCase("es-CL"), presentation.strength]
+    .filter(Boolean)
+    .join(" ");
 }
 
 function createDrawer(
@@ -288,9 +279,15 @@ function createCandidate(
   input: { attempt: number; seed: string; random: DeterministicRandom },
 ): SimulationSession {
   const { random } = input;
+  const profile = getDifficultyProfile(definition.difficulty);
   const generatedAt = deterministicGeneratedAt(random);
-  const targetPatient = uniquePick(random, catalogs.patients);
-  const distractorPatient = uniquePick(random, catalogs.patients, new Set([targetPatient.id]));
+  const targetPatient = random.pick(catalogs.patients);
+  const distractorPatient = selectDistractorPatient(
+    targetPatient,
+    catalogs.patients,
+    random,
+    profile,
+  );
   const primaryPresentation = choosePrimaryPresentation(definition, random, catalogs);
   const generated = createPrescriptionSet(
     definition,
@@ -354,7 +351,7 @@ function createCandidate(
     actors: createActors(playerRole),
     patientId: targetPatient.id,
     patients: [targetPatient, distractorPatient],
-    facilities: [...catalogs.facilities],
+    facilities: generated.facilitiesUsed,
     presentations: [...catalogs.presentations],
     records,
     prescriptions: generated.prescriptions,
@@ -363,7 +360,7 @@ function createCandidate(
       requestedItems,
       preparedItems,
       preparedBy: "actor-preparation",
-      createdAt: addDays(generatedAt, 0),
+      createdAt: generatedAt,
       status: "received",
     },
     initialClinicalSystemState,
