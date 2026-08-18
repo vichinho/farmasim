@@ -87,8 +87,11 @@ function findAlternateStrength(
   requested: MedicationPresentation,
   presentations: readonly MedicationPresentation[],
 ): MedicationPresentation | undefined {
+  if (!requested.strength) return undefined;
+
   return presentations.find(
     (candidate) =>
+      Boolean(candidate.strength) &&
       candidate.medicationId === requested.medicationId &&
       candidate.id !== requested.id &&
       candidate.strength !== requested.strength &&
@@ -99,7 +102,15 @@ function findAlternateStrength(
 function strengthCapablePresentations(
   presentations: readonly MedicationPresentation[],
 ): MedicationPresentation[] {
-  return presentations.filter((presentation) => findAlternateStrength(presentation, presentations));
+  return presentations.filter(
+    (presentation) => Boolean(presentation.strength) && findAlternateStrength(presentation, presentations),
+  );
+}
+
+function presentationLabel(presentation: MedicationPresentation): string {
+  return presentation.strength
+    ? `${presentation.genericName.toUpperCase()} ${presentation.strength}`
+    : presentation.genericName.toUpperCase();
 }
 
 function assertCatalogs(catalogs: SimulationCatalogs, definition: ScenarioDefinition) {
@@ -219,7 +230,7 @@ function createDrawer(
 ): Drawer {
   const alternate = findAlternateStrength(requested, catalogs.presentations);
   const drawerId = `drawer-${requested.medicationId}`;
-  const expectedLabel = `${requested.genericName.toUpperCase()} ${requested.strength}`;
+  const expectedLabel = presentationLabel(requested);
 
   if (definition.type === "storage_label_and_mixed_contents") {
     if (!alternate) {
@@ -231,7 +242,7 @@ function createDrawer(
       sectorId: requested.genericName.slice(0, 1).toUpperCase(),
       expectedMedicationPresentationId: requested.id,
       expectedLabel,
-      displayedLabel: `${alternate.genericName.toUpperCase()} ${alternate.strength}`,
+      displayedLabel: presentationLabel(alternate),
       physicalCondition: "good",
       stockState: "available",
       contents: [
