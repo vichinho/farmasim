@@ -50,6 +50,14 @@ export {
 } from "@/features/simulation-engine/material-state";
 export type { RuntimeMaterialState } from "@/features/simulation-engine/material-state";
 export {
+  createSimulationCheckpoint,
+  parseSimulationCheckpoint,
+  serializeSimulationCheckpoint,
+  SIMULATION_CHECKPOINT_VERSION,
+  SimulationCheckpointError,
+} from "@/features/simulation-engine/persistence";
+export type { SimulationCheckpoint } from "@/features/simulation-engine/persistence";
+export {
   deriveRuntimePreparationWorkflow,
 } from "@/features/simulation-engine/preparation-workflow";
 export type {
