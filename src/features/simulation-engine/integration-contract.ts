@@ -10,7 +10,7 @@ import type {
   SimulationSession,
 } from "@/features/simulation-engine/types";
 
-export const SIMULATION_INTEGRATION_CONTRACT_VERSION = 2 as const;
+export const SIMULATION_INTEGRATION_CONTRACT_VERSION = 1 as const;
 
 export type SimulationPlayerActionInput = Omit<SimulationActionInput, "actorId">;
 
