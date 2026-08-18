@@ -3,6 +3,10 @@ import {
   type SimulationBootstrapSource,
 } from "@/features/simulation-engine/bootstrap";
 import type { SimulationCatalogs } from "@/features/simulation-engine/catalogs";
+import {
+  buildSimulationAttemptCompletion,
+  type SimulationAttemptCompletion,
+} from "@/features/simulation-engine/completion";
 import type { DynamicScenarioGenerationOptions } from "@/features/simulation-engine/dynamic-session-generator";
 import type {
   SimulationIntegrationDispatchReceipt,
@@ -13,10 +17,23 @@ import type { SimulationIntegrationRuntime } from "@/features/simulation-engine/
 import { serializeSimulationCheckpoint } from "@/features/simulation-engine/persistence";
 import type { ScenarioDefinition } from "@/features/simulation-engine/types";
 
+export type SimulationExperienceAttemptInput = SimulationAttemptCompletion & {
+  scenarioSlug: string;
+  levelNumber: number;
+};
+
+export type SimulationExperienceAttemptResult = {
+  status: "saved" | "duplicate" | "error";
+  message: string;
+};
+
 export type SimulationExperiencePersistence = {
   loadLatestCheckpoint: (scenarioDefinitionId: string) => Promise<string | null>;
   saveCheckpoint: (serializedCheckpoint: string) => Promise<void>;
   deleteCheckpoint: (sessionId: string) => Promise<void>;
+  saveAttempt?: (
+    input: SimulationExperienceAttemptInput,
+  ) => Promise<SimulationExperienceAttemptResult>;
 };
 
 export type OpenSimulationExperienceInput = {
@@ -34,6 +51,19 @@ export type SimulationExperienceState = {
   dirty: boolean;
   lastSavedEventCount: number;
   snapshot: SimulationIntegrationSnapshot;
+};
+
+export type FinalizeSimulationExperienceInput = {
+  scenarioSlug: string;
+  levelNumber: number;
+};
+
+export type FinalizeSimulationExperienceResult = {
+  status: SimulationExperienceAttemptResult["status"];
+  message: string;
+  attemptId: string;
+  checkpointDeleted: boolean;
+  completion: SimulationAttemptCompletion;
 };
 
 /**
@@ -113,6 +143,47 @@ export class SimulationExperienceController {
     this.#lastSavedEventCount = checkpoint.events.length;
     this.#dirty = false;
     return this.state();
+  }
+
+  async finalize(
+    input: FinalizeSimulationExperienceInput,
+  ): Promise<FinalizeSimulationExperienceResult> {
+    if (!this.#persistence?.saveAttempt) {
+      throw new Error("Simulation experience does not define an attempt persistence adapter.");
+    }
+
+    // Persist the terminal checkpoint first. If score/XP persistence fails, the
+    // completed experience remains recoverable and can be retried safely.
+    if (this.#dirty) await this.save();
+
+    const completion = await buildSimulationAttemptCompletion(this.#runtime.checkpoint());
+    const attempt = await this.#persistence.saveAttempt({
+      ...completion,
+      scenarioSlug: input.scenarioSlug,
+      levelNumber: input.levelNumber,
+    });
+
+    if (attempt.status === "error") {
+      return {
+        status: attempt.status,
+        message: attempt.message,
+        attemptId: completion.attemptId,
+        checkpointDeleted: false,
+        completion,
+      };
+    }
+
+    await this.#persistence.deleteCheckpoint(this.#sessionId);
+    this.#lastSavedEventCount = this.#runtime.snapshot().session.eventCount;
+    this.#dirty = false;
+
+    return {
+      status: attempt.status,
+      message: attempt.message,
+      attemptId: completion.attemptId,
+      checkpointDeleted: true,
+      completion,
+    };
   }
 
   async discard(): Promise<void> {
