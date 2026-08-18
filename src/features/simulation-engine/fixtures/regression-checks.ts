@@ -6,6 +6,7 @@ import { buildMinimumScenarioReport } from "@/features/simulation-engine/fixture
 import {
   buildBlockedDeliveryRecoveryReport,
   buildRuntimeReport,
+  buildRuntimeStockReport,
   runtimeRejectsInvalidAction,
 } from "@/features/simulation-engine/fixtures/runtime-report";
 
@@ -178,6 +179,15 @@ export function runMinimumScenarioRegressionChecks(): SimulationEngineRegression
   );
   assert(recovery.heldItems.length === 0, "no medication may remain held after the correction flow");
   checks.push("Runtime material state: blocked preparation can be corrected and safely re-delivered without resetting history");
+
+  const stock = buildRuntimeStockReport();
+  assert(stock.overdrawRejected, "runtime must reject taking more medication than drawer stock");
+  assert(stock.initial?.totalQuantity === 6 && stock.initial.stockState === "available", "stock flow must start available with six units");
+  assert(stock.low?.totalQuantity === 1 && stock.low.stockState === "low", "stock must become low when only one unit remains");
+  assert(stock.empty?.totalQuantity === 0 && stock.empty.stockState === "out-of-stock", "stock must become out-of-stock at zero");
+  assert(stock.restored?.totalQuantity === 1 && stock.restored.stockState === "low", "returning medication must restore drawer stock");
+  assert(stock.eventCount === 3, "rejected overdraw must not be appended to the event log");
+  checks.push("Runtime inventory: drawer stock is event-derived, bounded, and transitions through available/low/out-of-stock");
 
   return { passed: true, checks };
 }
