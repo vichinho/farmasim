@@ -123,6 +123,7 @@ export function buildBlockedDeliveryRecoveryReport() {
   const receipts = runtime.dispatchMany(correctionActions);
   const completed = runtime.snapshot();
   const material = runtime.materialSnapshot();
+  const inventory = runtime.inventorySnapshot();
 
   return {
     blockedStatus: blocked.status,
@@ -140,7 +141,72 @@ export function buildBlockedDeliveryRecoveryReport() {
     deliveryCompletedEvents: completed.events.filter((event) => event.type === "delivery.completed").length,
     trayItems: material.trayItems,
     heldItems: material.heldItems,
+    drawerStock: inventory.drawers.find((drawer) => drawer.drawerId === "drawer-l-01") ?? null,
     eventCount: completed.eventCount,
+  };
+}
+
+export function buildRuntimeStockReport() {
+  const fixture = minimumScenarioFixtures.find((item) => item.id === "A");
+  if (!fixture) throw new Error("Minimum scenario A is required for stock diagnostics.");
+
+  const runtime = new SimulationRuntime(fixture.definition, fixture.session);
+  const drawerId = "drawer-l-01";
+  const itemId = "drawer-l-01-item-1";
+  const drawer = () => runtime.inventorySnapshot().drawers.find((item) => item.drawerId === drawerId);
+
+  const initial = drawer();
+  let overdrawRejected = false;
+
+  try {
+    runtime.dispatch({
+      actorId: "actor-attention",
+      type: "medication.taken",
+      targetType: "medication",
+      targetId: itemId,
+      metadata: { quantity: 7 },
+    });
+  } catch (error) {
+    overdrawRejected = error instanceof SimulationRuntimeError && error.code === "insufficient_stock";
+  }
+
+  runtime.dispatch({
+    actorId: "actor-attention",
+    type: "medication.taken",
+    targetType: "medication",
+    targetId: itemId,
+    metadata: { quantity: 5 },
+  });
+  const low = drawer();
+
+  runtime.dispatch({
+    actorId: "actor-attention",
+    type: "medication.taken",
+    targetType: "medication",
+    targetId: itemId,
+    metadata: { quantity: 1 },
+  });
+  const empty = drawer();
+
+  runtime.dispatch({
+    actorId: "actor-attention",
+    type: "medication.returned",
+    targetType: "medication",
+    targetId: itemId,
+    metadata: { quantity: 1 },
+  });
+  const restored = drawer();
+
+  return {
+    drawerId,
+    itemId,
+    overdrawRejected,
+    initial,
+    low,
+    empty,
+    restored,
+    material: runtime.materialSnapshot(),
+    eventCount: runtime.snapshot().eventCount,
   };
 }
 
