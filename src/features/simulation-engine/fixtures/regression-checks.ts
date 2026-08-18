@@ -6,6 +6,7 @@ import { buildMinimumScenarioReport } from "@/features/simulation-engine/fixture
 import {
   buildBlockedDeliveryRecoveryReport,
   buildPreparationWorkflowReport,
+  buildRoleHandoffReport,
   buildRuntimeReport,
   buildRuntimeStockReport,
   runtimeRejectsInvalidAction,
@@ -172,6 +173,8 @@ export function runMinimumScenarioRegressionChecks(): SimulationEngineRegression
   assert(recovery.finalBlockingDiscrepancies === 0, "corrected preparation must have zero blocking discrepancies");
   assert(recovery.deliveryBlockedEvents === 1, "blocked delivery history must remain in the append-only log");
   assert(recovery.deliveryCompletedEvents === 1, "successful retry must be recorded once");
+  assert(recovery.handoff.owner === "attention" && recovery.handoff.received, "corrected tray must return to attention before retry delivery");
+  assert(recovery.preparationWorkflow.traySent, "TENS 2 must re-confirm and resend the corrected tray");
   assert(
     recovery.trayItems.length === 1 &&
       recovery.trayItems[0]?.presentationId === "losartan-50" &&
@@ -179,7 +182,7 @@ export function runMinimumScenarioRegressionChecks(): SimulationEngineRegression
     "corrected tray must contain exactly the requested Losartan 50 presentation",
   );
   assert(recovery.heldItems.length === 0, "no medication may remain held after the correction flow");
-  checks.push("Runtime material state: blocked preparation can be corrected and safely re-delivered without resetting history");
+  checks.push("Runtime material state: TENS 1 can request correction, TENS 2 rebuilds the tray, and delivery retries without resetting history");
 
   const stock = buildRuntimeStockReport();
   assert(stock.overdrawRejected, "runtime must reject taking more medication than drawer stock");
@@ -205,9 +208,25 @@ export function runMinimumScenarioRegressionChecks(): SimulationEngineRegression
   assert(preparation.guards.sendBeforeConfirmEventCount === 0, "rejected premature send must not enter the event log");
   assert(preparation.guards.confirmWhileHoldingRejected, "preparation.confirmed must be rejected while medication remains held");
   assert(preparation.wrongHandoff.workflow.traySent, "an incorrect preparation may still be sent downstream for manual interception");
+  assert(preparation.wrongHandoff.handoff.owner === "transit", "a sent TENS 2 tray must remain in transit until TENS 1 receives it");
   assert(preparation.wrongHandoff.blockingDiscrepancies === 1, "wrong-strength handoff must retain one material discrepancy");
   assert(preparation.wrongHandoff.systemDeliveryEvents === 0, "preparation handoff must not trigger final delivery Safety decisions");
   checks.push("Preparation workflow: operational guards are enforced without auto-correcting clinically wrong TENS 2 handoffs");
+
+  const handoff = buildRoleHandoffReport();
+  assert(handoff.firstSend.owner === "transit" && handoff.firstSend.sent && !handoff.firstSend.received, "first TENS 2 send must place the tray in transit");
+  assert(handoff.afterCorrectionRequest.owner === "preparation" && handoff.afterCorrectionRequest.cycle === 2, "TENS 1 correction must return ownership to preparation and start cycle 2");
+  assert(handoff.secondSend.owner === "transit" && handoff.secondSend.cycle === 2, "corrected tray must be re-sent through the same handoff contract");
+  assert(handoff.finalHandoff.owner === "attention" && handoff.finalHandoff.received, "TENS 1 must receive the corrected tray before final delivery");
+  assert(handoff.finalStatus === "completed" && handoff.finalEvent === "delivery.completed", "corrected two-role flow must end in completed delivery");
+  assert(handoff.finalBlockingDiscrepancies === 0, "corrected handoff must finish with zero blocking discrepancies");
+  assert(handoff.correctionRequestedEvents === 1, "two-role correction flow must retain exactly one correction request");
+  assert(handoff.deliveryCompletedEvents === 1, "two-role handoff must complete delivery once");
+  assert(handoff.guards.receiveBeforeSendRejected, "TENS 1 cannot receive before TENS 2 sends the tray");
+  assert(handoff.guards.receiveBeforeSendEventCount === 0, "rejected early receipt must not enter the EventLog");
+  assert(handoff.guards.correctionBeforeReceiveRejected, "TENS 1 cannot request tray correction before receiving the current handoff");
+  assert(handoff.guards.correctionBeforeReceiveEventCount === 9, "rejected pre-receipt correction must not append an extra event");
+  checks.push("Role handoff: TENS 2 → TENS 1 → correction → TENS 2 → TENS 1 remains ordered, role-owned, and auditable");
 
   return { passed: true, checks };
 }
