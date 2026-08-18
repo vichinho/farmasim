@@ -320,7 +320,7 @@ function assertHandoffWorkflowState(
         "The attention role cannot receive a tray that has not been sent by preparation.",
       );
     }
-    if (handoff.received) {
+    if (handoff.received && handoff.trayReceivedEventId) {
       throw new SimulationRuntimeError(
         "tray_already_received",
         "The current tray has already been received by attention.",
