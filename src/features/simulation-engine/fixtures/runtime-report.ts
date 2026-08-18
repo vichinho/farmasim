@@ -1,6 +1,9 @@
 import { minimumScenarioFixtures } from "@/features/simulation-engine/fixtures/minimum-scenarios";
 import { SimulationRuntime, SimulationRuntimeError } from "@/features/simulation-engine/runtime";
 import type {
+  MinimumScenarioFixture,
+} from "@/features/simulation-engine/fixtures/minimum-scenarios";
+import type {
   SimulationActionInput,
   SimulationEvent,
   SimulationRuntimeStatus,
@@ -21,6 +24,26 @@ function eventToAction(event: SimulationEvent): SimulationActionInput {
   };
 }
 
+function runtimeActionsForFixture(fixture: MinimumScenarioFixture): SimulationActionInput[] {
+  const actions = fixture.events.map(eventToAction);
+  if (fixture.id !== "E") return actions;
+
+  const sendIndex = actions.findIndex((action) => action.type === "tray.sent");
+  if (sendIndex < 0) return actions;
+
+  return [
+    ...actions.slice(0, sendIndex),
+    {
+      actorId: "actor-preparation",
+      type: "preparation.confirmed",
+      targetType: "tray",
+      targetId: "tray-1",
+      timestamp: "2026-08-17T20:07:30.000Z",
+    },
+    ...actions.slice(sendIndex),
+  ];
+}
+
 function expectedStatus(fixtureId: string): SimulationRuntimeStatus {
   if (fixtureId === "B" || fixtureId === "D") return "delivery-blocked";
   if (fixtureId === "A" || fixtureId === "C") return "completed";
@@ -30,7 +53,7 @@ function expectedStatus(fixtureId: string): SimulationRuntimeStatus {
 export function buildRuntimeReport() {
   return minimumScenarioFixtures.map((fixture) => {
     const runtime = new SimulationRuntime(fixture.definition, fixture.session);
-    const actions = fixture.events.map(eventToAction);
+    const actions = runtimeActionsForFixture(fixture);
     const receipts = runtime.dispatchMany(actions);
     const snapshot = runtime.snapshot();
     const material = runtime.materialSnapshot();
@@ -52,6 +75,7 @@ export function buildRuntimeReport() {
       blockingDiscrepancies: snapshot.evaluation.safety.blockingDiscrepancyIds.length,
       trayItems: material.trayItems,
       heldItems: material.heldItems,
+      preparationWorkflow: runtime.preparationWorkflowSnapshot(),
       finalEvent: snapshot.events.at(-1)?.type ?? null,
     };
   });
@@ -62,7 +86,7 @@ export function buildBlockedDeliveryRecoveryReport() {
   if (!fixture) throw new Error("Minimum scenario B is required for runtime recovery diagnostics.");
 
   const runtime = new SimulationRuntime(fixture.definition, fixture.session);
-  runtime.dispatchMany(fixture.events.map(eventToAction));
+  runtime.dispatchMany(runtimeActionsForFixture(fixture));
   const blocked = runtime.snapshot();
 
   const correctionActions: SimulationActionInput[] = [
@@ -80,6 +104,13 @@ export function buildBlockedDeliveryRecoveryReport() {
       targetId: "losartan-100",
       metadata: { quantity: 1 },
       timestamp: "2026-08-17T21:31:00.000Z",
+    },
+    {
+      actorId: "actor-attention",
+      type: "drawer.opened",
+      targetType: "drawer",
+      targetId: "drawer-l-01",
+      timestamp: "2026-08-17T21:31:30.000Z",
     },
     {
       actorId: "actor-attention",
@@ -155,6 +186,13 @@ export function buildRuntimeStockReport() {
   const itemId = "drawer-l-01-item-1";
   const drawer = () => runtime.inventorySnapshot().drawers.find((item) => item.drawerId === drawerId);
 
+  runtime.dispatch({
+    actorId: "actor-attention",
+    type: "drawer.opened",
+    targetType: "drawer",
+    targetId: drawerId,
+  });
+
   const initial = drawer();
   let overdrawRejected = false;
 
@@ -207,6 +245,105 @@ export function buildRuntimeStockReport() {
     restored,
     material: runtime.materialSnapshot(),
     eventCount: runtime.snapshot().eventCount,
+  };
+}
+
+export function buildPreparationWorkflowReport() {
+  const fixture = minimumScenarioFixtures.find((item) => item.id === "E");
+  if (!fixture) throw new Error("Minimum scenario E is required for preparation workflow diagnostics.");
+
+  const runtime = new SimulationRuntime(fixture.definition, fixture.session);
+  const actions = runtimeActionsForFixture(fixture);
+  runtime.dispatchMany(actions);
+  const snapshot = runtime.snapshot();
+  const material = runtime.materialSnapshot();
+  const inventory = runtime.inventorySnapshot();
+  const workflow = runtime.preparationWorkflowSnapshot();
+
+  const guardRuntime = new SimulationRuntime(fixture.definition, fixture.session);
+  let sendBeforeConfirmRejected = false;
+  try {
+    guardRuntime.dispatch({
+      actorId: "actor-preparation",
+      type: "tray.sent",
+      targetType: "tray",
+      targetId: "tray-guard",
+    });
+  } catch (error) {
+    sendBeforeConfirmRejected =
+      error instanceof SimulationRuntimeError && error.code === "preparation_not_confirmed";
+  }
+
+  const heldRuntime = new SimulationRuntime(fixture.definition, fixture.session);
+  heldRuntime.dispatchMany([
+    {
+      actorId: "actor-preparation",
+      type: "drawer.opened",
+      targetType: "drawer",
+      targetId: "drawer-l-mixed",
+    },
+    {
+      actorId: "actor-preparation",
+      type: "medication.taken",
+      targetType: "medication",
+      targetId: "drawer-l-mixed-item-1",
+      metadata: { quantity: 1 },
+    },
+  ]);
+  let confirmWhileHoldingRejected = false;
+  try {
+    heldRuntime.dispatch({
+      actorId: "actor-preparation",
+      type: "preparation.confirmed",
+      targetType: "tray",
+      targetId: "tray-held",
+    });
+  } catch (error) {
+    confirmWhileHoldingRejected =
+      error instanceof SimulationRuntimeError && error.code === "held_medication_pending";
+  }
+
+  const wrongRuntime = new SimulationRuntime(fixture.definition, fixture.session);
+  const wrongActions: SimulationActionInput[] = [
+    { actorId: "actor-preparation", type: "storage.entered", targetType: "storage", targetId: "sector-L" },
+    { actorId: "actor-preparation", type: "drawer.label_inspected", targetType: "drawer", targetId: "drawer-l-mixed" },
+    { actorId: "actor-preparation", type: "drawer.opened", targetType: "drawer", targetId: "drawer-l-mixed" },
+    { actorId: "actor-preparation", type: "drawer.contents_inspected", targetType: "drawer", targetId: "drawer-l-mixed" },
+    { actorId: "actor-preparation", type: "medication.taken", targetType: "medication", targetId: "drawer-l-mixed-item-2" },
+    { actorId: "actor-preparation", type: "medication.inspected", targetType: "medication", targetId: "drawer-l-mixed-item-2" },
+    { actorId: "actor-preparation", type: "medication.added_to_tray", targetType: "medication", targetId: "drawer-l-mixed-item-2" },
+    { actorId: "actor-preparation", type: "preparation.confirmed", targetType: "tray", targetId: "tray-wrong" },
+    { actorId: "actor-preparation", type: "tray.sent", targetType: "tray", targetId: "tray-wrong" },
+  ];
+  wrongRuntime.dispatchMany(wrongActions);
+  const wrongSnapshot = wrongRuntime.snapshot();
+
+  return {
+    correct: {
+      actions: actions.length,
+      finalEvent: snapshot.events.at(-1)?.type ?? null,
+      workflow,
+      trayItems: material.trayItems,
+      heldItems: material.heldItems,
+      drawerStock: inventory.drawers.find((drawer) => drawer.drawerId === "drawer-l-mixed") ?? null,
+      processDeviations: snapshot.evaluation.processDeviations.map((item) => item.type),
+      blockingDiscrepancies: snapshot.evaluation.safety.blockingDiscrepancyIds.length,
+    },
+    guards: {
+      sendBeforeConfirmRejected,
+      sendBeforeConfirmEventCount: guardRuntime.snapshot().eventCount,
+      confirmWhileHoldingRejected,
+      confirmWhileHoldingEventCount: heldRuntime.snapshot().eventCount,
+    },
+    wrongHandoff: {
+      finalEvent: wrongSnapshot.events.at(-1)?.type ?? null,
+      workflow: wrongRuntime.preparationWorkflowSnapshot(),
+      trayItems: wrongRuntime.materialSnapshot().trayItems,
+      blockingDiscrepancies: wrongSnapshot.evaluation.safety.blockingDiscrepancyIds.length,
+      systemDeliveryEvents: wrongSnapshot.events.filter(
+        (event) => event.type === "delivery.blocked" || event.type === "delivery.completed",
+      ).length,
+    },
   };
 }
 
