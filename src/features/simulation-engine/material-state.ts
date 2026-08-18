@@ -11,9 +11,7 @@ export type RuntimeMaterialState = {
 
 function quantityFromEvent(event: SimulationEvent): number {
   const value = event.metadata?.quantity;
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? Math.floor(value)
-    : 1;
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : 1;
 }
 
 export function resolveMedicationPresentationId(
