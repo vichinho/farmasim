@@ -1,5 +1,17 @@
-export { technicalSimulationCatalogs } from "@/features/simulation-engine/catalogs";
+export {
+  arsenal2026SimulationCatalogs,
+  technicalSimulationCatalogs,
+} from "@/features/simulation-engine/catalogs";
 export type { SimulationCatalogs } from "@/features/simulation-engine/catalogs";
+export {
+  arsenal2026OpenCarePresentations,
+  buildArsenal2026AdapterReport,
+  parseArsenalDescription,
+} from "@/features/simulation-engine/arsenal/arsenal-2026-adapter";
+export {
+  healthcareFacilityCatalog,
+  syntheticPatientCatalog,
+} from "@/features/simulation-engine/synthetic-catalogs";
 export {
   describeGeneratedPatient,
   generateDynamicScenarioSession,
@@ -32,6 +44,7 @@ export type {
   InitialClinicalSystemState,
   MedicationDiscrepancy,
   MedicationPresentation,
+  MedicationPresentationSource,
   Preparation,
   ProcessCriterionResult,
   ProcessDeviation,
