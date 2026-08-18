@@ -9,6 +9,14 @@ export type {
   SimulationCheckpointLoader,
 } from "@/features/simulation-engine/bootstrap";
 export {
+  SimulationExperienceController,
+} from "@/features/simulation-engine/experience-controller";
+export type {
+  OpenSimulationExperienceInput,
+  SimulationExperiencePersistence,
+  SimulationExperienceState,
+} from "@/features/simulation-engine/experience-controller";
+export {
   arsenal2026SimulationCatalogs,
   technicalSimulationCatalogs,
 } from "@/features/simulation-engine/catalogs";
