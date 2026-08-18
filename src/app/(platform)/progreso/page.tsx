@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { countCompletedTrainingLevels } from "@/data/training";
 import { dispensingCriteria } from "@/data/training/dispensing-criteria";
 import { contentTraceability, educationalSources } from "@/data/training/educational-sources";
 import { ProgressOverview } from "@/features/progress/progress-overview";
@@ -20,7 +21,6 @@ export default async function ProgressPage() {
   const userId = verifiedJwt.claims.sub;
   const [
     profileResult,
-    completedModulesResult,
     attemptsResult,
     scenariosResult,
     userAchievementsResult,
@@ -32,13 +32,8 @@ export default async function ProgressPage() {
       .eq("id", userId)
       .maybeSingle(),
     supabase
-      .from("user_module_progress")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("status", "completed"),
-    supabase
       .from("simulation_attempts")
-      .select("completed_at, correct_answers, criterion_results, incorrect_answers, scenario_id, score, xp_earned")
+      .select("completed_at, correct_answers, criterion_results, incorrect_answers, level_number, scenario_id, score, xp_earned")
       .eq("user_id", userId)
       .not("completed_at", "is", null)
       .order("completed_at", { ascending: false }),
@@ -115,7 +110,9 @@ export default async function ProgressPage() {
     <ProgressOverview
       achievements={achievements}
       assessedCriteria={assessedCriteria}
-      completedModules={completedModulesResult.count ?? 0}
+      completedModules={countCompletedTrainingLevels(
+        attempts.map((attempt) => attempt.level_number),
+      )}
       criteriaIndicators={criteriaIndicators}
       fullName={profileResult.data?.full_name?.trim() || "Usuario"}
       level={profileResult.data?.level ?? 1}

@@ -7,6 +7,7 @@ export {
 } from "@/data/training/cases/reinforcement-cases";
 export { getTrainingCaseBySlug, trainingCases } from "@/data/training/cases";
 export {
+  countCompletedTrainingLevels,
   getTrainingLevelByCaseSlug,
   resolveTrainingLevels,
   trainingLevels,

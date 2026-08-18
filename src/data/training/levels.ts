@@ -91,6 +91,15 @@ export function resolveTrainingLevels(completedLevelNumbers: number[]) {
   });
 }
 
+export function countCompletedTrainingLevels(levelNumbers: Array<number | null>) {
+  return new Set(
+    levelNumbers.filter(
+      (levelNumber): levelNumber is number =>
+        typeof levelNumber === "number" && levelNumber >= 1 && levelNumber <= 7,
+    ),
+  ).size;
+}
+
 export function getTrainingLevelByCaseSlug(caseSlug: string) {
   return trainingLevels.find((level) => level.caseSlugs.includes(caseSlug));
 }

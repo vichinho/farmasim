@@ -62,211 +62,191 @@ export function ProgressOverview({
   traceabilityRecord,
 }: ProgressOverviewProps) {
   const { currentLevelXp, percentage } = getLevelProgress(totalXp);
+  const practicedIndicators = criteriaIndicators
+    .filter((indicator) => indicator.met + indicator.intercepted + indicator.reinforcement > 0)
+    .map((indicator) => {
+      const total = indicator.met + indicator.intercepted + indicator.reinforcement;
+      return {
+        ...indicator,
+        safePercentage: Math.round(((indicator.met + indicator.intercepted) / total) * 100),
+        total,
+      };
+    });
+  const priorities = practicedIndicators
+    .filter((indicator) => indicator.reinforcement > 0)
+    .toSorted((a, b) => b.reinforcement - a.reinforcement)
+    .slice(0, 2);
+  const strengths = practicedIndicators
+    .filter((indicator) => indicator.reinforcement === 0)
+    .toSorted((a, b) => b.safePercentage - a.safePercentage)
+    .slice(0, 3);
+  const latestAttempt = recentAttempts[0];
 
   return (
     <>
-      <PageContainer className="space-y-6 pb-28">
+      <PageContainer className="space-y-5 pb-28">
         <AppHeader eyebrow="TU AVANCE" title={`Progreso de ${fullName}`} />
 
-        <Card className="overflow-hidden border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-amber-50">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-[var(--brand-strong)]">Nivel actual</p>
-              <h1 className="mt-1 text-3xl font-bold">Nivel {level}</h1>
-            </div>
-            <Badge className="self-start whitespace-nowrap" tone="warning">
-              {totalXp} XP totales
-            </Badge>
+        <Card className="overflow-hidden border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-amber-50 p-5 sm:p-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm font-semibold text-[var(--brand-strong)]">Nivel {level}</p>
+            <Badge tone="warning">{totalXp} XP</Badge>
           </div>
+          <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Vas por buen camino</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
+            Revisa tu próximo foco de práctica y continúa cuando te sientas preparado.
+          </p>
           <ProgressBar
             className="mt-5"
-            label={`${currentLevelXp} de ${XP_PER_LEVEL} XP para el nivel ${level + 1}`}
+            label={`${currentLevelXp} de ${XP_PER_LEVEL} XP para avanzar`}
             value={percentage}
           />
+          <dl className="mt-5 flex items-stretch border-t border-emerald-200/70 pt-4 text-center">
+            <div className="flex min-w-0 flex-1 flex-col items-center justify-center px-2 sm:flex-row sm:gap-2">
+              <dd className="text-lg font-black text-[var(--brand-strong)]">{completedModules}/7</dd>
+              <dt className="text-[.68rem] font-semibold text-[var(--muted)] sm:text-xs">Niveles</dt>
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col items-center justify-center border-x border-emerald-200/70 px-2 sm:flex-row sm:gap-2">
+              <dd className="text-lg font-black text-[var(--brand-strong)]">{precision}%</dd>
+              <dt className="text-[.68rem] font-semibold text-[var(--muted)] sm:text-xs">Precisión</dt>
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col items-center justify-center px-2 sm:flex-row sm:gap-2">
+              <dd className="text-lg font-black text-[var(--brand-strong)]">{simulationsCompleted}</dd>
+              <dt className="text-[.68rem] font-semibold text-[var(--muted)] sm:text-xs">Prácticas</dt>
+            </div>
+          </dl>
         </Card>
 
-        <section
-          aria-label="Resumen de progreso"
-          className="grid grid-cols-2 gap-3 sm:grid-cols-4"
-        >
-          <SummaryCard label="Simulaciones" value={simulationsCompleted} />
-          <SummaryCard label="Precisión" value={`${precision}%`} />
-          <SummaryCard label="Módulos" value={completedModules} />
-          <SummaryCard label="Insignias" value={achievements.length} />
-        </section>
-
-        <section aria-labelledby="indicators-heading">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="min-w-0">
-              <h2 className="text-xl font-bold" id="indicators-heading">
-                Indicadores de práctica
-              </h2>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-                Resumen personal de acciones observadas en simulaciones ficticias.
-              </p>
-            </div>
-            <Badge className="self-start whitespace-nowrap sm:self-auto" tone="neutral">
-              {assessedCriteria} criterios registrados
-            </Badge>
-          </div>
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,.6fr)] lg:items-start">
+          <section aria-labelledby="practice-focus-heading">
+            <Card className="min-w-0 p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wider text-violet-600">Orientación personal</p>
+                  <h2 className="mt-1 text-xl font-bold" id="practice-focus-heading">Tu foco de práctica</h2>
+                </div>
+                <Badge tone={priorities.length ? "warning" : "brand"}>
+                  {priorities.length ? "Hay algo por reforzar" : "Todo al día"}
+                </Badge>
+              </div>
 
           {assessedCriteria > 0 ? (
-            <div className="mt-3 grid gap-3 lg:grid-cols-2">
-              {criteriaIndicators
-                .filter(
-                  (indicator) =>
-                    indicator.met + indicator.intercepted + indicator.reinforcement > 0,
-                )
-                .map((indicator) => {
-                  const total = indicator.met + indicator.intercepted + indicator.reinforcement;
-                  const metPercentage = Math.round((indicator.met / total) * 100);
-
-                  return (
-                    <Card className="min-w-0" key={indicator.title}>
-                      <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-                        <h3 className="min-w-0 text-pretty text-sm font-bold leading-6">
-                          {indicator.title}
-                        </h3>
-                        <Badge
-                          className="w-fit shrink-0 whitespace-nowrap sm:justify-self-end"
-                          tone={indicator.reinforcement > 0 ? "warning" : "brand"}
-                        >
-                          {metPercentage}% logrado
-                        </Badge>
+                <div className="mt-5 space-y-5">
+                  {priorities.length ? (
+                    <div>
+                      <h3 className="text-sm font-bold text-amber-900">Practica esto a continuación</h3>
+                      <div className="mt-2 space-y-2">
+                        {priorities.map((indicator) => (
+                          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4" key={indicator.title}>
+                            <p className="text-sm font-bold leading-6 text-amber-950">{indicator.title}</p>
+                            <p className="mt-1 text-xs leading-5 text-amber-800">Vuelve a intentarlo en una práctica guiada.</p>
+                          </div>
+                        ))}
                       </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                      <p className="font-bold text-emerald-950">Tus acciones observadas están consolidadas</p>
+                      <p className="mt-1 text-sm leading-6 text-emerald-800">Puedes avanzar o repetir un caso para mantener la práctica.</p>
+                    </div>
+                  )}
 
-                      <div className="mt-4 grid grid-cols-1 gap-2 text-center text-sm min-[420px]:grid-cols-3">
-                        <MetricBox
-                          className="bg-emerald-50 text-emerald-900"
-                          label="Logrado"
-                          value={indicator.met}
-                        />
-                        <MetricBox
-                          className="bg-amber-50 text-amber-900"
-                          label="Interceptado"
-                          value={indicator.intercepted}
-                        />
-                        <MetricBox
-                          className="bg-slate-100 text-slate-700"
-                          label="Refuerzo"
-                          value={indicator.reinforcement}
-                        />
-                      </div>
-                    </Card>
-                  );
-                })}
-            </div>
+                  {strengths.length ? (
+                    <div>
+                      <h3 className="text-sm font-bold">Fortalezas observadas</h3>
+                      <ul className="mt-2 space-y-2">
+                        {strengths.map((indicator) => (
+                          <li className="flex gap-2 rounded-xl bg-slate-50 px-3 py-2.5 text-sm leading-6" key={indicator.title}>
+                            <span aria-hidden="true" className="font-black text-emerald-600">✓</span>
+                            {indicator.title}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  <details className="rounded-2xl border border-slate-200 bg-slate-50/70">
+                    <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-[var(--brand-strong)]">
+                      Ver detalle de los {practicedIndicators.length} criterios
+                    </summary>
+                    <div className="space-y-3 border-t border-slate-200 p-4">
+                      {practicedIndicators.map((indicator) => (
+                        <div key={indicator.title}>
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-xs font-semibold leading-5">{indicator.title}</p>
+                            <span className="shrink-0 text-xs font-black text-[var(--brand-strong)]">{indicator.safePercentage}%</span>
+                          </div>
+                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                            <div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${indicator.safePercentage}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </div>
           ) : (
-            <Card className="mt-3 border-dashed bg-slate-50">
+                <div className="mt-5 rounded-2xl border border-dashed bg-slate-50 p-4">
               <p className="font-bold">Aún no hay criterios registrados</p>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                 Completa el caso de dispensación para ver indicadores de sus siete acciones observables.
               </p>
-            </Card>
+                </div>
           )}
-
-          <Card className="mt-3 min-w-0 border-sky-200 bg-sky-50">
-            <Badge tone="neutral">Gobernanza de contenido</Badge>
-            <p className="mt-3 text-sm font-bold text-sky-950">
-              {documentedSources} fuentes documentales registradas.
-            </p>
-            <p className="mt-2 break-words text-sm leading-6 text-sky-900">
-              {traceabilityRecord.statement} Alcance: {traceabilityRecord.scope}
-            </p>
-            <p className="mt-2 break-words text-sm leading-6 text-sky-900">
-              Estos indicadores no certifican competencia clínica ni reemplazan la evaluación institucional. Las decisiones clínicas y condiciones no previstas se derivan al QF.
-            </p>
-          </Card>
-        </section>
-
-        <section aria-labelledby="achievements-heading">
-          <h2 className="text-xl font-bold" id="achievements-heading">Insignias</h2>
-          {achievements.length > 0 ? (
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {achievements.map((achievement) => (
-                <Card className="min-w-0 border-amber-200 bg-amber-50" key={achievement.name}>
-                  <Badge tone="warning">Desbloqueada</Badge>
-                  <h3 className="mt-3 break-words text-lg font-bold">{achievement.name}</h3>
-                  <p className="mt-2 break-words text-sm leading-6 text-[var(--muted)]">
-                    {achievement.description}
-                  </p>
-                  <p className="mt-3 text-xs font-semibold text-amber-900">
-                    {dateFormatter.format(new Date(achievement.unlockedAt))}
-                  </p>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card className="mt-3 border-dashed bg-slate-50">
-              <p className="font-bold">Tu primera insignia te espera</p>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                Completa una simulación para desbloquearla.
-              </p>
             </Card>
-          )}
-        </section>
+          </section>
 
-        <section aria-labelledby="activity-heading">
-          <h2 className="text-xl font-bold" id="activity-heading">Actividad reciente</h2>
-          {recentAttempts.length > 0 ? (
-            <div className="mt-3 space-y-3">
-              {recentAttempts.map((attempt) => (
-                <Card
-                  className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-                  key={`${attempt.completedAt}-${attempt.title}`}
-                >
-                  <div className="min-w-0">
-                    <h3 className="break-words font-bold">{attempt.title}</h3>
-                    <p className="mt-1 text-sm text-[var(--muted)]">
-                      {dateFormatter.format(new Date(attempt.completedAt))}
-                    </p>
+          <aside className="space-y-5">
+            <Card className="p-5" aria-labelledby="activity-heading">
+              <p className="text-xs font-black uppercase tracking-wider text-violet-600">Último resultado</p>
+              <h2 className="mt-1 text-lg font-bold" id="activity-heading">Actividad reciente</h2>
+              {latestAttempt ? (
+                <div className="mt-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-bold leading-6">{latestAttempt.title}</h3>
+                      <p className="mt-1 text-xs text-[var(--muted)]">{dateFormatter.format(new Date(latestAttempt.completedAt))}</p>
+                    </div>
+                    <Badge tone="brand">{latestAttempt.score}%</Badge>
                   </div>
-                  <div className="shrink-0 text-left sm:text-right">
-                    <p className="font-bold text-[var(--brand-strong)]">{attempt.score}%</p>
-                    <p className="mt-1 text-sm font-semibold text-[var(--muted)]">
-                      +{attempt.xpEarned} XP
-                    </p>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card className="mt-3 border-dashed bg-slate-50">
-              <p className="font-bold">Aún no tienes intentos guardados</p>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                Tus resultados aparecerán aquí al terminar una simulación.
-              </p>
+                  {recentAttempts.length > 1 ? (
+                    <details className="mt-4 border-t border-slate-100 pt-3">
+                      <summary className="cursor-pointer text-sm font-bold text-[var(--brand-strong)]">Ver historial reciente</summary>
+                      <ol className="mt-3 space-y-3">
+                        {recentAttempts.slice(1).map((attempt) => (
+                          <li className="flex items-start justify-between gap-3 text-xs" key={`${attempt.completedAt}-${attempt.title}`}>
+                            <div><p className="font-semibold leading-5">{attempt.title}</p><p className="text-[var(--muted)]">{dateFormatter.format(new Date(attempt.completedAt))}</p></div>
+                            <span className="font-black text-[var(--brand-strong)]">{attempt.score}%</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </details>
+                  ) : null}
+                </div>
+              ) : <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Tus resultados aparecerán al terminar una simulación.</p>}
             </Card>
-          )}
-        </section>
+
+            <Card className="border-amber-200 bg-amber-50 p-5" aria-labelledby="achievements-heading">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="font-bold" id="achievements-heading">Insignias</h2>
+                <Badge tone="warning">{achievements.length}</Badge>
+              </div>
+              {achievements[0] ? (
+                <div className="mt-3"><p className="font-bold text-amber-950">{achievements[0].name}</p><p className="mt-1 text-sm leading-6 text-amber-900">{achievements[0].description}</p></div>
+              ) : <p className="mt-3 text-sm text-amber-900">Completa una simulación para desbloquear la primera.</p>}
+            </Card>
+          </aside>
+        </div>
+
+        <details className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sky-950">
+          <summary className="cursor-pointer text-sm font-bold">Información sobre estos indicadores</summary>
+          <div className="mt-3 space-y-2 border-t border-sky-200 pt-3 text-sm leading-6">
+            <p>{documentedSources} fuentes documentales registradas.</p>
+            <p>{traceabilityRecord.statement} Alcance: {traceabilityRecord.scope}</p>
+            <p>Estos indicadores no certifican competencia clínica ni reemplazan la evaluación institucional. Las situaciones no previstas se derivan al QF.</p>
+          </div>
+        </details>
       </PageContainer>
       <BottomNavigation activeHref="/progreso" />
     </>
-  );
-}
-
-function SummaryCard({ label, value }: { label: string; value: number | string }) {
-  return (
-    <Card className="min-w-0">
-      <p className="truncate text-sm text-[var(--muted)]">{label}</p>
-      <p className="mt-2 break-words text-3xl font-bold text-[var(--brand-strong)]">{value}</p>
-    </Card>
-  );
-}
-
-function MetricBox({
-  className,
-  label,
-  value,
-}: {
-  className: string;
-  label: string;
-  value: number;
-}) {
-  return (
-    <div className={`min-w-0 rounded-xl p-2 ${className}`}>
-      <p className="font-bold">{value}</p>
-      <p className="mt-1 break-words text-xs">{label}</p>
-    </div>
   );
 }

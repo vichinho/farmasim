@@ -5,9 +5,17 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function loadTrainingLevels() {
   const supabase = await createClient();
+  const { data: verifiedJwt } = await supabase.auth.getClaims();
+  const userId = verifiedJwt?.claims.sub;
+
+  if (!userId) {
+    return resolveTrainingLevels([]);
+  }
+
   const { data, error } = await supabase
     .from("simulation_attempts")
     .select("level_number")
+    .eq("user_id", userId)
     .not("completed_at", "is", null)
     .not("level_number", "is", null);
 
