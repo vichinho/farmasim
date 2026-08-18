@@ -1,3 +1,4 @@
+import { buildGenerationReport } from "@/features/simulation-engine/fixtures/generation-report";
 import { buildMinimumScenarioReport } from "@/features/simulation-engine/fixtures/report";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -81,6 +82,17 @@ export function runMinimumScenarioRegressionChecks(): SimulationEngineRegression
     "E must detect mixed drawer contents",
   );
   checks.push("E: storage anomalies remain separate from the final prepared product state");
+
+  const generationReport = buildGenerationReport();
+  assert(generationReport.length === 5, "dynamic generation must cover the five minimum definitions");
+  for (const generated of generationReport) {
+    assert(
+      generated.deterministicReplay,
+      `${generated.id} must reproduce the same semantic session with the same seed`,
+    );
+    assert(generated.attempts >= 1, `${generated.id} must report at least one generation attempt`);
+  }
+  checks.push("Generator: all five definitions reproduce deterministically from the same seed");
 
   return { passed: true, checks };
 }
