@@ -17,6 +17,10 @@ export { evaluateSimulation } from "@/features/simulation-engine/engine";
 export { SimulationEventLog } from "@/features/simulation-engine/event-log";
 export { selectReinforcement } from "@/features/simulation-engine/reinforcement-engine";
 export {
+  SimulationRuntime,
+  SimulationRuntimeError,
+} from "@/features/simulation-engine/runtime";
+export {
   createDeterministicRandom,
   generateScenarioSession,
 } from "@/features/simulation-engine/scenario-generator";
@@ -50,10 +54,14 @@ export type {
   ScenarioGenerationContext,
   ScenarioGenerationResult,
   ScenarioValidationResult,
+  SimulationActionInput,
+  SimulationDispatchReceipt,
   SimulationEvaluation,
   SimulationEvent,
   SimulationEventType,
   SimulationRole,
+  SimulationRuntimeSnapshot,
+  SimulationRuntimeStatus,
   SimulationSession,
   SimulationState,
   SyntheticPatient,
