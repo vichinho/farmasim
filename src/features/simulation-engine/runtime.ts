@@ -1,5 +1,11 @@
 import { evaluateSimulation } from "@/features/simulation-engine/engine";
 import { SimulationEventLog } from "@/features/simulation-engine/event-log";
+import {
+  deriveRuntimeMaterialState,
+  resolveMedicationPresentationId,
+  runtimeEffectiveSession,
+} from "@/features/simulation-engine/material-state";
+import type { RuntimeMaterialState } from "@/features/simulation-engine/material-state";
 import { validateScenarioSession } from "@/features/simulation-engine/scenario-validator";
 import type {
   ScenarioDefinition,
@@ -21,6 +27,28 @@ export class SimulationRuntimeError extends Error {
     super(message);
     this.name = "SimulationRuntimeError";
   }
+}
+
+function actionQuantity(action: SimulationActionInput): number {
+  const value = action.metadata?.quantity;
+  if (value === undefined) return 1;
+
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    throw new SimulationRuntimeError(
+      "invalid_quantity",
+      `${action.type} metadata.quantity must be a positive number.`,
+    );
+  }
+
+  return Math.floor(value);
+}
+
+function materialQuantity(
+  material: RuntimeMaterialState,
+  location: "trayItems" | "heldItems",
+  presentationId: string,
+): number {
+  return material[location].find((item) => item.presentationId === presentationId)?.quantity ?? 0;
 }
 
 function assertExternalActionTarget(session: SimulationSession, action: SimulationActionInput) {
@@ -76,11 +104,7 @@ function assertExternalActionTarget(session: SimulationSession, action: Simulati
     action.type === "medication.added_to_tray"
   ) {
     const targetId = requireTarget("medication");
-    const isPresentation = session.presentations.some((presentation) => presentation.id === targetId);
-    const isDrawerItem = session.drawers.some((drawer) =>
-      drawer.contents.some((item) => item.id === targetId),
-    );
-    if (!isPresentation && !isDrawerItem) {
+    if (!resolveMedicationPresentationId(session, targetId)) {
       throw new SimulationRuntimeError(
         "unknown_medication",
         `Medication target ${targetId} is not part of this session.`,
@@ -110,6 +134,47 @@ function assertExternalActionTarget(session: SimulationSession, action: Simulati
       throw new SimulationRuntimeError(
         "unknown_search_result_patient",
         "search.executed metadata.resultPatientId must reference a patient in this session.",
+      );
+    }
+  }
+}
+
+function assertMaterialActionState(
+  session: SimulationSession,
+  events: readonly SimulationEvent[],
+  action: SimulationActionInput,
+) {
+  if (
+    action.type !== "medication.taken" &&
+    action.type !== "medication.added_to_tray" &&
+    action.type !== "medication.returned"
+  ) {
+    return;
+  }
+
+  const presentationId = resolveMedicationPresentationId(session, action.targetId);
+  if (!presentationId) return;
+  const quantity = actionQuantity(action);
+  const material = deriveRuntimeMaterialState(session, events);
+
+  if (action.type === "medication.added_to_tray") {
+    const held = materialQuantity(material, "heldItems", presentationId);
+    if (held < quantity) {
+      throw new SimulationRuntimeError(
+        "medication_not_held",
+        `Cannot add ${quantity} of ${presentationId} to the tray because only ${held} is currently held.`,
+      );
+    }
+  }
+
+  if (action.type === "medication.returned") {
+    const available =
+      materialQuantity(material, "heldItems", presentationId) +
+      materialQuantity(material, "trayItems", presentationId);
+    if (available < quantity) {
+      throw new SimulationRuntimeError(
+        "medication_not_returnable",
+        `Cannot return ${quantity} of ${presentationId}; only ${available} is held or on the tray.`,
       );
     }
   }
@@ -150,13 +215,20 @@ export class SimulationRuntime {
       );
     }
 
+    const previousEvents = this.#eventLog.all();
     assertExternalActionTarget(this.session, action);
+    assertMaterialActionState(this.session, previousEvents, action);
 
     const actionEvent = this.#eventLog.append(action);
     const generatedEvents: SimulationEvent[] = [];
 
     if (action.type === "delivery.attempted") {
-      const evaluation = evaluateSimulation(this.definition, this.session, this.#eventLog.all());
+      const events = this.#eventLog.all();
+      const material = deriveRuntimeMaterialState(this.session, events);
+      const effectiveSession = runtimeEffectiveSession(this.session, material);
+      const evaluation = evaluateSimulation(this.definition, effectiveSession, events, {
+        validateConfiguration: false,
+      });
       const generated = this.#eventLog.append({
         actorId: SYSTEM_SAFETY_ACTOR_ID,
         type: evaluation.safety.allowed ? "delivery.completed" : "delivery.blocked",
@@ -182,9 +254,17 @@ export class SimulationRuntime {
     return actions.map((action) => this.dispatch(action));
   }
 
+  materialSnapshot(): RuntimeMaterialState {
+    return deriveRuntimeMaterialState(this.session, this.#eventLog.all());
+  }
+
   snapshot(): SimulationRuntimeSnapshot {
     const events = this.#eventLog.all();
-    const evaluation = evaluateSimulation(this.definition, this.session, events);
+    const material = deriveRuntimeMaterialState(this.session, events);
+    const effectiveSession = runtimeEffectiveSession(this.session, material);
+    const evaluation = evaluateSimulation(this.definition, effectiveSession, events, {
+      validateConfiguration: false,
+    });
 
     return {
       sessionId: this.session.id,
