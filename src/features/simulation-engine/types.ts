@@ -31,8 +31,13 @@ export type MedicationPresentationSource = {
   trakcareCode?: string;
   reyimenCode?: string;
   rawDescription?: string;
+  supplementalDescription?: string;
+  sourceGroup?: string;
   unit?: string;
   exclusiveUse?: string;
+  strengthSource?: "primary" | "supplemental" | "none";
+  reviewStatus?: "parsed" | "supplemental-parsed" | "requires-review";
+  reviewReason?: "no-strength-in-source" | "conflicting-supplemental-description";
 };
 
 export type MedicationPresentation = {
