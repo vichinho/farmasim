@@ -57,16 +57,28 @@ function deriveStorageDeviations(
   return deviations;
 }
 
+export type EvaluateSimulationOptions = {
+  /**
+   * Validates the generated/configured scenario before evaluating it. Runtime
+   * snapshots may disable this because user actions are allowed to correct the
+   * deliberately configured errors while the session is in progress.
+   */
+  validateConfiguration?: boolean;
+};
+
 export function evaluateSimulation(
   definition: ScenarioDefinition,
   session: SimulationSession,
   events: readonly SimulationEvent[],
+  options: EvaluateSimulationOptions = {},
 ): SimulationEvaluation {
-  const validation = validateScenarioSession(definition, session);
-  if (!validation.valid) {
-    throw new Error(
-      `Invalid simulation session: ${validation.issues.map((issue) => `${issue.code}: ${issue.message}`).join(" | ")}`,
-    );
+  if (options.validateConfiguration !== false) {
+    const validation = validateScenarioSession(definition, session);
+    if (!validation.valid) {
+      throw new Error(
+        `Invalid simulation session: ${validation.issues.map((issue) => `${issue.code}: ${issue.message}`).join(" | ")}`,
+      );
+    }
   }
 
   const state = deriveSimulationState(session, events);
