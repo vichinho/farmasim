@@ -1,8 +1,6 @@
+import type { MinimumScenarioFixture } from "@/features/simulation-engine/fixtures/minimum-scenarios";
 import { minimumScenarioFixtures } from "@/features/simulation-engine/fixtures/minimum-scenarios";
 import { SimulationRuntime, SimulationRuntimeError } from "@/features/simulation-engine/runtime";
-import type {
-  MinimumScenarioFixture,
-} from "@/features/simulation-engine/fixtures/minimum-scenarios";
 import type {
   SimulationActionInput,
   SimulationEvent,
@@ -50,6 +48,20 @@ function expectedStatus(fixtureId: string): SimulationRuntimeStatus {
   return "running";
 }
 
+function wrongPreparationActions(): SimulationActionInput[] {
+  return [
+    { actorId: "actor-preparation", type: "storage.entered", targetType: "storage", targetId: "sector-L" },
+    { actorId: "actor-preparation", type: "drawer.label_inspected", targetType: "drawer", targetId: "drawer-l-mixed" },
+    { actorId: "actor-preparation", type: "drawer.opened", targetType: "drawer", targetId: "drawer-l-mixed" },
+    { actorId: "actor-preparation", type: "drawer.contents_inspected", targetType: "drawer", targetId: "drawer-l-mixed" },
+    { actorId: "actor-preparation", type: "medication.taken", targetType: "medication", targetId: "drawer-l-mixed-item-2" },
+    { actorId: "actor-preparation", type: "medication.inspected", targetType: "medication", targetId: "drawer-l-mixed-item-2" },
+    { actorId: "actor-preparation", type: "medication.added_to_tray", targetType: "medication", targetId: "drawer-l-mixed-item-2" },
+    { actorId: "actor-preparation", type: "preparation.confirmed", targetType: "tray", targetId: "tray-wrong" },
+    { actorId: "actor-preparation", type: "tray.sent", targetType: "tray", targetId: "tray-wrong" },
+  ];
+}
+
 export function buildRuntimeReport() {
   return minimumScenarioFixtures.map((fixture) => {
     const runtime = new SimulationRuntime(fixture.definition, fixture.session);
@@ -76,6 +88,7 @@ export function buildRuntimeReport() {
       trayItems: material.trayItems,
       heldItems: material.heldItems,
       preparationWorkflow: runtime.preparationWorkflowSnapshot(),
+      handoff: runtime.handoffSnapshot(),
       finalEvent: snapshot.events.at(-1)?.type ?? null,
     };
   });
@@ -98,7 +111,7 @@ export function buildBlockedDeliveryRecoveryReport() {
       timestamp: "2026-08-17T21:30:00.000Z",
     },
     {
-      actorId: "actor-attention",
+      actorId: "actor-preparation",
       type: "medication.returned",
       targetType: "medication",
       targetId: "losartan-100",
@@ -106,14 +119,14 @@ export function buildBlockedDeliveryRecoveryReport() {
       timestamp: "2026-08-17T21:31:00.000Z",
     },
     {
-      actorId: "actor-attention",
+      actorId: "actor-preparation",
       type: "drawer.opened",
       targetType: "drawer",
       targetId: "drawer-l-01",
       timestamp: "2026-08-17T21:31:30.000Z",
     },
     {
-      actorId: "actor-attention",
+      actorId: "actor-preparation",
       type: "medication.taken",
       targetType: "medication",
       targetId: "drawer-l-01-item-1",
@@ -121,7 +134,7 @@ export function buildBlockedDeliveryRecoveryReport() {
       timestamp: "2026-08-17T21:32:00.000Z",
     },
     {
-      actorId: "actor-attention",
+      actorId: "actor-preparation",
       type: "medication.added_to_tray",
       targetType: "medication",
       targetId: "drawer-l-01-item-1",
@@ -129,18 +142,39 @@ export function buildBlockedDeliveryRecoveryReport() {
       timestamp: "2026-08-17T21:33:00.000Z",
     },
     {
-      actorId: "actor-attention",
-      type: "tray.inspected",
+      actorId: "actor-preparation",
+      type: "preparation.confirmed",
+      targetType: "tray",
+      targetId: "tray-1",
+      timestamp: "2026-08-17T21:33:30.000Z",
+    },
+    {
+      actorId: "actor-preparation",
+      type: "tray.sent",
       targetType: "tray",
       targetId: "tray-1",
       timestamp: "2026-08-17T21:34:00.000Z",
     },
     {
       actorId: "actor-attention",
+      type: "tray.received",
+      targetType: "tray",
+      targetId: "tray-1",
+      timestamp: "2026-08-17T21:34:30.000Z",
+    },
+    {
+      actorId: "actor-attention",
+      type: "tray.inspected",
+      targetType: "tray",
+      targetId: "tray-1",
+      timestamp: "2026-08-17T21:35:00.000Z",
+    },
+    {
+      actorId: "actor-attention",
       type: "medication.inspected",
       targetType: "medication",
       targetId: "losartan-50",
-      timestamp: "2026-08-17T21:35:00.000Z",
+      timestamp: "2026-08-17T21:35:30.000Z",
     },
     {
       actorId: "actor-attention",
@@ -173,6 +207,8 @@ export function buildBlockedDeliveryRecoveryReport() {
     trayItems: material.trayItems,
     heldItems: material.heldItems,
     drawerStock: inventory.drawers.find((drawer) => drawer.drawerId === "drawer-l-01") ?? null,
+    handoff: runtime.handoffSnapshot(),
+    preparationWorkflow: runtime.preparationWorkflowSnapshot(),
     eventCount: completed.eventCount,
   };
 }
@@ -304,17 +340,7 @@ export function buildPreparationWorkflowReport() {
   }
 
   const wrongRuntime = new SimulationRuntime(fixture.definition, fixture.session);
-  const wrongActions: SimulationActionInput[] = [
-    { actorId: "actor-preparation", type: "storage.entered", targetType: "storage", targetId: "sector-L" },
-    { actorId: "actor-preparation", type: "drawer.label_inspected", targetType: "drawer", targetId: "drawer-l-mixed" },
-    { actorId: "actor-preparation", type: "drawer.opened", targetType: "drawer", targetId: "drawer-l-mixed" },
-    { actorId: "actor-preparation", type: "drawer.contents_inspected", targetType: "drawer", targetId: "drawer-l-mixed" },
-    { actorId: "actor-preparation", type: "medication.taken", targetType: "medication", targetId: "drawer-l-mixed-item-2" },
-    { actorId: "actor-preparation", type: "medication.inspected", targetType: "medication", targetId: "drawer-l-mixed-item-2" },
-    { actorId: "actor-preparation", type: "medication.added_to_tray", targetType: "medication", targetId: "drawer-l-mixed-item-2" },
-    { actorId: "actor-preparation", type: "preparation.confirmed", targetType: "tray", targetId: "tray-wrong" },
-    { actorId: "actor-preparation", type: "tray.sent", targetType: "tray", targetId: "tray-wrong" },
-  ];
+  const wrongActions = wrongPreparationActions();
   wrongRuntime.dispatchMany(wrongActions);
   const wrongSnapshot = wrongRuntime.snapshot();
 
@@ -338,11 +364,96 @@ export function buildPreparationWorkflowReport() {
     wrongHandoff: {
       finalEvent: wrongSnapshot.events.at(-1)?.type ?? null,
       workflow: wrongRuntime.preparationWorkflowSnapshot(),
+      handoff: wrongRuntime.handoffSnapshot(),
       trayItems: wrongRuntime.materialSnapshot().trayItems,
       blockingDiscrepancies: wrongSnapshot.evaluation.safety.blockingDiscrepancyIds.length,
       systemDeliveryEvents: wrongSnapshot.events.filter(
         (event) => event.type === "delivery.blocked" || event.type === "delivery.completed",
       ).length,
+    },
+  };
+}
+
+export function buildRoleHandoffReport() {
+  const fixture = minimumScenarioFixtures.find((item) => item.id === "E");
+  if (!fixture) throw new Error("Minimum scenario E is required for role handoff diagnostics.");
+
+  const runtime = new SimulationRuntime(fixture.definition, fixture.session);
+  runtime.dispatchMany(wrongPreparationActions());
+  const firstSend = runtime.handoffSnapshot();
+
+  runtime.dispatchMany([
+    { actorId: "actor-attention", type: "tray.received", targetType: "tray", targetId: "tray-wrong" },
+    { actorId: "actor-attention", type: "tray.inspected", targetType: "tray", targetId: "tray-wrong" },
+    { actorId: "actor-attention", type: "medication.inspected", targetType: "medication", targetId: "losartan-100" },
+    { actorId: "actor-attention", type: "correction.requested", targetType: "tray", targetId: "tray-wrong" },
+  ]);
+  const afterCorrectionRequest = runtime.handoffSnapshot();
+
+  runtime.dispatchMany([
+    { actorId: "actor-preparation", type: "medication.returned", targetType: "medication", targetId: "drawer-l-mixed-item-2", metadata: { quantity: 1 } },
+    { actorId: "actor-preparation", type: "medication.taken", targetType: "medication", targetId: "drawer-l-mixed-item-1", metadata: { quantity: 1 } },
+    { actorId: "actor-preparation", type: "medication.inspected", targetType: "medication", targetId: "drawer-l-mixed-item-1" },
+    { actorId: "actor-preparation", type: "medication.added_to_tray", targetType: "medication", targetId: "drawer-l-mixed-item-1", metadata: { quantity: 1 } },
+    { actorId: "actor-preparation", type: "preparation.confirmed", targetType: "tray", targetId: "tray-corrected" },
+    { actorId: "actor-preparation", type: "tray.sent", targetType: "tray", targetId: "tray-corrected" },
+  ]);
+  const secondSend = runtime.handoffSnapshot();
+
+  runtime.dispatchMany([
+    { actorId: "actor-attention", type: "tray.received", targetType: "tray", targetId: "tray-corrected" },
+    { actorId: "actor-attention", type: "tray.inspected", targetType: "tray", targetId: "tray-corrected" },
+    { actorId: "actor-attention", type: "medication.inspected", targetType: "medication", targetId: "losartan-50" },
+    { actorId: "actor-attention", type: "identity.rechecked", targetType: "patient", targetId: "patient-marta" },
+    { actorId: "actor-attention", type: "instructions.given", targetType: "patient", targetId: "patient-marta" },
+    { actorId: "actor-attention", type: "delivery.attempted", targetType: "patient", targetId: "patient-marta" },
+  ]);
+
+  const completed = runtime.snapshot();
+
+  const receiveBeforeSendRuntime = new SimulationRuntime(fixture.definition, fixture.session);
+  let receiveBeforeSendRejected = false;
+  try {
+    receiveBeforeSendRuntime.dispatch({
+      actorId: "actor-attention",
+      type: "tray.received",
+      targetType: "tray",
+      targetId: "tray-early",
+    });
+  } catch (error) {
+    receiveBeforeSendRejected = error instanceof SimulationRuntimeError && error.code === "tray_not_sent";
+  }
+
+  const noReceiveRuntime = new SimulationRuntime(fixture.definition, fixture.session);
+  noReceiveRuntime.dispatchMany(wrongPreparationActions());
+  let correctionBeforeReceiveRejected = false;
+  try {
+    noReceiveRuntime.dispatch({
+      actorId: "actor-attention",
+      type: "correction.requested",
+      targetType: "tray",
+      targetId: "tray-wrong",
+    });
+  } catch (error) {
+    correctionBeforeReceiveRejected = error instanceof SimulationRuntimeError && error.code === "tray_not_received";
+  }
+
+  return {
+    firstSend,
+    afterCorrectionRequest,
+    secondSend,
+    finalHandoff: runtime.handoffSnapshot(),
+    finalStatus: completed.status,
+    finalEvent: completed.events.at(-1)?.type ?? null,
+    finalBlockingDiscrepancies: completed.evaluation.safety.blockingDiscrepancyIds.length,
+    trayItems: runtime.materialSnapshot().trayItems,
+    deliveryCompletedEvents: completed.events.filter((event) => event.type === "delivery.completed").length,
+    correctionRequestedEvents: completed.events.filter((event) => event.type === "correction.requested").length,
+    guards: {
+      receiveBeforeSendRejected,
+      receiveBeforeSendEventCount: receiveBeforeSendRuntime.snapshot().eventCount,
+      correctionBeforeReceiveRejected,
+      correctionBeforeReceiveEventCount: noReceiveRuntime.snapshot().eventCount,
     },
   };
 }
