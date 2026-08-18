@@ -32,6 +32,12 @@ export {
   runtimeEffectiveSession,
 } from "@/features/simulation-engine/material-state";
 export type { RuntimeMaterialState } from "@/features/simulation-engine/material-state";
+export {
+  deriveRuntimePreparationWorkflow,
+} from "@/features/simulation-engine/preparation-workflow";
+export type {
+  RuntimePreparationWorkflowState,
+} from "@/features/simulation-engine/preparation-workflow";
 export { selectReinforcement } from "@/features/simulation-engine/reinforcement-engine";
 export {
   SimulationRuntime,
