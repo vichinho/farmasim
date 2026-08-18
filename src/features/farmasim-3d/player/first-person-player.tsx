@@ -29,19 +29,14 @@ const BOUNDS = {
 };
 
 export function FirstPersonPlayer({ inputRef }: Props) {
-  const { camera, gl } = useThree();
+  const gl = useThree((state) => state.gl);
   const keyboard = useRef(new Set<string>());
   const yaw = useRef(Math.PI);
   const pitch = useRef(-0.03);
+  const initialized = useRef(false);
   const forward = useRef(new Vector3());
   const right = useRef(new Vector3());
   const movement = useRef(new Vector3());
-
-  useEffect(() => {
-    camera.position.set(0, PLAYER_HEIGHT, 0.15);
-    camera.rotation.order = "YXZ";
-    camera.rotation.set(pitch.current, yaw.current, 0);
-  }, [camera]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => keyboard.current.add(event.code);
@@ -85,7 +80,16 @@ export function FirstPersonPlayer({ inputRef }: Props) {
     };
   }, [gl]);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
+    const camera = state.camera;
+
+    if (!initialized.current) {
+      camera.position.set(0, PLAYER_HEIGHT, 0.15);
+      camera.rotation.order = "YXZ";
+      camera.rotation.set(pitch.current, yaw.current, 0);
+      initialized.current = true;
+    }
+
     const input = inputRef.current;
 
     if (input.lookX !== 0 || input.lookY !== 0) {
