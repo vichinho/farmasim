@@ -43,6 +43,10 @@ let checkpointDeletes = 0;
 let attemptWrites = 0;
 let lastAttempt: SimulationExperienceAttemptInput | null = null;
 
+function getLastAttempt(): SimulationExperienceAttemptInput | null {
+  return lastAttempt;
+}
+
 const diagnosticPersistence: SimulationExperiencePersistence = {
   async loadLatestCheckpoint() {
     return checkpointStore;
@@ -208,6 +212,7 @@ export function PresentationAdapterClient() {
       const reinforcement = finalized.completion.criterionResults.filter(
         (criterion) => criterion.status === "reinforcement",
       ).length;
+      const persistedAttempt = getLastAttempt();
       const success =
         initial.source === "generated" &&
         snapshot.contractVersion === 1 &&
@@ -222,7 +227,7 @@ export function PresentationAdapterClient() {
         checkpointWrites === 2 &&
         checkpointDeletes === 1 &&
         attemptWrites === 1 &&
-        lastAttempt?.attemptId === finalized.attemptId;
+        persistedAttempt?.attemptId === finalized.attemptId;
 
       setResult({
         contractVersion: snapshot.contractVersion,
