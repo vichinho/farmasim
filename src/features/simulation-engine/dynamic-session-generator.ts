@@ -197,13 +197,15 @@ function createPrescriptionSet(
     });
   }
 
-  const orderedEntries = profile.shuffleRecordOrder
-    ? shuffleDeterministically(entries, random)
-    : entries;
+  const records = entries.map((entry) => entry.record);
 
   return {
-    prescriptions: orderedEntries.map((entry) => entry.prescription),
-    records: orderedEntries.map((entry) => entry.record),
+    // Clinical generation keeps the primary prescription stable. Only the
+    // record list shown to the learner is shuffled as operational noise.
+    prescriptions: entries.map((entry) => entry.prescription),
+    records: profile.shuffleRecordOrder
+      ? shuffleDeterministically(records, random)
+      : records,
     facilitiesUsed,
   };
 }
