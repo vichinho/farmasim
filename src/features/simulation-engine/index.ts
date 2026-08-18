@@ -17,6 +17,16 @@ export { evaluateSimulation } from "@/features/simulation-engine/engine";
 export type { EvaluateSimulationOptions } from "@/features/simulation-engine/engine";
 export { SimulationEventLog } from "@/features/simulation-engine/event-log";
 export {
+  deriveRuntimeInventoryState,
+  resolveMedicationStockSource,
+} from "@/features/simulation-engine/inventory-state";
+export type {
+  MedicationStockSource,
+  RuntimeDrawerInventoryState,
+  RuntimeInventoryItemState,
+  RuntimeInventoryState,
+} from "@/features/simulation-engine/inventory-state";
+export {
   deriveRuntimeMaterialState,
   resolveMedicationPresentationId,
   runtimeEffectiveSession,
