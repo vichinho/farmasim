@@ -1,4 +1,4 @@
-import { technicalSimulationCatalogs } from "@/features/simulation-engine/catalogs";
+import { arsenal2026SimulationCatalogs } from "@/features/simulation-engine/catalogs";
 import {
   describeGeneratedPatient,
   generateDynamicScenarioSession,
@@ -49,12 +49,22 @@ function sessionPreview(session: SimulationSession) {
     mode: session.mode,
     initialClinicalSystemState: session.initialClinicalSystemState,
     recordCount: session.records.length,
-    relevantPrescriptions: relevantPrescriptions.map((prescription) => ({
-      id: prescription.id,
-      presentationId: prescription.presentationId,
-      quantity: prescription.quantity,
-      facilityId: prescription.facilityId,
-    })),
+    relevantPrescriptions: relevantPrescriptions.map((prescription) => {
+      const presentation = session.presentations.find(
+        (candidate) => candidate.id === prescription.presentationId,
+      );
+
+      return {
+        id: prescription.id,
+        presentationId: prescription.presentationId,
+        medication: presentation?.genericName,
+        strength: presentation?.strength,
+        pharmaceuticalForm: presentation?.pharmaceuticalForm,
+        source: presentation?.source,
+        quantity: prescription.quantity,
+        facilityId: prescription.facilityId,
+      };
+    }),
     preparation: session.preparation,
     drawers: session.drawers,
   };
@@ -69,17 +79,17 @@ export function buildGenerationReport() {
     const first = generateDynamicScenarioSession(
       fixture.definition,
       seed,
-      technicalSimulationCatalogs,
+      arsenal2026SimulationCatalogs,
     );
     const replay = generateDynamicScenarioSession(
       fixture.definition,
       replaySeed,
-      technicalSimulationCatalogs,
+      arsenal2026SimulationCatalogs,
     );
     const variant = generateDynamicScenarioSession(
       fixture.definition,
       variantSeed,
-      technicalSimulationCatalogs,
+      arsenal2026SimulationCatalogs,
     );
 
     const firstSignature = JSON.stringify(semanticSignature(first.session));
