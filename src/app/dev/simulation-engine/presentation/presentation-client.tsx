@@ -210,7 +210,7 @@ export function PresentationAdapterClient() {
       ).length;
       const success =
         initial.source === "generated" &&
-        snapshot.contractVersion === 2 &&
+        snapshot.contractVersion === 1 &&
         saved.dirty === false &&
         terminal.snapshot.session.status === "completed" &&
         finalized.status === "saved" &&
@@ -295,7 +295,7 @@ export function PresentationAdapterClient() {
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Hook phase" value={experience.phase} ok={ready || Boolean(result?.success)} />
-        <Stat label="Contract version" value={String(experience.state?.snapshot.contractVersion ?? "-")} ok={experience.state?.snapshot.contractVersion === 2} />
+        <Stat label="Contract version" value={String(experience.state?.snapshot.contractVersion ?? "-")} ok={experience.state?.snapshot.contractVersion === 1} />
         <Stat label="Source" value={experience.state?.source ?? "-"} ok={experience.state?.source === "generated"} />
         <Stat label="Paciente visible" value={experience.state?.snapshot.session.patientId ?? "-"} ok={Boolean(experience.state?.snapshot.session.patientId)} />
       </div>
