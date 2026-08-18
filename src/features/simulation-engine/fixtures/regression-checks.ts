@@ -3,6 +3,10 @@ import { getDifficultyProfile } from "@/features/simulation-engine/difficulty-en
 import { buildDifficultyReport } from "@/features/simulation-engine/fixtures/difficulty-report";
 import { buildGenerationReport } from "@/features/simulation-engine/fixtures/generation-report";
 import { buildMinimumScenarioReport } from "@/features/simulation-engine/fixtures/report";
+import {
+  buildRuntimeReport,
+  runtimeRejectsInvalidAction,
+} from "@/features/simulation-engine/fixtures/runtime-report";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(`Simulation engine regression failed: ${message}`);
@@ -139,6 +143,22 @@ export function runMinimumScenarioRegressionChecks(): SimulationEngineRegression
     );
   }
   checks.push("Difficulty: all four levels obey deterministic complexity profiles");
+
+  const runtimeReport = buildRuntimeReport();
+  assert(runtimeReport.length === 5, "runtime replay must cover all five minimum scenarios");
+  for (const runtime of runtimeReport) {
+    assert(
+      runtime.status === runtime.expectedStatus,
+      `${runtime.id} runtime status must be ${runtime.expectedStatus}, received ${runtime.status}`,
+    );
+    const expectsSystemDecision = runtime.id !== "E";
+    assert(
+      runtime.generatedEvents === (expectsSystemDecision ? 1 : 0),
+      `${runtime.id} must generate the expected number of system delivery decision events`,
+    );
+  }
+  assert(runtimeRejectsInvalidAction(), "runtime must reject actions from actors outside the session");
+  checks.push("Runtime: player actions are replayed incrementally and delivery decisions remain engine-owned");
 
   return { passed: true, checks };
 }
