@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import {
   buildBlockedDeliveryRecoveryReport,
   buildPreparationWorkflowReport,
+  buildRoleHandoffReport,
   buildRuntimeReport,
   buildRuntimeStockReport,
 } from "@/features/simulation-engine/fixtures/runtime-report";
@@ -17,6 +18,7 @@ export default function SimulationRuntimeDiagnosticsPage() {
   const recovery = buildBlockedDeliveryRecoveryReport();
   const stock = buildRuntimeStockReport();
   const preparation = buildPreparationWorkflowReport();
+  const handoff = buildRoleHandoffReport();
 
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-8 text-slate-100 sm:px-6 lg:px-10">
@@ -36,9 +38,7 @@ export default function SimulationRuntimeDiagnosticsPage() {
 
         <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-2xl">
           <header className="border-b border-white/10 px-5 py-4 sm:px-6">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">
-              Runtime contract
-            </p>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Runtime contract</p>
             <h2 className="mt-1 text-xl font-black">Cinco pruebas reproducidas acción por acción</h2>
           </header>
 
@@ -102,9 +102,9 @@ export default function SimulationRuntimeDiagnosticsPage() {
         <section className="mt-8 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-2xl">
           <header className="border-b border-white/10 px-5 py-4 sm:px-6">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Recovery flow</p>
-            <h2 className="mt-1 text-xl font-black">Entrega bloqueada → corrección → reintento</h2>
+            <h2 className="mt-1 text-xl font-black">Entrega bloqueada → TENS 1 solicita corrección → TENS 2 reenvía</h2>
             <p className="mt-2 max-w-4xl text-xs leading-5 text-slate-400">
-              La Prueba B se bloquea por concentración incorrecta. El mismo runtime conserva el historial, permite corregir la bandeja y vuelve a consultar Safety al reintentar la entrega.
+              La Prueba B conserva el primer bloqueo. TENS 1 solicita corrección, TENS 2 modifica y reenvía la bandeja, TENS 1 vuelve a recibirla y recién entonces reintenta la entrega.
             </p>
           </header>
 
@@ -117,7 +117,7 @@ export default function SimulationRuntimeDiagnosticsPage() {
 
           <div className="grid gap-4 border-t border-white/10 p-5 sm:p-6 xl:grid-cols-2">
             <DiagnosticBlock
-              title="Historial de decisiones"
+              title="Historial de decisiones y handoff"
               value={{
                 blockedEvent: recovery.blockedEvent,
                 completedEvent: recovery.completedEvent,
@@ -125,6 +125,8 @@ export default function SimulationRuntimeDiagnosticsPage() {
                 deliveryCompletedEvents: recovery.deliveryCompletedEvents,
                 correctionActions: recovery.correctionActions,
                 correctionGeneratedEvents: recovery.correctionGeneratedEvents,
+                handoff: recovery.handoff,
+                preparationWorkflow: recovery.preparationWorkflow,
                 eventCount: recovery.eventCount,
               }}
             />
@@ -192,26 +194,66 @@ export default function SimulationRuntimeDiagnosticsPage() {
           </div>
         </section>
 
+        <section className="mt-8 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-2xl">
+          <header className="border-b border-white/10 px-5 py-4 sm:px-6">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Role handoff</p>
+            <h2 className="mt-1 text-xl font-black">TENS 2 → TENS 1 → corrección → TENS 2 → TENS 1</h2>
+            <p className="mt-2 max-w-4xl text-xs leading-5 text-slate-400">
+              La propiedad de la bandeja cambia de preparación a tránsito y atención. Una solicitud de corrección abre un nuevo ciclo sin borrar el anterior.
+            </p>
+          </header>
+
+          <div className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-4">
+            <WorkflowStat label="1º envío" value={handoff.firstSend.owner} ok={handoff.firstSend.owner === "transit"} />
+            <WorkflowStat label="Tras corrección" value={handoff.afterCorrectionRequest.owner} ok={handoff.afterCorrectionRequest.owner === "preparation"} />
+            <WorkflowStat label="2º envío" value={handoff.secondSend.owner} ok={handoff.secondSend.owner === "transit"} />
+            <WorkflowStat label="Resultado final" value={handoff.finalStatus} ok={handoff.finalStatus === "completed"} />
+          </div>
+
+          <div className="grid gap-4 border-t border-white/10 p-5 sm:p-6 xl:grid-cols-3">
+            <DiagnosticBlock
+              title="Ciclos de handoff"
+              value={{
+                firstSend: handoff.firstSend,
+                afterCorrectionRequest: handoff.afterCorrectionRequest,
+                secondSend: handoff.secondSend,
+                finalHandoff: handoff.finalHandoff,
+              }}
+            />
+            <DiagnosticBlock
+              title="Resultado final"
+              value={{
+                finalStatus: handoff.finalStatus,
+                finalEvent: handoff.finalEvent,
+                finalBlockingDiscrepancies: handoff.finalBlockingDiscrepancies,
+                correctionRequestedEvents: handoff.correctionRequestedEvents,
+                deliveryCompletedEvents: handoff.deliveryCompletedEvents,
+                trayItems: handoff.trayItems,
+              }}
+            />
+            <DiagnosticBlock title="Protecciones de orden" value={handoff.guards} />
+          </div>
+        </section>
+
         <section className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:p-6">
           <h2 className="text-lg font-black">Contrato de integración</h2>
-          <pre className="mt-4 overflow-auto whitespace-pre-wrap text-[11px] leading-5 text-slate-300">{`UI / 3D / Sistema clínico
+          <pre className="mt-4 overflow-auto whitespace-pre-wrap text-[11px] leading-5 text-slate-300">{`UI / simulador / sistema clínico
         ↓
 runtime.dispatch({ type, actorId, targetId, metadata })
         ↓
 SimulationEventLog (append-only)
         ↓
-RuntimeMaterialState + RuntimeInventoryState + PreparationWorkflow
+Material + Inventory + PreparationWorkflow + HandoffState
         ↓
 Evaluators + SafetyEngine
         ↓
 SimulationRuntimeSnapshot
 
-La presentación nunca modifica stock ni bandeja directamente.
-Tampoco emite delivery.completed ni delivery.blocked.
+TENS 2 es dueño de preparation.confirmed y tray.sent.
+TENS 1 es dueño de tray.received, correction.requested y delivery.attempted.
 
-TENS 2 debe abrir la gaveta antes de retirar, no puede confirmar con
-medicamentos aún en mano y debe confirmar antes de enviar la bandeja.
-Una selección clínica incorrecta sí puede pasar a TENS 1 para ser interceptada.`}</pre>
+Una corrección inicia un nuevo ciclo de handoff. Ninguna capa visual puede
+saltar directamente de preparación a entrega ni generar delivery.completed.`}</pre>
         </section>
       </div>
     </main>
