@@ -16,6 +16,11 @@ export type { DynamicScenarioGenerationOptions } from "@/features/simulation-eng
 export { evaluateSimulation } from "@/features/simulation-engine/engine";
 export type { EvaluateSimulationOptions } from "@/features/simulation-engine/engine";
 export { SimulationEventLog } from "@/features/simulation-engine/event-log";
+export { deriveRuntimeHandoffState } from "@/features/simulation-engine/handoff-state";
+export type {
+  RuntimeHandoffOwner,
+  RuntimeHandoffState,
+} from "@/features/simulation-engine/handoff-state";
 export {
   deriveRuntimeInventoryState,
   resolveMedicationStockSource,
