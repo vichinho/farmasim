@@ -5,6 +5,7 @@ import { buildGenerationReport } from "@/features/simulation-engine/fixtures/gen
 import { buildMinimumScenarioReport } from "@/features/simulation-engine/fixtures/report";
 import {
   buildBlockedDeliveryRecoveryReport,
+  buildPreparationWorkflowReport,
   buildRuntimeReport,
   buildRuntimeStockReport,
   runtimeRejectsInvalidAction,
@@ -186,8 +187,27 @@ export function runMinimumScenarioRegressionChecks(): SimulationEngineRegression
   assert(stock.low?.totalQuantity === 1 && stock.low.stockState === "low", "stock must become low when only one unit remains");
   assert(stock.empty?.totalQuantity === 0 && stock.empty.stockState === "out-of-stock", "stock must become out-of-stock at zero");
   assert(stock.restored?.totalQuantity === 1 && stock.restored.stockState === "low", "returning medication must restore drawer stock");
-  assert(stock.eventCount === 3, "rejected overdraw must not be appended to the event log");
+  assert(stock.eventCount === 4, "rejected overdraw must not be appended to the event log; drawer.opened plus three accepted stock events remain");
   checks.push("Runtime inventory: drawer stock is event-derived, bounded, and transitions through available/low/out-of-stock");
+
+  const preparation = buildPreparationWorkflowReport();
+  assert(preparation.correct.workflow.confirmed, "preparation flow must record preparation.confirmed");
+  assert(preparation.correct.workflow.traySent, "confirmed preparation must be sendable");
+  assert(preparation.correct.heldItems.length === 0, "sent preparation cannot leave medication held");
+  assert(
+    preparation.correct.trayItems.length === 1 &&
+      preparation.correct.trayItems[0]?.presentationId === "losartan-50" &&
+      preparation.correct.trayItems[0]?.quantity === 1,
+    "correct preparation flow must place the requested presentation on the tray",
+  );
+  assert(preparation.correct.blockingDiscrepancies === 0, "correct preparation must have zero delivery discrepancies");
+  assert(preparation.guards.sendBeforeConfirmRejected, "tray.sent must be rejected before preparation.confirmed");
+  assert(preparation.guards.sendBeforeConfirmEventCount === 0, "rejected premature send must not enter the event log");
+  assert(preparation.guards.confirmWhileHoldingRejected, "preparation.confirmed must be rejected while medication remains held");
+  assert(preparation.wrongHandoff.workflow.traySent, "an incorrect preparation may still be sent downstream for manual interception");
+  assert(preparation.wrongHandoff.blockingDiscrepancies === 1, "wrong-strength handoff must retain one material discrepancy");
+  assert(preparation.wrongHandoff.systemDeliveryEvents === 0, "preparation handoff must not trigger final delivery Safety decisions");
+  checks.push("Preparation workflow: operational guards are enforced without auto-correcting clinically wrong TENS 2 handoffs");
 
   return { passed: true, checks };
 }
