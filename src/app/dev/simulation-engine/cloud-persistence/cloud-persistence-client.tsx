@@ -25,6 +25,44 @@ type DiagnosticResult = {
   message: string;
 } | null;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * PostgreSQL jsonb does not preserve object-key order. Compare JSON values by
+ * structure/content so a cloud roundtrip is not reported as different only
+ * because keys came back in another order.
+ */
+function jsonSemanticallyEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
+      return false;
+    }
+    return left.every((item, index) => jsonSemanticallyEqual(item, right[index]));
+  }
+
+  if (isRecord(left) || isRecord(right)) {
+    if (!isRecord(left) || !isRecord(right)) return false;
+
+    const leftKeys = Object.keys(left).filter((key) => left[key] !== undefined).sort();
+    const rightKeys = Object.keys(right).filter((key) => right[key] !== undefined).sort();
+
+    if (
+      leftKeys.length !== rightKeys.length ||
+      leftKeys.some((key, index) => key !== rightKeys[index])
+    ) {
+      return false;
+    }
+
+    return leftKeys.every((key) => jsonSemanticallyEqual(left[key], right[key]));
+  }
+
+  return false;
+}
+
 function buildCheckpoint() {
   const fixture = minimumScenarioFixtures.find((item) => item.id === "A");
   if (!fixture) throw new Error("Minimum scenario A is required for cloud persistence diagnostics.");
@@ -115,8 +153,7 @@ export function CloudPersistenceClient() {
         parseSimulationCheckpoint(loaded.serializedCheckpoint),
       );
       const restoredSnapshot = restored.snapshot();
-      const replayEqual =
-        JSON.stringify(original.snapshot) === JSON.stringify(restoredSnapshot);
+      const replayEqual = jsonSemanticallyEqual(original.snapshot, restoredSnapshot);
 
       const deleted = await deleteSimulationCheckpointFromCloud(saved.sessionId);
 
