@@ -1,3 +1,4 @@
+import { buildArsenal2026AdapterReport } from "@/features/simulation-engine/arsenal/arsenal-2026-adapter";
 import { buildGenerationReport } from "@/features/simulation-engine/fixtures/generation-report";
 import { buildMinimumScenarioReport } from "@/features/simulation-engine/fixtures/report";
 
@@ -83,6 +84,18 @@ export function runMinimumScenarioRegressionChecks(): SimulationEngineRegression
   );
   checks.push("E: storage anomalies remain separate from the final prepared product state");
 
+  const arsenalReport = buildArsenal2026AdapterReport();
+  assert(arsenalReport.sourceRows === 304, "2026 open-care arsenal must contain the 304 imported source rows");
+  assert(
+    arsenalReport.presentations === arsenalReport.sourceRows,
+    "each imported open-care row must create one traceable medication presentation",
+  );
+  assert(
+    arsenalReport.alternateStrengthGroups > 0,
+    "real arsenal must expose at least one same-medication/same-form alternate-strength group",
+  );
+  checks.push("Arsenal 2026: 304 Atención Abierta rows are loaded with traceable presentations");
+
   const generationReport = buildGenerationReport();
   assert(generationReport.length === 5, "dynamic generation must cover the five minimum definitions");
   for (const generated of generationReport) {
@@ -91,8 +104,14 @@ export function runMinimumScenarioRegressionChecks(): SimulationEngineRegression
       `${generated.id} must reproduce the same semantic session with the same seed`,
     );
     assert(generated.attempts >= 1, `${generated.id} must report at least one generation attempt`);
+    assert(
+      generated.generated.relevantPrescriptions.every(
+        (item) => item.source?.catalog === "arsenal-2026",
+      ),
+      `${generated.id} must generate prescriptions from the 2026 arsenal adapter`,
+    );
   }
-  checks.push("Generator: all five definitions reproduce deterministically from the same seed");
+  checks.push("Generator: all five definitions reproduce deterministically from the real 2026 arsenal");
 
   return { passed: true, checks };
 }
