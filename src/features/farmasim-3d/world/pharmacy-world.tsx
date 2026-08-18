@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { CanvasTexture, Color, SRGBColorSpace, type Texture } from "three";
 
 import { interactableUserData } from "@/features/farmasim-3d/interaction/interaction-system";
@@ -34,250 +34,205 @@ export function PharmacyWorld() {
 
 function RoomShell() {
   return (
-    <group>
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -0.6]}>
-        <planeGeometry args={[12, 10]} />
-        <meshStandardMaterial color="#d9d4ce" roughness={0.84} />
+    <>
+      <mesh receiveShadow position={[0, -0.05, -1.15]}>
+        <boxGeometry args={[11.5, 0.1, 7.6]} />
+        <meshStandardMaterial color="#d3d0cc" roughness={0.88} />
+      </mesh>
+      <mesh receiveShadow position={[0, 2.05, -4.94]}>
+        <boxGeometry args={[11.5, 4.2, 0.12]} />
+        <meshStandardMaterial color="#d6d2cd" roughness={0.9} />
+      </mesh>
+      <mesh receiveShadow position={[-5.68, 2.05, -1.2]}>
+        <boxGeometry args={[0.12, 4.2, 7.5]} />
+        <meshStandardMaterial color="#d1ccc7" roughness={0.9} />
+      </mesh>
+      <mesh receiveShadow position={[5.68, 2.05, -1.2]}>
+        <boxGeometry args={[0.12, 4.2, 7.5]} />
+        <meshStandardMaterial color="#d1ccc7" roughness={0.9} />
+      </mesh>
+      <mesh receiveShadow position={[0, 4.08, -1.2]}>
+        <boxGeometry args={[11.5, 0.08, 7.5]} />
+        <meshStandardMaterial color="#c9c5c1" roughness={0.9} />
       </mesh>
 
-      <mesh receiveShadow position={[0, 1.75, -4.8]}>
-        <boxGeometry args={[12, 3.5, 0.16]} />
-        <meshStandardMaterial color="#e9e4df" roughness={0.92} />
-      </mesh>
+      <CeilingPanel position={[-2.3, 4.01, -1.4]} />
+      <CeilingPanel position={[0, 4.01, -1.4]} />
+      <CeilingPanel position={[2.3, 4.01, -1.4]} />
+    </>
+  );
+}
 
-      <mesh receiveShadow position={[-5.92, 1.75, -0.55]}>
-        <boxGeometry args={[0.16, 3.5, 8.7]} />
-        <meshStandardMaterial color="#ddd7d1" roughness={0.95} />
-      </mesh>
-
-      <mesh receiveShadow position={[5.92, 1.75, -0.55]}>
-        <boxGeometry args={[0.16, 3.5, 8.7]} />
-        <meshStandardMaterial color="#ddd7d1" roughness={0.95} />
-      </mesh>
-
-      <mesh receiveShadow position={[0, 3.45, -0.55]}>
-        <boxGeometry args={[12, 0.12, 8.7]} />
-        <meshStandardMaterial color="#f8f6f3" roughness={0.92} />
-      </mesh>
-
-      {[-3.8, 0, 3.8].map((x) => (
-        <mesh key={x} position={[x, 3.37, -0.2]}>
-          <boxGeometry args={[1.85, 0.04, 0.72]} />
-          <meshStandardMaterial color="#fffef9" emissive="#fff7e8" emissiveIntensity={1.35} />
-        </mesh>
-      ))}
-    </group>
+function CeilingPanel({ position }: { position: [number, number, number] }) {
+  return (
+    <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[1.15, 0.5]} />
+      <meshBasicMaterial color="#fffdf8" />
+    </mesh>
   );
 }
 
 function RearWallModules() {
   return (
-    <group>
-      <SectionSign label="MEDICAMENTOS" position={[-3.72, 2.9, -3.92]} />
-      <SectionSign label="ARSENAL" position={[0, 2.9, -3.92]} accent />
-      <SectionSign label="CUIDADOS" position={[3.72, 2.9, -3.92]} />
-
-      <ShelfBay position={[-3.72, 0, -4.18]} />
-      <DrawerBay position={[0, 0, -4.2]} />
-      <ShelfBay position={[3.72, 0, -4.18]} mirrored />
-    </group>
+    <>
+      <MedicationShelf position={[-3.65, 0, -4.62]} title="MEDICAMENTOS" />
+      <ArsenalWall position={[0.2, 0, -4.65]} />
+      <MedicationShelf position={[4.05, 0, -4.62]} title="CUIDADOS" />
+    </>
   );
 }
 
-function ShelfBay({ position, mirrored = false }: { position: [number, number, number]; mirrored?: boolean }) {
-  const boxes = useMemo(() => {
-    const items: { x: number; y: number; color: string; scale: number }[] = [];
-    const palette = mirrored
-      ? ["#eee8ff", "#d6c7ff", "#f4eee8", "#d9e8e2", "#e8d6ef"]
-      : ["#f2ece7", "#d6e5ef", "#e9d8ba", "#e2d3ef", "#d8e8dd"];
-
-    for (let row = 0; row < 4; row += 1) {
-      for (let column = 0; column < 8; column += 1) {
-        items.push({
-          x: -1.2 + column * 0.34,
-          y: 0.62 + row * 0.52,
-          color: palette[(row * 3 + column) % palette.length],
-          scale: column % 3 === 0 ? 1.08 : column % 4 === 0 ? 0.84 : 0.96,
-        });
-      }
-    }
-
-    return items;
-  }, [mirrored]);
+function MedicationShelf({ position, title }: { position: [number, number, number]; title: string }) {
+  const titleTexture = useLabelTexture(title, 512, 96, "#f7f5f3", "#2e2b31", 40);
 
   return (
     <group position={position}>
-      <mesh castShadow receiveShadow position={[0, 1.48, 0]}>
-        <boxGeometry args={[3.22, 2.88, 0.58]} />
-        <meshStandardMaterial color="#d8d2cc" roughness={0.76} />
+      <mesh castShadow receiveShadow position={[0, 1.55, 0]}>
+        <boxGeometry args={[2.05, 3.05, 0.34]} />
+        <meshStandardMaterial color="#eceae8" roughness={0.82} />
       </mesh>
-
-      <mesh position={[0, 1.48, 0.31]}>
-        <boxGeometry args={[3.02, 2.66, 0.07]} />
-        <meshStandardMaterial color="#f2efec" roughness={0.88} />
-      </mesh>
-
-      {[0.5, 1.02, 1.54, 2.06, 2.58].map((y) => (
-        <mesh key={y} castShadow position={[0, y, 0.38]}>
-          <boxGeometry args={[3.03, 0.055, 0.48]} />
-          <meshStandardMaterial color="#bdb5ad" roughness={0.78} />
+      {[-0.95, -0.35, 0.25, 0.85].map((y) => (
+        <mesh castShadow receiveShadow key={y} position={[0, y + 1.55, 0.24]}>
+          <boxGeometry args={[1.9, 0.07, 0.58]} />
+          <meshStandardMaterial color="#b9b5b1" roughness={0.75} />
         </mesh>
       ))}
-
-      {boxes.map((box, index) => (
-        <mesh key={index} castShadow position={[box.x, box.y, 0.5]} scale={[box.scale, 1, 1]}>
-          <boxGeometry args={[0.24, 0.28, 0.18]} />
-          <meshStandardMaterial color={box.color} roughness={0.67} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function DrawerBay({ position }: { position: [number, number, number] }) {
-  const labels = [
-    "A-B", "C-D", "E-F",
-    "G-H", "I-J", "K-L",
-    "M-N", "O-P", "Q-R",
-    "S-T", "U-V", "W-X",
-    "Y-Z", "", "",
-  ];
-
-  return (
-    <group position={position}>
-      <mesh castShadow receiveShadow position={[0, 1.48, 0]}>
-        <boxGeometry args={[3.24, 2.88, 0.66]} />
-        <meshStandardMaterial color="#bfb6ae" roughness={0.8} />
+      <mesh position={[0, 3.22, 0.2]}>
+        <planeGeometry args={[1.76, 0.33]} />
+        <meshBasicMaterial map={titleTexture ?? undefined} color={titleTexture ? "white" : "#f7f5f3"} />
       </mesh>
-
-      {labels.map((label, index) => {
-        const row = Math.floor(index / 3);
-        const column = index % 3;
-        const x = -1.02 + column * 1.02;
-        const y = 2.48 - row * 0.5;
-
-        if (!label) return null;
-
+      {Array.from({ length: 15 }).map((_, index) => {
+        const row = Math.floor(index / 5);
+        const column = index % 5;
+        const shades = ["#e8e4f5", "#d8dfea", "#ebe5dd", "#d9e5df", "#ded6e8"];
         return (
-          <group key={label} position={[x, y, 0.39]}>
-            <mesh castShadow>
-              <boxGeometry args={[0.91, 0.4, 0.12]} />
-              <meshStandardMaterial color="#a99f97" roughness={0.8} />
-            </mesh>
-            <mesh position={[0, -0.08, 0.075]}>
-              <boxGeometry args={[0.34, 0.035, 0.05]} />
-              <meshStandardMaterial color="#655b55" metalness={0.22} roughness={0.55} />
-            </mesh>
-            <DrawerLabel label={label} />
-          </group>
+          <mesh
+            castShadow
+            key={index}
+            position={[-0.72 + column * 0.36, 2.35 - row * 0.6, 0.44]}
+          >
+            <boxGeometry args={[0.25, 0.34, 0.24]} />
+            <meshStandardMaterial color={shades[index % shades.length]} roughness={0.78} />
+          </mesh>
         );
       })}
     </group>
   );
 }
 
-function DrawerLabel({ label }: { label: string }) {
-  const texture = useLabelTexture(label, 360, 140, "#f0ece8", "#3d3547", 64);
-  if (!texture) return null;
+const drawerLabels = ["A-B", "C-D", "E-F", "G-H", "I-J", "K-L", "M-N", "O-P", "Q-R", "S-T", "U-V", "W-X", "Y-Z"];
 
-  return (
-    <mesh position={[0, 0.065, 0.071]}>
-      <planeGeometry args={[0.52, 0.16]} />
-      <meshBasicMaterial map={texture} transparent />
-    </mesh>
-  );
-}
-
-function SectionSign({
-  label,
-  position,
-  accent = false,
-}: {
-  label: string;
-  position: [number, number, number];
-  accent?: boolean;
-}) {
-  const texture = useLabelTexture(
-    label,
-    960,
-    200,
-    accent ? BRAND : "#eee9e5",
-    accent ? "#ffffff" : DARK,
-    72,
-  );
+function ArsenalWall({ position }: { position: [number, number, number] }) {
+  const arsenalTexture = useLabelTexture("ARSENAL", 768, 120, BRAND, "#ffffff", 54);
 
   return (
     <group position={position}>
-      <mesh castShadow>
-        <boxGeometry args={[3.24, 0.54, 0.14]} />
-        <meshStandardMaterial color={accent ? BRAND : OFF_WHITE} roughness={0.72} />
+      <mesh castShadow receiveShadow position={[0, 2.95, 0.1]}>
+        <boxGeometry args={[3.65, 0.66, 0.36]} />
+        <meshStandardMaterial color={BRAND} roughness={0.62} />
       </mesh>
-      {texture ? (
-        <mesh position={[0, 0, 0.076]}>
-          <planeGeometry args={[2.72, 0.38]} />
-          <meshBasicMaterial map={texture} transparent />
-        </mesh>
-      ) : null}
+      <mesh position={[0, 2.97, 0.3]}>
+        <planeGeometry args={[2.9, 0.42]} />
+        <meshBasicMaterial map={arsenalTexture ?? undefined} color={arsenalTexture ? "white" : BRAND} />
+      </mesh>
+      <mesh castShadow receiveShadow position={[0, 1.28, 0]}>
+        <boxGeometry args={[3.65, 2.8, 0.35]} />
+        <meshStandardMaterial color="#a59f99" roughness={0.82} />
+      </mesh>
+
+      {drawerLabels.map((label, index) => {
+        const row = Math.floor(index / 3);
+        const column = index % 3;
+        const isLast = index === drawerLabels.length - 1;
+        const x = isLast ? -1.12 : -1.12 + column * 1.12;
+        const y = 2.35 - row * 0.58;
+        return <Drawer key={label} label={label} position={[x, y, 0.31]} />;
+      })}
+    </group>
+  );
+}
+
+function Drawer({ label, position }: { label: string; position: [number, number, number] }) {
+  const labelTexture = useLabelTexture(label, 256, 96, "#f4f2f0", "#29262d", 38);
+
+  return (
+    <group position={position}>
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[0.92, 0.46, 0.52]} />
+        <meshStandardMaterial color="#aaa49e" roughness={0.82} />
+      </mesh>
+      <mesh position={[0, 0.06, 0.275]}>
+        <planeGeometry args={[0.58, 0.19]} />
+        <meshBasicMaterial map={labelTexture ?? undefined} color={labelTexture ? "white" : "#f4f2f0"} />
+      </mesh>
+      <mesh castShadow position={[0, -0.13, 0.3]}>
+        <boxGeometry args={[0.34, 0.06, 0.08]} />
+        <meshStandardMaterial color="#403c3a" roughness={0.72} />
+      </mesh>
     </group>
   );
 }
 
 function FrontCounter() {
   return (
-    <group>
-      <mesh castShadow receiveShadow position={[0, 0.53, 1.46]}>
-        <boxGeometry args={[9.3, 1.02, 0.78]} />
-        <meshStandardMaterial color="#d4cec8" roughness={0.8} />
+    <group position={[0, 0, 1.8]}>
+      <mesh castShadow receiveShadow position={[0, 0.55, 0]}>
+        <boxGeometry args={[6.4, 1.05, 0.95]} />
+        <meshStandardMaterial color="#eceae8" roughness={0.82} />
       </mesh>
-
-      <mesh castShadow receiveShadow position={[0, 1.08, 1.46]}>
-        <boxGeometry args={[9.55, 0.13, 0.92]} />
-        <meshStandardMaterial color="#f2efed" roughness={0.62} />
+      <mesh castShadow receiveShadow position={[0, 1.12, 0]}>
+        <boxGeometry args={[6.55, 0.12, 1.15]} />
+        <meshStandardMaterial color="#faf9f7" roughness={0.72} />
       </mesh>
-
-      <ComputerStation />
+      <Computer />
+      <Scanner />
     </group>
   );
 }
 
-function ComputerStation() {
+function Computer() {
+  const screenTexture = useLabelTexture("FARMASYS", 512, 288, "#16141b", "#a78bfa", 54);
+
   return (
-    <group
-      position={[-2.35, 1.12, 1.03]}
-      userData={interactableUserData({
-        id: "clinical-terminal",
-        kind: "computer",
-        label: "Usar computador",
-        maxDistance: 2.45,
-      })}
-    >
-      <mesh castShadow position={[0, 0.66, 0]}>
-        <boxGeometry args={[1.72, 1.03, 0.11]} />
-        <meshStandardMaterial color="#222027" metalness={0.18} roughness={0.48} />
+    <group position={[-0.6, 1.52, -0.1]} {...interactableUserData({
+      id: "clinical-terminal",
+      label: "Usar computador",
+      action: {
+        type: "computer.focused",
+        targetType: "computer",
+        targetId: "clinical-terminal",
+      },
+    })}>
+      <mesh castShadow position={[0, 0.42, 0]}>
+        <boxGeometry args={[0.92, 0.64, 0.08]} />
+        <meshStandardMaterial color="#17151b" roughness={0.5} />
       </mesh>
-      <mesh position={[0, 0.66, -0.061]}>
-        <planeGeometry args={[1.56, 0.86]} />
-        <meshStandardMaterial color="#6f3cc3" emissive="#4c218f" emissiveIntensity={1.15} />
+      <mesh position={[0, 0.42, 0.045]}>
+        <planeGeometry args={[0.79, 0.5]} />
+        <meshBasicMaterial map={screenTexture ?? undefined} color={screenTexture ? "white" : "#16141b"} />
       </mesh>
-      <mesh castShadow position={[0, 0.08, 0.03]}>
-        <boxGeometry args={[0.18, 0.48, 0.14]} />
-        <meshStandardMaterial color="#36323b" roughness={0.55} />
+      <mesh castShadow position={[0, 0.01, 0]}>
+        <boxGeometry args={[0.12, 0.35, 0.08]} />
+        <meshStandardMaterial color="#2a272d" roughness={0.58} />
       </mesh>
-      <mesh castShadow position={[0, -0.17, -0.08]} rotation={[-0.06, 0, 0]}>
-        <boxGeometry args={[1.5, 0.07, 0.42]} />
-        <meshStandardMaterial color="#302c35" roughness={0.6} />
+      <mesh castShadow position={[0, -0.18, 0]}>
+        <boxGeometry args={[0.62, 0.06, 0.34]} />
+        <meshStandardMaterial color="#26242a" roughness={0.62} />
       </mesh>
-      <mesh castShadow position={[1.08, -0.08, -0.05]}>
-        <boxGeometry args={[0.27, 0.13, 0.38]} />
-        <meshStandardMaterial color="#2c2930" roughness={0.58} />
+    </group>
+  );
+}
+
+function Scanner() {
+  return (
+    <group position={[0.45, 1.29, -0.18]} rotation={[0, -0.15, 0]}>
+      <mesh castShadow>
+        <boxGeometry args={[0.18, 0.32, 0.18]} />
+        <meshStandardMaterial color="#f5f3f0" roughness={0.72} />
       </mesh>
-      <mesh castShadow position={[1.68, 0.12, 0.03]} rotation={[0.08, -0.16, 0]}>
-        <boxGeometry args={[0.3, 0.58, 0.27]} />
-        <meshStandardMaterial color="#edeae7" roughness={0.56} />
-      </mesh>
-      <mesh castShadow position={[1.68, -0.17, 0.04]}>
-        <boxGeometry args={[0.46, 0.08, 0.39]} />
-        <meshStandardMaterial color="#3d3940" roughness={0.55} />
+      <mesh castShadow position={[0, -0.2, 0]}>
+        <boxGeometry args={[0.28, 0.08, 0.28]} />
+        <meshStandardMaterial color="#2f2c33" roughness={0.62} />
       </mesh>
     </group>
   );
@@ -285,18 +240,17 @@ function ComputerStation() {
 
 function PatientPlaceholder() {
   return (
-    <group
-      position={[0, 0, 2.48]}
-      userData={interactableUserData({
-        id: "patient-counter",
-        kind: "patient",
-        label: "Hablar con paciente",
-        maxDistance: 2.35,
-      })}
-    >
-      <mesh castShadow position={[0, 2.03, 0]}>
-        <sphereGeometry args={[0.3, 22, 18]} />
-        <meshStandardMaterial color="#d7aa8d" roughness={0.72} />
+    <group position={[-3.6, 0, 2.7]} {...interactableUserData({
+      id: "current-patient",
+      label: "Hablar con paciente",
+      action: {
+        type: "document.requested",
+        targetType: "patient",
+      },
+    })}>
+      <mesh castShadow position={[0, 2.08, 0]}>
+        <sphereGeometry args={[0.29, 20, 14]} />
+        <meshStandardMaterial color="#d7b89b" roughness={0.86} />
       </mesh>
       <mesh castShadow position={[0, 1.32, 0]}>
         <cylinderGeometry args={[0.39, 0.48, 1.18, 18]} />
@@ -322,14 +276,14 @@ function useLabelTexture(
   foreground: string,
   fontSize: number,
 ) {
-  const [texture, setTexture] = useState<Texture | null>(null);
+  const texture = useMemo<Texture | null>(() => {
+    if (typeof document === "undefined") return null;
 
-  useEffect(() => {
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     const context = canvas.getContext("2d");
-    if (!context) return;
+    if (!context) return null;
 
     context.fillStyle = background;
     context.fillRect(0, 0, width, height);
@@ -342,10 +296,10 @@ function useLabelTexture(
     const nextTexture = new CanvasTexture(canvas);
     nextTexture.colorSpace = SRGBColorSpace;
     nextTexture.needsUpdate = true;
-    setTexture(nextTexture);
-
-    return () => nextTexture.dispose();
+    return nextTexture;
   }, [background, fontSize, foreground, height, label, width]);
+
+  useEffect(() => () => texture?.dispose(), [texture]);
 
   return texture;
 }
