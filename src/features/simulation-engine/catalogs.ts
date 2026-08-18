@@ -1,3 +1,8 @@
+import { arsenal2026OpenCarePresentations } from "@/features/simulation-engine/arsenal/arsenal-2026-adapter";
+import {
+  healthcareFacilityCatalog,
+  syntheticPatientCatalog,
+} from "@/features/simulation-engine/synthetic-catalogs";
 import type {
   HealthcareFacility,
   MedicationPresentation,
@@ -11,10 +16,8 @@ export type SimulationCatalogs = {
 };
 
 /**
- * Development-only data used to exercise the generator before the validated
- * 2026 arsenal is connected. Medication presentations mirror the synthetic
- * fixtures already used by the current training prototype; this is not an
- * authoritative pharmacotherapeutic catalog.
+ * Small development-only catalog retained for regression fixtures. It is not
+ * an authoritative pharmacotherapeutic source.
  */
 export const technicalSimulationCatalogs: SimulationCatalogs = {
   patients: [
@@ -85,6 +88,7 @@ export const technicalSimulationCatalogs: SimulationCatalogs = {
       strength: "50 mg",
       pharmaceuticalForm: "Comprimido",
       packageQuantity: 30,
+      source: { catalog: "technical" },
     },
     {
       id: "losartan-100",
@@ -93,6 +97,7 @@ export const technicalSimulationCatalogs: SimulationCatalogs = {
       strength: "100 mg",
       pharmaceuticalForm: "Comprimido",
       packageQuantity: 30,
+      source: { catalog: "technical" },
     },
     {
       id: "amlodipino-5",
@@ -101,6 +106,7 @@ export const technicalSimulationCatalogs: SimulationCatalogs = {
       strength: "5 mg",
       pharmaceuticalForm: "Comprimido",
       packageQuantity: 30,
+      source: { catalog: "technical" },
     },
     {
       id: "paracetamol-500",
@@ -109,6 +115,18 @@ export const technicalSimulationCatalogs: SimulationCatalogs = {
       strength: "500 mg",
       pharmaceuticalForm: "Comprimido",
       packageQuantity: 20,
+      source: { catalog: "technical" },
     },
   ],
+};
+
+/**
+ * Scenario-ready catalog backed by ARSENAL 2026.xlsx / Atención Abierta plus
+ * fully synthetic training patients. Medication source metadata is preserved
+ * on each presentation for traceability.
+ */
+export const arsenal2026SimulationCatalogs: SimulationCatalogs = {
+  patients: syntheticPatientCatalog,
+  facilities: healthcareFacilityCatalog,
+  presentations: arsenal2026OpenCarePresentations,
 };
