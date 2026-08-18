@@ -10,7 +10,7 @@ import type {
   SimulationSession,
 } from "@/features/simulation-engine/types";
 
-export const SIMULATION_INTEGRATION_CONTRACT_VERSION = 1 as const;
+export const SIMULATION_INTEGRATION_CONTRACT_VERSION = 2 as const;
 
 export type SimulationPlayerActionInput = Omit<SimulationActionInput, "actorId">;
 
@@ -31,6 +31,7 @@ export type SimulationIntegrationSnapshot = {
   contractVersion: typeof SIMULATION_INTEGRATION_CONTRACT_VERSION;
   session: {
     id: string;
+    patientId: string;
     mode: SimulationSession["mode"];
     playerRole: SimulationSession["playerRole"];
     status: SimulationRuntimeStatus;
@@ -131,6 +132,7 @@ export function deriveSimulationIntegrationSnapshot(
     contractVersion: SIMULATION_INTEGRATION_CONTRACT_VERSION,
     session: {
       id: session.id,
+      patientId: session.patientId,
       mode: session.mode,
       playerRole: session.playerRole,
       status,
