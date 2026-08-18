@@ -9,10 +9,21 @@ export type {
   SimulationCheckpointLoader,
 } from "@/features/simulation-engine/bootstrap";
 export {
+  buildSimulationAttemptCompletion,
+  SimulationCompletionError,
+} from "@/features/simulation-engine/completion";
+export type {
+  SimulationAttemptCompletion,
+} from "@/features/simulation-engine/completion";
+export {
   SimulationExperienceController,
 } from "@/features/simulation-engine/experience-controller";
 export type {
+  FinalizeSimulationExperienceInput,
+  FinalizeSimulationExperienceResult,
   OpenSimulationExperienceInput,
+  SimulationExperienceAttemptInput,
+  SimulationExperienceAttemptResult,
   SimulationExperiencePersistence,
   SimulationExperienceState,
 } from "@/features/simulation-engine/experience-controller";
