@@ -59,6 +59,11 @@ export function evaluateCriteria(
   const preparationWasActuallyChecked =
     relevantLineIds.length > 0 && relevantLineIds.every((lineId) => comparedLines.has(lineId));
 
+  const finalIdentityEvents = events.filter((event) => event.type === "identity.rechecked");
+  const finalIdentityCorrect = finalIdentityEvents.some(
+    (event) => event.data.patientId === scenario.patient.id,
+  );
+
   if (hasEvent(events, "document.requested")) {
     result["criterion-1-request-identity-document"] = "met";
   }
@@ -90,8 +95,10 @@ export function evaluateCriteria(
       : "met";
   }
 
-  if (hasEvent(events, "identity.rechecked")) {
+  if (finalIdentityCorrect) {
     result["criterion-6-recheck-identity-before-handoff"] = "met";
+  } else if (finalIdentityEvents.length > 0) {
+    result["criterion-6-recheck-identity-before-handoff"] = "reinforcement";
   }
 
   if (instructionsComplete(scenario, events)) {
@@ -103,8 +110,6 @@ export function evaluateCriteria(
   const safelyStopped = hasEvent(events, "qf_support.requested")
     && canSafelyStopForPrescriptionReview(scenario, events);
   if (safelyStopped) {
-    // The workflow correctly stopped before preparation/handoff, so downstream
-    // criteria are treated as intercepted rather than falsely reinforced.
     result["criterion-5-compare-prepared-items"] = "intercepted";
     result["criterion-6-recheck-identity-before-handoff"] = "intercepted";
     result["criterion-7-provide-corresponding-instructions"] = "intercepted";
@@ -113,9 +118,9 @@ export function evaluateCriteria(
   const kinds = blockedKinds(events);
   if (kinds.has("patient")) {
     result["criterion-2-system-identity-match"] = "reinforcement";
-    if (hasEvent(events, "identity.rechecked")) {
-      result["criterion-6-recheck-identity-before-handoff"] = "reinforcement";
-    }
+  }
+  if (kinds.has("final-patient")) {
+    result["criterion-6-recheck-identity-before-handoff"] = "reinforcement";
   }
   if (kinds.has("prescription")) {
     if (!allAvailableOpened) {
