@@ -131,8 +131,17 @@ export function evaluateDeliverySafety(
   }
 
   // Prescription state is an upstream safety gate. Do not cascade downstream
-  // medication/omission errors when the correct action is to stop the handoff.
+  // handoff/preparation errors when the correct action is to stop the workflow.
   if (prescriptionGateFailed || correctlyHeldPrescription) return discrepancies;
+
+  if (session.finalReidentifiedPatientId !== scenario.patient.id) {
+    discrepancies.push({
+      id: "final-patient:handoff",
+      kind: "final-patient",
+      expected: scenario.patient.id,
+      actual: session.finalReidentifiedPatientId ?? "not-reidentified",
+    });
+  }
 
   const expected = expectedPrescriptionLines(scenario);
   const trayItemsByLine = new Map(
