@@ -50,6 +50,10 @@ export function validateScenarioDefinition(
   }
   for (const id of scenario.prescriptionsRelevantToCurrentWithdrawal) {
     if (!scenario.availablePrescriptionIds.includes(id)) issues.push(`Current-withdrawal prescription ${id} must also be available`);
+    const record = scenario.prescriptions.find((item) => item.id === id);
+    if (record && record.establishmentId !== scenario.activeDispensingFacilityId) {
+      issues.push(`Current-withdrawal prescription ${id} must belong to active facility ${scenario.activeDispensingFacilityId}`);
+    }
   }
 
   for (const [lineId, quantity] of Object.entries(scenario.suggestedPreparationQuantityByLineId ?? {})) {
