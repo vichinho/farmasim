@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { scenario001 } from "@/data/simulation/scenario-001";
 import {
+  buildExpectedTray,
   createSimulationSession,
   executeSimulationCommand,
   simulationAlertsFromSession,
@@ -19,7 +20,7 @@ function selectTens1(session: SimulationSession) {
   );
 }
 
-function wrongQuantitySession() {
+function baseReadySession() {
   let session = selectTens1(createSimulationSession(scenario001, { sessionId: crypto.randomUUID(), startedAt: now }));
   session = {
     ...session,
@@ -27,18 +28,21 @@ function wrongQuantitySession() {
     finalReidentifiedPatientId: scenario001.patient.id,
     verifiedPrescriptionIds: [...scenario001.prescriptionsRelevantToCurrentWithdrawal],
     prescriptionDispositionById: { "rx-tome-001": "proceed" },
-    tray: {
-      ...scenario001.initialTray,
-      status: "received",
-      items: [{
-        id: "wrong-qty",
-        prescriptionLineId: "line-losartan",
-        medicationPresentationId: "trakcare-004-0137",
-        quantity: 999,
-      }],
-    },
+    tray: buildExpectedTray(scenario001),
   };
   return session;
+}
+
+function wrongQuantitySession() {
+  const session = baseReadySession();
+  return {
+    ...session,
+    tray: {
+      ...session.tray,
+      status: "received" as const,
+      items: session.tray.items.map((item, index) => index === 0 ? { ...item, quantity: item.quantity + 999 } : item),
+    },
+  };
 }
 
 describe("simulation alerts", () => {
@@ -55,6 +59,7 @@ describe("simulation alerts", () => {
     const quantity = alerts.find((item) => item.kind === "quantity");
     expect(quantity?.category).toBe("medication-discrepancy");
     expect(quantity?.originStage).toBe("preparation-check");
+    expect(quantity?.severity).toBe("high");
     expect(quantity?.reachedPatient).toBe(false);
   });
 
@@ -92,6 +97,50 @@ describe("simulation alerts", () => {
     expect(quantity?.category).toBe("medication-discrepancy");
     expect(quantity?.sourceEventId.startsWith(`${blockedEvent?.id}:`)).toBe(true);
     expect(quantity?.reachedPatient).toBe(false);
+  });
+
+  it("keeps a generic preparation alert when correction is proven but the exact discrepancy is unknown", () => {
+    let session = baseReadySession();
+    for (const item of buildExpectedTray(scenario001).items) {
+      if (!item.prescriptionLineId) continue;
+      session = executeSimulationCommand(
+        scenario001,
+        session,
+        {
+          type: "medication.compared_to_prescription",
+          actorId: "tens-1",
+          data: { prescriptionLineId: item.prescriptionLineId },
+        },
+        now,
+      );
+    }
+    session = executeSimulationCommand(
+      scenario001,
+      session,
+      { type: "correction.requested", actorId: "tens-1" },
+      now,
+    );
+    session = executeSimulationCommand(
+      scenario001,
+      session,
+      { type: "tray.corrected", actorId: "tens-2" },
+      now,
+    );
+    session = executeSimulationCommand(
+      scenario001,
+      session,
+      { type: "delivery.attempted", actorId: "tens-1" },
+      now,
+    );
+
+    const preparation = simulationAlertsFromSession(scenario001, session).find((item) =>
+      item.kind === "other" && item.originStage === "preparation-check",
+    );
+    expect(session.criteria["criterion-5-compare-prepared-items"]).toBe("intercepted");
+    expect(preparation?.category).toBe("process-deviation");
+    expect(preparation?.severity).toBe("moderate");
+    expect(preparation?.metadata.criterionId).toBe("criterion-5-compare-prepared-items");
+    expect(preparation?.reachedPatient).toBe(false);
   });
 
   it("records storage separately only after the drawer has been inspected", () => {
