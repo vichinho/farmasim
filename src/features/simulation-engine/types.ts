@@ -179,6 +179,9 @@ export type ScenarioDefinition = {
   similarPatients: PatientIdentity[];
   actors: Actor[];
   requiredPlayerRole?: PlayerRole;
+  reinforcementChallengeKey?: string;
+  reinforcementInstructionFocusSection?: InstructionSection;
+  suggestedPreparationQuantityByLineId?: Record<string, number>;
   prescriptions: PrescriptionRecord[];
   visibleClinicalRecordIds: string[];
   availablePrescriptionIds: string[];
