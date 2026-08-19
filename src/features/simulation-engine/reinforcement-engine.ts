@@ -1,6 +1,6 @@
 import type { DispensingCriterionId } from "@/types/training-simulation";
 import { baselineContextForSeed, reinforcementVariantForSeed } from "./scenario-generator";
-import type { SimulationSession } from "./types";
+import type { EstablishmentId, SimulationSession } from "./types";
 
 export type ReinforcementCompetency =
   | "patient-identification"
@@ -13,7 +13,7 @@ export type ReinforcementVariantFingerprint = {
   patientId: string;
   medicationId: string;
   presentationId: string;
-  establishmentId: string;
+  establishmentId: EstablishmentId;
   challengeKey: string;
 };
 
