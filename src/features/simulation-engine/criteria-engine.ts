@@ -1,4 +1,5 @@
 import { eventValues, hasEvent } from "./event-log";
+import { instructionsComplete } from "./instruction-engine";
 import type { CriterionStatus, ScenarioDefinition, SimulationEvent } from "./types";
 import type { DispensingCriterionId } from "@/types/training-simulation";
 
@@ -73,8 +74,11 @@ export function evaluateCriteria(
   if (hasEvent(events, "identity.rechecked")) {
     result["criterion-6-recheck-identity-before-handoff"] = "met";
   }
-  if (hasEvent(events, "instructions.given")) {
+
+  if (instructionsComplete(scenario, events)) {
     result["criterion-7-provide-corresponding-instructions"] = "met";
+  } else if (hasEvent(events, "delivery.completed")) {
+    result["criterion-7-provide-corresponding-instructions"] = "reinforcement";
   }
 
   const kinds = blockedKinds(events);
