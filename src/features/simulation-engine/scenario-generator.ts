@@ -152,6 +152,11 @@ function competencyFromReinforcementId(id: string) {
   return competency && knownReinforcementCompetencies.has(competency) ? competency : undefined;
 }
 
+function requiredRoleForCompetency(competency: ReinforcementCompetency | undefined) {
+  if (!competency) return undefined;
+  return competency === "preparation-comparison" ? "tens-2" as const : "tens-1" as const;
+}
+
 const reinforcementPresentationPool = scenario001.arsenal.filter((presentation) => {
   const oralSolid = ["COMPRIMIDO ORAL", "CAPSULA ORAL", "GRAGEA"].includes(presentation.pharmaceuticalForm);
   const hasStrength = !presentation.strength.startsWith("NO ESPECIFICADA");
@@ -382,11 +387,12 @@ export function generateScenarioDefinition({
   return assertValidScenarioDefinition({
     ...base,
     id,
-    version: resolvedCompetency ? "2.4.0-reinforcement" : "2.2.0-generated",
+    version: resolvedCompetency ? "2.5.0-reinforcement" : "2.2.0-generated",
     seed,
     mode,
     patient,
     similarPatients: reinforcement?.similarPatients ?? base.similarPatients,
+    requiredPlayerRole: requiredRoleForCompetency(resolvedCompetency),
     prescriptions,
     visibleClinicalRecordIds,
     availablePrescriptionIds,
