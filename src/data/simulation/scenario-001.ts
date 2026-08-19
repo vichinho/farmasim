@@ -4,7 +4,7 @@ import type { ScenarioDefinition } from "@/features/simulation-engine/types";
 
 const definition: ScenarioDefinition = {
   id: "case-001-2d-engine",
-  version: "2.2.0",
+  version: "2.8.0",
   seed: 20260818,
   mode: "guided",
   patient: {
@@ -30,6 +30,7 @@ const definition: ScenarioDefinition = {
     { id: "tens-2", role: "preparation", controller: "simulation", displayName: "TENS 2" },
     { id: "qf-support", role: "qf-support", controller: "simulation", displayName: "QF de apoyo" },
   ],
+  activeDispensingFacilityId: "hospital-tome",
   prescriptions: [
     {
       id: "rx-tome-001",
@@ -72,7 +73,7 @@ const definition: ScenarioDefinition = {
   ],
   visibleClinicalRecordIds: ["rx-tome-001", "rx-bellavista-002", "rx-historical-003"],
   availablePrescriptionIds: ["rx-tome-001", "rx-bellavista-002"],
-  prescriptionsRelevantToCurrentWithdrawal: ["rx-tome-001", "rx-bellavista-002"],
+  prescriptionsRelevantToCurrentWithdrawal: ["rx-tome-001"],
   arsenal: ambulatoryArsenal,
   drawers: [
     {
