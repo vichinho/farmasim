@@ -25,13 +25,14 @@ const eventLabels: Record<SimulationEventType, string> = {
   "record.scrolled": "Revisaste el contenido de la ficha",
   "prescription.opened": "Abriste una prescripción",
   "prescription.closed": "Cerraste una prescripción",
-  "prescription.status_verified": "Verificaste la vigencia de una prescripción",
+  "prescription.status_verified": "Verificaste el estado de una prescripción",
   "computer.exited": "Terminaste la consulta en el computador",
   "storage.focused": "Fuiste al área de almacenamiento",
   "drawer.label_inspected": "Leíste el rótulo de una gaveta",
   "drawer.opened": "Abriste una gaveta",
   "drawer.contents_inspected": "Revisaste el contenido de una gaveta",
   "medication.inspected": "Inspeccionaste un medicamento",
+  "medication.compared_to_prescription": "Comparaste el medicamento con su prescripción",
   "medication.taken": "Seleccionaste un medicamento",
   "medication.returned": "Retiraste un producto de la bandeja",
   "medication.added_to_tray": "Agregaste un medicamento a la bandeja",
@@ -61,6 +62,7 @@ const learnerVisibleEvents = new Set<SimulationEventType>([
   "drawer.label_inspected",
   "drawer.contents_inspected",
   "medication.inspected",
+  "medication.compared_to_prescription",
   "medication.added_to_tray",
   "tray.inspected",
   "correction.requested",
@@ -93,16 +95,31 @@ export function getMissionSteps(
   scenario: ScenarioDefinition,
   session: SimulationSession,
 ): MissionStep[] {
-  const hasEvent = (type: SimulationEventType) =>
-    session.eventLog.some((event) => event.type === type);
-  const allExpectedPrescriptionsVerified = scenario.expectedPrescriptionIds.every((id) =>
+  const hasEvent = (type: SimulationEventType) => session.eventLog.some((event) => event.type === type);
+
+  if (scenario.mode === "practice") {
+    return [
+      {
+        id: "practice-objective",
+        label: "Completa una dispensación segura",
+        description: "Explora la escena y utiliza las fuentes disponibles cuando las necesites.",
+        status: session.deliveryStatus === "completed" ? "completed" : session.deliveryStatus === "blocked" ? "attention" : "current",
+      },
+    ];
+  }
+
+  const allRelevantPrescriptionsVerified = scenario.prescriptionsRelevantToCurrentWithdrawal.every((id) =>
     session.verifiedPrescriptionIds.includes(id),
   );
+  const allRelevantLinesCompared = scenario.prescriptions
+    .filter((record) => scenario.prescriptionsRelevantToCurrentWithdrawal.includes(record.id))
+    .flatMap((record) => record.lines)
+    .every((line) => session.comparedPrescriptionLineIds.includes(line.id));
   const identityConfirmed = hasEvent("identity.rechecked") && hasEvent("instructions.given");
   const conditions = [
     hasEvent("document.opened"),
-    session.loadedPatientId === scenario.patient.id && allExpectedPrescriptionsVerified,
-    hasEvent("tray.inspected") && session.inspectedMedicationIds.length > 0,
+    session.loadedPatientId === scenario.patient.id && allRelevantPrescriptionsVerified,
+    hasEvent("tray.inspected") && allRelevantLinesCompared,
     identityConfirmed,
     session.deliveryStatus === "completed",
   ];
@@ -110,8 +127,8 @@ export function getMissionSteps(
 
   const steps = [
     ["identify", "Identifica al paciente", "Solicita y revisa su documento."],
-    ["prescriptions", "Revisa las prescripciones", "Confirma la ficha, vigencia y medicamentos indicados."],
-    ["tray", "Verifica la preparación", "Inspecciona la bandeja, medicamento y concentración."],
+    ["prescriptions", "Revisa las prescripciones", "Confirma la ficha, estado y medicamentos indicados."],
+    ["tray", "Verifica la preparación", "Inspecciona y compara cada producto con su prescripción."],
     ["confirm", "Confirma antes de entregar", "Revalida la identidad y entrega las indicaciones."],
     ["deliver", "Completa la entrega", "Entrega solo cuando la preparación sea segura."],
   ] as const;
@@ -121,7 +138,7 @@ export function getMissionSteps(
     label,
     description:
       id === "deliver" && session.deliveryStatus === "blocked"
-        ? "Entrega detenida: vuelve a la bandeja y solicita la corrección."
+        ? "Entrega detenida: revisa la causa detectada antes de continuar."
         : description,
     status: conditions[index]
       ? "completed"
