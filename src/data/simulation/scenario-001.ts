@@ -4,7 +4,7 @@ import type { ScenarioDefinition } from "@/features/simulation-engine/types";
 
 const definition: ScenarioDefinition = {
   id: "case-001-2d-engine",
-  version: "2.0.0",
+  version: "2.1.0",
   seed: 20260818,
   mode: "guided",
   patient: {
@@ -70,6 +70,9 @@ const definition: ScenarioDefinition = {
       ],
     },
   ],
+  visibleClinicalRecordIds: ["rx-tome-001", "rx-bellavista-002", "rx-historical-003"],
+  availablePrescriptionIds: ["rx-tome-001", "rx-bellavista-002"],
+  prescriptionsRelevantToCurrentWithdrawal: ["rx-tome-001", "rx-bellavista-002"],
   arsenal: ambulatoryArsenal,
   drawers: [
     {
@@ -96,23 +99,10 @@ const definition: ScenarioDefinition = {
   initialTray: {
     id: "tray-case-001",
     patientId: "patient-marta-fuentes",
-    status: "received",
-    items: [
-      {
-        id: "tray-losartan-wrong-strength",
-        prescriptionLineId: "line-losartan",
-        medicationPresentationId: "losartan-100-tablet-30",
-        quantity: 30,
-      },
-      {
-        id: "tray-amlodipine",
-        prescriptionLineId: "line-amlodipine",
-        medicationPresentationId: "amlodipine-5-tablet-30",
-        quantity: 30,
-      },
-    ],
+    status: "empty",
+    items: [],
   },
-  expectedPrescriptionIds: ["rx-tome-001", "rx-bellavista-002"],
+  initialClinicalSystemState: "clean_search",
   educationalSourceIds: ["dispensing-evaluation-rubric-7-criteria", "arsenal-2026"],
 };
 
