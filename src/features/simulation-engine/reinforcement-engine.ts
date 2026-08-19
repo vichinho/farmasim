@@ -1,6 +1,6 @@
 import type { DispensingCriterionId } from "@/types/training-simulation";
 import { baselineContextForSeed, reinforcementVariantForSeed } from "./scenario-generator";
-import type { EstablishmentId, SimulationSession } from "./types";
+import type { EstablishmentId, InstructionSection, SimulationSession } from "./types";
 
 export type ReinforcementCompetency =
   | "patient-identification"
@@ -28,6 +28,7 @@ export type ReinforcementRecommendation = {
   scenarioId: string;
   seed: number;
   variant: ReinforcementVariantFingerprint;
+  targetInstructionSection?: InstructionSection;
 };
 
 const competencyByCriterion: Record<DispensingCriterionId, ReinforcementCompetency> = {
@@ -138,6 +139,17 @@ function recentHistory(session: SimulationSession, recentScenarioIds: string[]) 
   return [...unique.values()].slice(0, HISTORY_LIMIT - 1);
 }
 
+function preferredInstructionSection(
+  session: SimulationSession,
+  recentFingerprints: ReinforcementVariantFingerprint[],
+) {
+  if (!session.missingInstructionSections.length) return undefined;
+  const recentlyUsed = new Set(recentFingerprints.map((item) => item.challengeKey));
+  return session.missingInstructionSections.find(
+    (section) => !recentlyUsed.has(`instructions-${section}`),
+  ) ?? session.missingInstructionSections[0];
+}
+
 export function recommendReinforcement(
   session: SimulationSession,
   recentScenarioIds: string[] = [],
@@ -162,21 +174,28 @@ export function recommendReinforcement(
     currentFingerprint(session, competency),
     ...historyEntries.map(fingerprintForEntry),
   ];
+  const targetInstructionSection = competency === "instructions"
+    ? preferredInstructionSection(session, recentFingerprints)
+    : undefined;
+  const targetChallengeKey = targetInstructionSection
+    ? `instructions-${targetInstructionSection}`
+    : undefined;
 
   let seed = nextSeed(session.seed);
   let bestSeed = seed;
   let bestVariant = reinforcementVariantForSeed(seed, competency);
-  let bestScore = noveltyScore(bestVariant, recentFingerprints);
+  let bestScore = Number.NEGATIVE_INFINITY;
 
   for (let attempt = 0; attempt < 256; attempt += 1) {
     const variant = reinforcementVariantForSeed(seed, competency);
-    const score = noveltyScore(variant, recentFingerprints);
+    const matchesTarget = !targetChallengeKey || variant.challengeKey === targetChallengeKey;
+    const score = noveltyScore(variant, recentFingerprints) + (matchesTarget ? 1000 : 0);
     if (score > bestScore) {
       bestSeed = seed;
       bestVariant = variant;
       bestScore = score;
     }
-    if (differsInEveryDimension(variant, recentFingerprints)) {
+    if (matchesTarget && differsInEveryDimension(variant, recentFingerprints)) {
       bestSeed = seed;
       bestVariant = variant;
       break;
@@ -197,5 +216,6 @@ export function recommendReinforcement(
     scenarioId,
     seed: bestSeed,
     variant: bestVariant,
+    targetInstructionSection,
   };
 }
