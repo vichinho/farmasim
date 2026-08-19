@@ -5,6 +5,7 @@ export * from "./instruction-engine";
 export * from "./prescription-status";
 export * from "./reinforcement-engine";
 export * from "./safety-engine";
+export * from "./simulation-alerts";
 export * from "./storage-evaluator";
 export * from "./scenario-generator";
 export * from "./scenario-validator";
