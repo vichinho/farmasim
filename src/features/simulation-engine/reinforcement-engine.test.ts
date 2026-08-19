@@ -46,13 +46,15 @@ describe("adaptive reinforcement memory", () => {
     const first = recommendReinforcement(baseSession);
     expect(first).not.toBeNull();
     if (!first) return;
+    expect(first.targetPlayerRole).toBe("tens-2");
 
     const firstScenario = generateScenarioDefinition({
       id: first.scenarioId,
       mode: "practice",
       seed: first.seed,
     });
-    expect(firstScenario.version).toBe("2.4.0-reinforcement");
+    expect(firstScenario.version).toBe("2.5.0-reinforcement");
+    expect(firstScenario.requiredPlayerRole).toBe("tens-2");
     expect(firstScenario.patient.id).toBe(first.variant.patientId);
     expect(firstScenario.prescriptions[0].establishmentId).toBe(first.variant.establishmentId);
     expect(firstScenario.prescriptions[0].lines[0].medicationPresentationId).toBe(first.variant.presentationId);
@@ -73,6 +75,27 @@ describe("adaptive reinforcement memory", () => {
 
     expectDifferentVariant(third.variant, second.variant);
     expectDifferentVariant(third.variant, first.variant);
+  });
+
+  it("routes attention/prescription reinforcement to TENS 1", () => {
+    const baseScenario = generateScenarioDefinition({ id: "identity-base", mode: "practice", seed: 77 });
+    const baseSession = createSimulationSession(baseScenario);
+    const failed: SimulationSession = {
+      ...baseSession,
+      criteria: {
+        ...baseSession.criteria,
+        "criterion-2-system-identity-match": "reinforcement",
+      },
+    };
+    const recommendation = recommendReinforcement(failed);
+    expect(recommendation?.targetPlayerRole).toBe("tens-1");
+    if (!recommendation) return;
+    const scenario = generateScenarioDefinition({
+      id: recommendation.scenarioId,
+      mode: "practice",
+      seed: recommendation.seed,
+    });
+    expect(scenario.requiredPlayerRole).toBe("tens-1");
   });
 
   it("builds wrong-strength reinforcement only from real same-medication Atención Abierta presentations", () => {
