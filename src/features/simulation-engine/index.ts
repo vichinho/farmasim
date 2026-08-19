@@ -1,6 +1,7 @@
 export * from "./criteria-engine";
 export * from "./simulation-event-presentation";
 export * from "./event-log";
+export * from "./instruction-engine";
 export * from "./reinforcement-engine";
 export * from "./safety-engine";
 export * from "./storage-evaluator";
