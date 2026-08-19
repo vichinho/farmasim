@@ -1,5 +1,9 @@
 import { eventValues, hasEvent } from "./event-log";
 import { instructionsComplete } from "./instruction-engine";
+import {
+  canSafelyStopForPrescriptionReview,
+  relevantPrescriptionDispositionState,
+} from "./prescription-status";
 import type { CriterionStatus, ScenarioDefinition, SimulationEvent } from "./types";
 import type { DispensingCriterionId } from "@/types/training-simulation";
 
@@ -36,14 +40,19 @@ export function evaluateCriteria(
 ): Record<DispensingCriterionId, CriterionStatus> {
   const result = emptyCriteria();
   const opened = new Set(eventValues(events, "prescription.opened", "prescriptionId"));
-  const verified = new Set(eventValues(events, "prescription.status_verified", "prescriptionId"));
   const comparedLines = new Set(
     eventValues(events, "medication.compared_to_prescription", "prescriptionLineId"),
   );
 
+  const allAvailableOpened = scenario.availablePrescriptionIds.every((id) => opened.has(id));
+  const dispositionState = relevantPrescriptionDispositionState(scenario, events);
+  const allRelevantAssessed = dispositionState.length > 0
+    && dispositionState.every((item) => item.actual !== undefined);
+  const allRelevantDispositionCorrect = allRelevantAssessed
+    && dispositionState.every((item) => item.correct);
+  const hasRelevantHold = dispositionState.some((item) => item.expected === "hold-for-review");
+
   const relevantPrescriptionIds = scenario.prescriptionsRelevantToCurrentWithdrawal;
-  const allRelevantOpened = relevantPrescriptionIds.every((id) => opened.has(id));
-  const allRelevantVerified = relevantPrescriptionIds.every((id) => verified.has(id));
   const relevantLineIds = scenario.prescriptions
     .filter((record) => relevantPrescriptionIds.includes(record.id))
     .flatMap((record) => record.lines.map((line) => line.id));
@@ -62,8 +71,18 @@ export function evaluateCriteria(
   ) {
     result["criterion-2-system-identity-match"] = "met";
   }
-  if (allRelevantOpened) result["criterion-3-identify-all-prescriptions"] = "met";
-  if (allRelevantVerified) result["criterion-4-confirm-prescription-issued"] = "met";
+
+  if (allAvailableOpened) {
+    result["criterion-3-identify-all-prescriptions"] = "met";
+  }
+
+  if (allRelevantDispositionCorrect) {
+    result["criterion-4-confirm-prescription-issued"] = hasRelevantHold
+      ? "intercepted"
+      : "met";
+  } else if (allRelevantAssessed) {
+    result["criterion-4-confirm-prescription-issued"] = "reinforcement";
+  }
 
   if (preparationWasActuallyChecked) {
     result["criterion-5-compare-prepared-items"] = hasEvent(events, "correction.requested")
@@ -81,6 +100,16 @@ export function evaluateCriteria(
     result["criterion-7-provide-corresponding-instructions"] = "reinforcement";
   }
 
+  const safelyStopped = hasEvent(events, "qf_support.requested")
+    && canSafelyStopForPrescriptionReview(scenario, events);
+  if (safelyStopped) {
+    // The workflow correctly stopped before preparation/handoff, so downstream
+    // criteria are treated as intercepted rather than falsely reinforced.
+    result["criterion-5-compare-prepared-items"] = "intercepted";
+    result["criterion-6-recheck-identity-before-handoff"] = "intercepted";
+    result["criterion-7-provide-corresponding-instructions"] = "intercepted";
+  }
+
   const kinds = blockedKinds(events);
   if (kinds.has("patient")) {
     result["criterion-2-system-identity-match"] = "reinforcement";
@@ -89,7 +118,12 @@ export function evaluateCriteria(
     }
   }
   if (kinds.has("prescription")) {
-    result["criterion-3-identify-all-prescriptions"] = "reinforcement";
+    if (!allAvailableOpened) {
+      result["criterion-3-identify-all-prescriptions"] = "reinforcement";
+    }
+    result["criterion-4-confirm-prescription-issued"] = "reinforcement";
+  }
+  if (kinds.has("prescription-status")) {
     result["criterion-4-confirm-prescription-issued"] = "reinforcement";
   }
   if (["medication", "strength", "pharmaceutical-form", "quantity", "omission", "additional-product"].some((kind) => kinds.has(kind))) {
