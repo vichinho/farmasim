@@ -4,6 +4,11 @@ export type SimulationMode = "guided" | "practice" | "assessment";
 export type ActorRole = "attention" | "preparation" | "qf-support";
 export type ActorController = "participant" | "simulation" | "team";
 export type PlayerRole = "tens-1" | "tens-2";
+export type InstructionSection =
+  | "purpose"
+  | "schedule-administration"
+  | "precautions"
+  | "qf-escalation";
 
 export type Actor = {
   id: string;
@@ -209,6 +214,7 @@ export type SimulationEventType =
   | "tray.corrected"
   | "correction.requested"
   | "identity.rechecked"
+  | "instruction.section_given"
   | "instructions.given"
   | "qf_support.requested"
   | "delivery.attempted"
@@ -247,6 +253,8 @@ export type SimulationSession = {
   verifiedPrescriptionIds: string[];
   inspectedMedicationIds: string[];
   comparedPrescriptionLineIds: string[];
+  instructionEvidenceKeys: string[];
+  missingInstructionSections: InstructionSection[];
   openedTabIds: string[];
   scrolledRecordIds: string[];
   tray: Tray;
