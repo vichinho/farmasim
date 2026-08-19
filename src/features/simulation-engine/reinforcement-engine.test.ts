@@ -53,7 +53,7 @@ describe("adaptive reinforcement memory", () => {
       mode: "practice",
       seed: first.seed,
     });
-    expect(firstScenario.version).toBe("2.6.0-reinforcement");
+    expect(firstScenario.version).toBe("2.7.0-reinforcement");
     expect(firstScenario.requiredPlayerRole).toBe("tens-2");
     expect(firstScenario.patient.id).toBe(first.variant.patientId);
     expect(firstScenario.prescriptions[0].establishmentId).toBe(first.variant.establishmentId);
