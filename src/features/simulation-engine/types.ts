@@ -4,6 +4,7 @@ export type SimulationMode = "guided" | "practice" | "assessment";
 export type ActorRole = "attention" | "preparation" | "qf-support";
 export type ActorController = "participant" | "simulation" | "team";
 export type PlayerRole = "tens-1" | "tens-2";
+export type PrescriptionDisposition = "proceed" | "hold-for-review";
 export type InstructionSection =
   | "purpose"
   | "schedule-administration"
@@ -149,6 +150,7 @@ export type Tray = {
 export type DiscrepancyKind =
   | "patient"
   | "prescription"
+  | "prescription-status"
   | "medication"
   | "strength"
   | "pharmaceutical-form"
@@ -175,6 +177,7 @@ export type ScenarioDefinition = {
   patient: PatientIdentity;
   similarPatients: PatientIdentity[];
   actors: Actor[];
+  requiredPlayerRole?: PlayerRole;
   prescriptions: PrescriptionRecord[];
   visibleClinicalRecordIds: string[];
   availablePrescriptionIds: string[];
@@ -251,6 +254,7 @@ export type SimulationSession = {
   loadedPatientId: string | null;
   openedPrescriptionIds: string[];
   verifiedPrescriptionIds: string[];
+  prescriptionDispositionById: Record<string, PrescriptionDisposition>;
   inspectedMedicationIds: string[];
   comparedPrescriptionLineIds: string[];
   instructionEvidenceKeys: string[];
@@ -262,7 +266,7 @@ export type SimulationSession = {
   discrepancies: SafetyDiscrepancy[];
   storageDeviations: StorageDeviation[];
   criteria: Record<DispensingCriterionId, CriterionStatus>;
-  deliveryStatus: "not-attempted" | "blocked" | "completed";
+  deliveryStatus: "not-attempted" | "blocked" | "completed" | "safely-stopped";
   startedAt: string;
   updatedAt: string;
 };
