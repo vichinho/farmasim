@@ -53,11 +53,12 @@ describe("adaptive reinforcement memory", () => {
       mode: "practice",
       seed: first.seed,
     });
-    expect(firstScenario.version).toBe("2.5.0-reinforcement");
+    expect(firstScenario.version).toBe("2.6.0-reinforcement");
     expect(firstScenario.requiredPlayerRole).toBe("tens-2");
     expect(firstScenario.patient.id).toBe(first.variant.patientId);
     expect(firstScenario.prescriptions[0].establishmentId).toBe(first.variant.establishmentId);
     expect(firstScenario.prescriptions[0].lines[0].medicationPresentationId).toBe(first.variant.presentationId);
+    expect(firstScenario.reinforcementChallengeKey).toBe(first.variant.challengeKey);
 
     const second = recommendReinforcement(withPreparationFailure(createSimulationSession(firstScenario)));
     expect(second).not.toBeNull();
