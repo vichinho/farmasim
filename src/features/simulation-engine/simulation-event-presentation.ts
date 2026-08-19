@@ -26,7 +26,7 @@ const eventLabels: Record<SimulationEventType, string> = {
   "record.scrolled": "Revisaste el contenido de la ficha",
   "prescription.opened": "Abriste una prescripción",
   "prescription.closed": "Cerraste una prescripción",
-  "prescription.status_verified": "Verificaste el estado de una prescripción",
+  "prescription.status_verified": "Registraste una decisión sobre el estado de una prescripción",
   "computer.exited": "Terminaste la consulta en el computador",
   "storage.focused": "Fuiste al área de almacenamiento",
   "drawer.label_inspected": "Leíste el rótulo de una gaveta",
@@ -52,7 +52,7 @@ const eventLabels: Record<SimulationEventType, string> = {
   "patient.focused": "Te acercaste al paciente",
   "preparation.focused": "Te acercaste al área de preparación",
   "scene.returned": "Volviste a la farmacia",
-  "role.selected": "Cambiaste el rol activo",
+  "role.selected": "Elegiste tu rol para el caso",
 };
 
 const learnerVisibleEvents = new Set<SimulationEventType>([
@@ -71,6 +71,7 @@ const learnerVisibleEvents = new Set<SimulationEventType>([
   "tray.corrected",
   "identity.rechecked",
   "instruction.section_given",
+  "qf_support.requested",
   "delivery.blocked",
   "delivery.completed",
 ]);
@@ -98,6 +99,7 @@ export function getMissionSteps(
   session: SimulationSession,
 ): MissionStep[] {
   const hasEvent = (type: SimulationEventType) => session.eventLog.some((event) => event.type === type);
+  const terminal = session.deliveryStatus === "completed" || session.deliveryStatus === "safely-stopped";
 
   if (scenario.mode === "practice") {
     return [
@@ -105,34 +107,34 @@ export function getMissionSteps(
         id: "practice-objective",
         label: "Completa una dispensación segura",
         description: "Explora la escena y utiliza las fuentes disponibles cuando las necesites.",
-        status: session.deliveryStatus === "completed" ? "completed" : session.deliveryStatus === "blocked" ? "attention" : "current",
+        status: terminal ? "completed" : session.deliveryStatus === "blocked" ? "attention" : "current",
       },
     ];
   }
 
-  const allRelevantPrescriptionsVerified = scenario.prescriptionsRelevantToCurrentWithdrawal.every((id) =>
-    session.verifiedPrescriptionIds.includes(id),
-  );
+  const prescriptionsReviewed = session.criteria["criterion-3-identify-all-prescriptions"] === "met"
+    && ["met", "intercepted"].includes(session.criteria["criterion-4-confirm-prescription-issued"]);
   const allRelevantLinesCompared = scenario.prescriptions
     .filter((record) => scenario.prescriptionsRelevantToCurrentWithdrawal.includes(record.id))
     .flatMap((record) => record.lines)
     .every((line) => session.comparedPrescriptionLineIds.includes(line.id));
   const identityAndCounselingComplete = hasEvent("identity.rechecked") && instructionsComplete(scenario, session.eventLog);
+  const stoppedBeforeHandoff = session.deliveryStatus === "safely-stopped";
   const conditions = [
     hasEvent("document.opened"),
-    session.loadedPatientId === scenario.patient.id && allRelevantPrescriptionsVerified,
-    hasEvent("tray.inspected") && allRelevantLinesCompared,
-    identityAndCounselingComplete,
-    session.deliveryStatus === "completed",
+    session.loadedPatientId === scenario.patient.id && prescriptionsReviewed,
+    stoppedBeforeHandoff || (hasEvent("tray.inspected") && allRelevantLinesCompared),
+    stoppedBeforeHandoff || identityAndCounselingComplete,
+    terminal,
   ];
   const currentIndex = conditions.findIndex((completed) => !completed);
 
   const steps = [
     ["identify", "Identifica al paciente", "Solicita y revisa su documento."],
-    ["prescriptions", "Revisa las prescripciones", "Confirma la ficha, estado y medicamentos indicados."],
+    ["prescriptions", "Revisa las prescripciones", "Abre todas las disponibles y decide qué hacer con las del retiro actual."],
     ["tray", "Verifica la preparación", "Inspecciona y compara cada producto con su prescripción."],
     ["confirm", "Confirma y orienta antes de entregar", "Revalida la identidad y registra todas las partes de las indicaciones."],
-    ["deliver", "Completa la entrega", "Entrega solo cuando la preparación sea segura."],
+    ["deliver", "Resuelve el caso de forma segura", "Entrega solo cuando corresponde; si el estado exige revisión, detén y escala al QF."],
   ] as const;
 
   return steps.map(([id, label, description], index) => ({
