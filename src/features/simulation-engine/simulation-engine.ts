@@ -100,12 +100,14 @@ function reduceEvent(
   switch (event.type) {
     case "patient.focused":
       next.focusedObjectId = "patient";
+      if (session.deliveryStatus === "blocked") next.deliveryStatus = "not-attempted";
       break;
     case "preparation.focused":
       next.focusedObjectId = "preparation";
       break;
     case "computer.focused":
       next.focusedObjectId = "computer";
+      if (session.deliveryStatus === "blocked") next.deliveryStatus = "not-attempted";
       break;
     case "storage.focused":
       next.focusedObjectId = "storage";
