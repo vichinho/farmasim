@@ -1,3 +1,4 @@
+import { instructionsComplete } from "./instruction-engine";
 import type {
   ScenarioDefinition,
   SimulationEvent,
@@ -42,7 +43,8 @@ const eventLabels: Record<SimulationEventType, string> = {
   "tray.corrected": "TENS 2 corrigió la preparación",
   "correction.requested": "Solicitaste corregir la preparación",
   "identity.rechecked": "Confirmaste nuevamente la identidad",
-  "instructions.given": "Entregaste las indicaciones al paciente",
+  "instruction.section_given": "Entregaste una parte de las indicaciones al paciente",
+  "instructions.given": "Registraste indicaciones con el evento legado",
   "qf_support.requested": "Solicitaste apoyo al químico farmacéutico",
   "delivery.attempted": "Intentaste entregar la preparación",
   "delivery.blocked": "La barrera de seguridad detuvo la entrega",
@@ -68,7 +70,7 @@ const learnerVisibleEvents = new Set<SimulationEventType>([
   "correction.requested",
   "tray.corrected",
   "identity.rechecked",
-  "instructions.given",
+  "instruction.section_given",
   "delivery.blocked",
   "delivery.completed",
 ]);
@@ -115,12 +117,12 @@ export function getMissionSteps(
     .filter((record) => scenario.prescriptionsRelevantToCurrentWithdrawal.includes(record.id))
     .flatMap((record) => record.lines)
     .every((line) => session.comparedPrescriptionLineIds.includes(line.id));
-  const identityConfirmed = hasEvent("identity.rechecked") && hasEvent("instructions.given");
+  const identityAndCounselingComplete = hasEvent("identity.rechecked") && instructionsComplete(scenario, session.eventLog);
   const conditions = [
     hasEvent("document.opened"),
     session.loadedPatientId === scenario.patient.id && allRelevantPrescriptionsVerified,
     hasEvent("tray.inspected") && allRelevantLinesCompared,
-    identityConfirmed,
+    identityAndCounselingComplete,
     session.deliveryStatus === "completed",
   ];
   const currentIndex = conditions.findIndex((completed) => !completed);
@@ -129,7 +131,7 @@ export function getMissionSteps(
     ["identify", "Identifica al paciente", "Solicita y revisa su documento."],
     ["prescriptions", "Revisa las prescripciones", "Confirma la ficha, estado y medicamentos indicados."],
     ["tray", "Verifica la preparación", "Inspecciona y compara cada producto con su prescripción."],
-    ["confirm", "Confirma antes de entregar", "Revalida la identidad y entrega las indicaciones."],
+    ["confirm", "Confirma y orienta antes de entregar", "Revalida la identidad y registra todas las partes de las indicaciones."],
     ["deliver", "Completa la entrega", "Entrega solo cuando la preparación sea segura."],
   ] as const;
 
