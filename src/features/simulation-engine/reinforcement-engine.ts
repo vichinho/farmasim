@@ -1,6 +1,11 @@
 import type { DispensingCriterionId } from "@/types/training-simulation";
 import { baselineContextForSeed, reinforcementVariantForSeed } from "./scenario-generator";
-import type { EstablishmentId, InstructionSection, SimulationSession } from "./types";
+import type {
+  EstablishmentId,
+  InstructionSection,
+  PlayerRole,
+  SimulationSession,
+} from "./types";
 
 export type ReinforcementCompetency =
   | "patient-identification"
@@ -28,6 +33,7 @@ export type ReinforcementRecommendation = {
   scenarioId: string;
   seed: number;
   variant: ReinforcementVariantFingerprint;
+  targetPlayerRole: PlayerRole;
   targetInstructionSection?: InstructionSection;
 };
 
@@ -39,6 +45,14 @@ const competencyByCriterion: Record<DispensingCriterionId, ReinforcementCompeten
   "criterion-5-compare-prepared-items": "preparation-comparison",
   "criterion-6-recheck-identity-before-handoff": "final-identification",
   "criterion-7-provide-corresponding-instructions": "instructions",
+};
+
+const targetRoleByCompetency: Record<ReinforcementCompetency, PlayerRole> = {
+  "patient-identification": "tens-1",
+  "prescription-review": "tens-1",
+  "preparation-comparison": "tens-2",
+  "final-identification": "tens-1",
+  instructions: "tens-1",
 };
 
 const knownCompetencies = new Set<ReinforcementCompetency>([
@@ -81,6 +95,10 @@ export function parseReinforcementScenarioId(id: string) {
         : [];
     });
   return { competency: competencyRaw as ReinforcementCompetency, seed, history };
+}
+
+export function targetPlayerRoleForCompetency(competency: ReinforcementCompetency) {
+  return targetRoleByCompetency[competency];
 }
 
 function fingerprintForEntry(entry: ReinforcementHistoryEntry) {
@@ -216,6 +234,7 @@ export function recommendReinforcement(
     scenarioId,
     seed: bestSeed,
     variant: bestVariant,
+    targetPlayerRole: targetRoleByCompetency[competency],
     targetInstructionSection,
   };
 }
