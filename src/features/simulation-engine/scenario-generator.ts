@@ -131,9 +131,10 @@ const reinforcementChallengeKeys: Record<ReinforcementCompetency, string[]> = {
     "final-handoff-recheck",
   ],
   instructions: [
-    "instructions-single-medication",
-    "instructions-multiple-medications",
-    "instructions-changed-presentation",
+    "instructions-purpose",
+    "instructions-schedule-administration",
+    "instructions-precautions",
+    "instructions-qf-escalation",
   ],
 };
 
@@ -287,7 +288,7 @@ function reinforcementContext(id: string, seed: number, competency: Reinforcemen
   }
   if (variant.challengeKey === "preparation-wrong-product") primaryDrawerContents.push(secondPresentation.id);
 
-  const relevantPrescriptionIds = variant.challengeKey === "instructions-single-medication"
+  const relevantPrescriptionIds = variant.challengeKey === "instructions-purpose"
     ? [currentA.id]
     : [currentA.id, currentB.id];
 
@@ -381,7 +382,7 @@ export function generateScenarioDefinition({
   return assertValidScenarioDefinition({
     ...base,
     id,
-    version: resolvedCompetency ? "2.3.0-reinforcement" : "2.2.0-generated",
+    version: resolvedCompetency ? "2.4.0-reinforcement" : "2.2.0-generated",
     seed,
     mode,
     patient,
