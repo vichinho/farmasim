@@ -71,17 +71,33 @@ No se escala a los 48 escenarios hasta que el piloto cumpla simultáneamente:
 
 **Puerta técnica: APROBADA.**
 
-Validación del HEAD `401004b76990b93c97cf5f01d95ea5b01679b6f8`:
+Última validación funcional antes de esta actualización documental:
 
 - `npm run check`: PASS;
 - ESLint: PASS;
 - TypeScript: PASS;
-- Vitest: **48/48 PASS** en 7 archivos;
-- `pilot-scenario-bank.test.ts`: **6/6 PASS**;
+- Vitest: **49/49 PASS** en 7 archivos;
+- `pilot-scenario-bank.test.ts`: **7/7 PASS**;
 - Next.js production build: PASS;
+- 34 páginas generadas, incluyendo el índice QA y los 10 pilotos prerenderizados;
 - Vercel preview: SUCCESS.
 
-La muestra se mantiene separada del catálogo visible mientras se hace la revisión manual/visual de los pilotos. La aprobación técnica no sustituye esa revisión de experiencia.
+## Ruta interna de revisión manual
+
+El piloto se puede recorrer en el preview desde:
+
+`/simulaciones/pilotos`
+
+Esta ruta:
+
+- no está enlazada desde el catálogo público de niveles 1–7;
+- está marcada `noindex`;
+- permite abrir cada piloto y navegar anterior/siguiente;
+- reconstruye el escenario desde un ID interno `pilot__<competencia>__<semilla>__<challengeKey>`;
+- usa el mismo `Simulation2DExperience` del producto, no un simulador paralelo;
+- no modifica progreso: `saveSimulationAttempt` reconoce los IDs QA válidos y devuelve un resultado local sin ejecutar la RPC de progreso.
+
+La aprobación técnica no sustituye la revisión manual/visual. El escalado a 48 permanece detenido hasta revisar flujo, claridad visual, comportamiento del distractor, barreras de seguridad y cierre de los 10 pilotos.
 
 ## Regla de expansión
 
