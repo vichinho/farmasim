@@ -1,229 +1,69 @@
-# FarmaVerse / FarmaSim
+# FarmaVerse
 
-**Aprende. Practica. Simula.**
+FarmaVerse es una plataforma de entrenamiento orientada a la simulación del proceso de dispensación en farmacia ambulatoria. El proyecto prioriza una experiencia 2D interactiva donde las acciones observables del participante alimentan un motor de evaluación, seguridad y refuerzo.
 
-FarmaVerse es una plataforma web de capacitación interactiva. Dentro de la plataforma, **FarmaSim** es el módulo de simulaciones donde el usuario practica casos ficticios de farmacia mediante una escena interactiva, decisiones, verificación de información y retroalimentación final.
-
-> El contenido de la demo es ficticio y no reemplaza protocolos institucionales, normativa sanitaria, instrucciones profesionales ni supervisión del químico farmacéutico.
-
-## Estado actual
-
-La aplicación incluye:
-
-- landing pública responsive;
-- autenticación con Supabase Auth;
-- dashboard;
-- selector de siete niveles/casos;
-- simulaciones interactivas responsive para escritorio y móvil;
-- progreso persistido en Supabase;
-- pantalla de novedades;
-- perfil y administración básica de sesión;
-- despliegue en Vercel.
-
-## Casos de simulación
-
-Actualmente existen siete casos en `src/data/training/cases`:
-
-1. Caso 001 — dispensación ambulatoria.
-2. Caso 002 — refuerzo de concentración.
-3. Caso 003 — refuerzo de concentración en un contexto distinto.
-4. Caso 004 — consolidación de verificación.
-5. Caso 005 — revisión de almacenamiento.
-6. Caso 006 — múltiples discrepancias.
-7. Caso 007 — modo experto.
-
-Los casos 001, 002, 003, 004, 006 y 007 comparten la escena de dispensación y una lógica contextual común. El Caso 005 utiliza un flujo específico de revisión de almacenamiento.
-
-## Arquitectura actual
-
-El proyecto sigue un monolito modular con Next.js App Router.
-
-```text
-src/
-  app/                    rutas, metadata y estilos globales
-  components/             componentes visuales compartidos
-  data/                    catálogo y definición de contenido
-  features/                lógica de negocio y experiencias
-  lib/                     utilidades e integración Supabase
-  types/                   contratos TypeScript
-
-supabase/
-  migrations/              historial versionado de base de datos
-
-public/
-  brand/                   branding utilizado por la aplicación
-  images/farmasim/         escena visual de las simulaciones
-```
-
-### Simulaciones activas
-
-La ruta dinámica `src/app/(platform)/simulaciones/[slug]/page.tsx` selecciona una de tres experiencias activas:
-
-```text
-Caso 001
-  -> Case001ExperienceV7
-
-Caso 005
-  -> ContextualStorageExperience
-
-Casos 002, 003, 004, 006 y 007
-  -> ContextualDispensingExperience
-```
-
-La escena interactiva común vive en:
-
-```text
-src/features/training/case001-illustrated-scene.tsx
-src/features/training/case001-scene-hotspots.ts
-```
-
-La imagen actual de la farmacia es:
-
-```text
-public/images/farmasim/case001-scene.jpg
-```
-
-## Comportamiento responsive
-
-La experiencia está diseñada para escritorio y móvil.
-
-En escritorio:
-
-- escena principal a la izquierda;
-- panel contextual a la derecha;
-- misión e información obtenida en una zona secundaria;
-- al finalizar se oculta la escena y se priorizan los resultados.
-
-En móvil:
-
-- escena arriba;
-- hotspots con área táctil ampliada;
-- panel contextual debajo de la escena;
-- navegación inferior persistente.
-
-## Persistencia y progreso
-
-Los intentos de simulación se guardan de forma idempotente mediante Supabase. El backend mantiene el progreso del usuario y el desbloqueo de niveles.
-
-Las migraciones se conservan en `supabase/migrations` y no deben eliminarse durante tareas de limpieza del repositorio.
-
-## Tecnologías
-
-- Next.js 16 con App Router.
-- React 19.
-- TypeScript.
-- Tailwind CSS 4.
-- Supabase (`@supabase/ssr` y `@supabase/supabase-js`).
-- Vercel.
-
-## Requisitos
-
-- Node.js 24.
-- npm compatible con el `package-lock.json` versionado.
-
-## Instalación
+## Desarrollo local
 
 ```bash
-git clone <URL_DEL_REPOSITORIO>
-cd farmasim
-npm install
-cp .env.example .env.local
+npm ci
 npm run dev
 ```
 
-En PowerShell:
-
-```powershell
-Copy-Item .env.example .env.local
-```
-
-La aplicación local queda disponible en:
-
-```text
-http://localhost:3000
-```
-
-## Variables de entorno
-
-| Variable | Uso |
-| --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | URL pública del proyecto Supabase. |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Clave publicable para el cliente. |
-| `NEXT_PUBLIC_SITE_URL` | URL canónica para metadata y previews. |
-
-Nunca deben versionarse claves secretas ni `service_role`.
-
-## Scripts
-
-| Comando | Uso |
-| --- | --- |
-| `npm run dev` | Inicia Next.js en desarrollo. |
-| `npm run lint` | Ejecuta ESLint. |
-| `npm run typecheck` | Ejecuta TypeScript sin emitir archivos. |
-| `npm run build` | Genera la compilación de producción. |
-| `npm run check` | Ejecuta lint, typecheck y build. |
-| `npm run start` | Ejecuta una compilación ya generada. |
-
-Antes de fusionar cambios importantes se recomienda ejecutar:
+Validación completa:
 
 ```bash
 npm run check
 ```
 
-## Supabase
+`npm run check` ejecuta lint, typecheck, Vitest y build de producción.
 
-La base contiene autenticación, perfiles, progreso e intentos. Las tablas sensibles utilizan RLS y el cliente no debe modificar directamente XP, nivel o progreso calculado.
+## Simulación 2D
 
-Para aplicar migraciones en un entorno enlazado:
+La experiencia sigue el patrón:
 
-```bash
-npx supabase db push
-```
+`escena → objeto interactivo → foco/zoom → acción → volver a escena → continuar simulación`
 
-## Autenticación
+El motor separa la representación visual de las reglas pedagógicas. Entre sus componentes actuales se encuentran:
 
-FarmaVerse utiliza Supabase Auth con correo y contraseña. Las rutas de plataforma requieren una sesión válida.
+- EventLog para registrar acciones observables;
+- evaluación de siete criterios de dispensación;
+- SafetyEngine para discrepancias de preparación/despacho;
+- StorageEvaluator para desviaciones de almacenamiento independientes;
+- ScenarioValidator;
+- ReinforcementEngine;
+- control individual desde TENS 1 o TENS 2.
 
-La recuperación de contraseña utiliza el callback:
+Antes de comenzar un caso debe seleccionarse explícitamente TENS 1 o TENS 2. Hasta `role.selected`, ambos roles operativos permanecen bajo control de simulación y el motor ignora acciones clínicas o de preparación.
 
-```text
-/auth/callback
-```
+## Arsenal de Atención Abierta
 
-Las URLs de desarrollo y producción correspondientes deben estar configuradas en Supabase Auth.
+La fuente utilizada por la simulación proviene de `ARSENAL 2026.xlsx`, hoja `ARSENAL HT 2025`, filtrando las filas marcadas para Atención Abierta.
 
-## Despliegue
+La transformación conserva los datos fuente relevantes —código TrakCare, descripción, forma farmacéutica y unidad de dispensación— y añade identificadores normalizados para agrupar medicamentos y presentaciones sin crear concentraciones inexistentes.
 
-La demo pública está desplegada mediante Vercel y el repositorio mantiene `main` como rama de producción.
+Los escenarios de error de concentración solo pueden utilizar otra presentación existente del mismo medicamento en el arsenal. La prueba estructural B utiliza Carvedilol 12,5 mg frente a Carvedilol 25 mg, ambas presentaciones reales de Atención Abierta.
 
-El QR utilizado para la presentación se conserva en:
+## Auditoría estructural A–G
 
-```text
-public/farmasim-qr.png
-```
+La suite automatizada cubre:
 
-## Organización del código
+- A. entorno y preparación completamente correctos;
+- B. concentración incorrecta usando presentaciones reales del arsenal;
+- C. múltiples registros y omisión de una prescripción pertinente;
+- D. paciente incorrecto sin atribuir el fallo al criterio de doble chequeo;
+- E. desviación de gaveta detectada sin seleccionar el producto incorrecto;
+- F. desviación de gaveta que se convierte en discrepancia de preparación tras la selección;
+- G. preparación farmacológicamente correcta sin evidencia de doble chequeo.
 
-Al agregar nuevas funcionalidades:
+El workflow `.github/workflows/simulation-audit.yml` ejecuta `npm ci` y `npm run check` en cada pull request hacia `main`.
 
-- mantener contenido de casos en `src/data/training`;
-- evitar duplicar datos de un escenario dentro de varios componentes;
-- reutilizar las experiencias activas antes de crear motores paralelos;
-- evitar nombres versionados (`v2`, `v3`, etc.) cuando una implementación reemplaza definitivamente a otra;
-- eliminar prototipos reemplazados una vez validada la nueva versión;
-- mantener los estados de finalización explícitos y no inferirlos solo desde porcentajes de progreso;
-- preservar `supabase/migrations` como historial de esquema.
+## Estado de la rama de correcciones estructurales
 
-## Documentación
+En `fix/simulation-structural-gaps`, el workflow de auditoría alcanzó una ejecución completa satisfactoria con:
 
-- `docs/demo-architecture.md`: arquitectura funcional actual de las simulaciones.
-- `docs/privacy-security.md`: consideraciones de privacidad y seguridad.
-- `docs/presentation-checklist.md`: respaldo operativo para la presentación.
+- lint sin errores bloqueantes;
+- typecheck satisfactorio;
+- 17/17 pruebas Vitest aprobadas, incluyendo A–G;
+- build de producción Next.js satisfactorio.
 
-## Autor
-
-Proyecto desarrollado por Vicente con apoyo de herramientas de IA para desarrollo y revisión técnica.
-
-## Disclaimer
-
-FarmaVerse/FarmaSim es un prototipo de capacitación y simulación. Todo paciente, medicamento, receta, identificador y situación representada en la demo debe tratarse como contenido ficticio de entrenamiento.
+La rama permanece separada de `main` mientras se revisa el resultado antes de incorporar el banco completo de escenarios.
