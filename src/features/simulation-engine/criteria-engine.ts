@@ -18,6 +18,17 @@ export function emptyCriteria() {
   ) as Record<DispensingCriterionId, CriterionStatus>;
 }
 
+function blockedKinds(events: SimulationEvent[]) {
+  return new Set(
+    events
+      .filter((event) => event.type === "delivery.blocked")
+      .flatMap((event) => {
+        const kinds = event.data.discrepancyKinds;
+        return Array.isArray(kinds) ? kinds : [];
+      }),
+  );
+}
+
 export function evaluateCriteria(
   scenario: ScenarioDefinition,
   events: SimulationEvent[],
@@ -64,6 +75,23 @@ export function evaluateCriteria(
   }
   if (hasEvent(events, "instructions.given")) {
     result["criterion-7-provide-corresponding-instructions"] = "met";
+  }
+
+  const kinds = blockedKinds(events);
+  if (kinds.has("patient")) {
+    result["criterion-2-system-identity-match"] = "reinforcement";
+    if (hasEvent(events, "identity.rechecked")) {
+      result["criterion-6-recheck-identity-before-handoff"] = "reinforcement";
+    }
+  }
+  if (kinds.has("prescription")) {
+    result["criterion-3-identify-all-prescriptions"] = "reinforcement";
+    result["criterion-4-confirm-prescription-issued"] = "reinforcement";
+  }
+  if (["medication", "strength", "pharmaceutical-form", "quantity", "omission", "additional-product"].some((kind) => kinds.has(kind))) {
+    result["criterion-5-compare-prepared-items"] = preparationWasActuallyChecked
+      ? "intercepted"
+      : "reinforcement";
   }
 
   return result;
