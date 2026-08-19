@@ -51,7 +51,7 @@ export default async function CapsuleDetailPage({ params }: Props) {
         </header>
         <div className="space-y-5 p-6 sm:p-8">
           {capsule.content ? <div className="whitespace-pre-wrap rounded-2xl bg-slate-50 p-5 text-sm leading-7 text-slate-700">{capsule.content}</div> : null}
-          {capsule.content_type === "image" && signedUrl ? <img alt={`Recurso de la cápsula ${capsule.title}`} className="max-h-[32rem] w-full rounded-2xl object-contain" src={signedUrl} /> : null}
+          {capsule.content_type === "image" && signedUrl ? <object aria-label={`Recurso de la cápsula ${capsule.title}`} className="min-h-80 max-h-[32rem] w-full rounded-2xl object-contain" data={signedUrl} type="image/*">No se pudo mostrar la imagen.</object> : null}
           {capsule.content_type === "pdf" && signedUrl ? <a className="block rounded-xl border border-violet-200 p-4 text-sm font-black text-violet-700" href={signedUrl} rel="noreferrer" target="_blank">Abrir PDF asignado ↗</a> : null}
           {capsule.content_type === "link" && capsule.link_url ? <a className="block rounded-xl border border-violet-200 p-4 text-sm font-black text-violet-700" href={capsule.link_url} rel="noreferrer" target="_blank">Abrir recurso externo ↗</a> : null}
           {capsule.related_competency_ids.length ? <div className="rounded-xl border border-violet-100 p-4"><p className="text-xs font-black uppercase tracking-wider text-violet-600">Relacionado con</p><p className="mt-2 text-sm text-slate-600">{capsule.related_competency_ids.join(" · ")}</p></div> : null}
