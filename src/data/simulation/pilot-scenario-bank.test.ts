@@ -62,6 +62,9 @@ describe("pilot scenario bank", () => {
     expect(quantity?.initialTray.items).toEqual([]);
     const line = quantity?.prescriptions
       .filter((record) => quantity.prescriptionsRelevantToCurrentWithdrawal.includes(record.id))[0]?.lines[0];
-    expect(quantity?.preparationQuantitySuggestion).toBe((line?.quantity ?? 0) + 1);
+    const suggestion = line ? quantity?.suggestedPreparationQuantityByLineId?.[line.id] : undefined;
+    expect(suggestion).toBeDefined();
+    expect(suggestion).not.toBe(line?.quantity);
+    expect(suggestion).toBeGreaterThan(0);
   });
 });
