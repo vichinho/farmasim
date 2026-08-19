@@ -7,6 +7,7 @@ import {
   createSimulationSession,
   describeSimulationEvent,
   executeSimulationCommand,
+  expectedPrescriptionDisposition,
   expectedPrescriptionLines,
   generateScenarioDefinition,
   getMissionSteps,
@@ -18,6 +19,7 @@ import {
   requiredInstructionSections,
   type InstructionSection,
   type MedicationPresentation,
+  type PlayerRole,
   type ScenarioDefinition,
   type SimulationCommand,
   type SimulationMode,
@@ -78,6 +80,10 @@ function focusOrigin(focus: string | null) {
   return "50% 50%";
 }
 
+function roleLabel(role: PlayerRole) {
+  return role === "tens-1" ? "TENS 1 · Atención" : "TENS 2 · Preparación";
+}
+
 export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Props) {
   const baseScenario = useMemo(
     () => generateScenarioDefinition({ id: trainingCase.id, mode: simulationMode(mode) }),
@@ -122,9 +128,10 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
   const medication = session.focusedObjectId?.startsWith("medication:")
     ? getPresentation(scenario, session.focusedObjectId.slice(11))
     : undefined;
+  const terminal = session.deliveryStatus === "completed" || session.deliveryStatus === "safely-stopped";
 
   const persistAttempt = useCallback(async () => {
-    if (session.deliveryStatus !== "completed") return;
+    if (session.deliveryStatus !== "completed" && session.deliveryStatus !== "safely-stopped") return;
     setPersistence({ message: "Guardando tu progreso en la cuenta…", status: "saving" });
     const criterionResults = Object.entries(session.criteria).map(([criterionId, status]) => ({
       criterionId,
@@ -151,12 +158,15 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
   }, [levelNumber, session, trainingCase.id]);
 
   useEffect(() => {
-    if (session.deliveryStatus === "completed" && persistence.status === "idle") {
+    if (terminal && persistence.status === "idle") {
       startPersistenceTransition(() => void persistAttempt());
     }
-  }, [persistAttempt, persistence.status, session.deliveryStatus, startPersistenceTransition]);
+  }, [persistAttempt, persistence.status, startPersistenceTransition, terminal]);
 
-  function selectRole(role: "tens-1" | "tens-2") {
+  function selectRole(role: PlayerRole) {
+    if (session.selectedPlayerRole) return;
+    if (scenario.requiredPlayerRole && scenario.requiredPlayerRole !== role) return;
+
     const commands: SimulationCommand[] = [
       { type: "role.selected", actorId: role, data: { selectedRole: role } },
     ];
@@ -188,11 +198,21 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
         { type: "document.opened", actorId: "tens-1" },
         { type: "patient_record.opened", actorId: "tens-1", data: { patientId: scenario.patient.id } },
       );
-      for (const prescriptionId of scenario.prescriptionsRelevantToCurrentWithdrawal) {
-        commands.push(
-          { type: "prescription.opened", actorId: "tens-1", data: { prescriptionId } },
-          { type: "prescription.status_verified", actorId: "tens-1", data: { prescriptionId } },
-        );
+      for (const prescriptionId of scenario.availablePrescriptionIds) {
+        commands.push({ type: "prescription.opened", actorId: "tens-1", data: { prescriptionId } });
+        if (scenario.prescriptionsRelevantToCurrentWithdrawal.includes(prescriptionId)) {
+          const prescription = scenario.prescriptions.find((item) => item.id === prescriptionId);
+          if (prescription) {
+            commands.push({
+              type: "prescription.status_verified",
+              actorId: "tens-1",
+              data: {
+                prescriptionId,
+                disposition: expectedPrescriptionDisposition(prescription),
+              },
+            });
+          }
+        }
       }
       commands.push({ type: "storage.focused", actorId: "tens-2" });
     }
@@ -265,20 +285,30 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
           <p className="text-xs font-semibold text-slate-500">{trainingCase.title}</p>
         </div>
         <div className="flex gap-2" aria-label="Seleccionar rol">
-          {(["tens-1", "tens-2"] as const).map((role) => (
-            <button
-              aria-pressed={session.selectedPlayerRole === role}
-              className={cn(
-                "min-h-10 rounded-xl border px-4 text-xs font-black transition",
-                session.selectedPlayerRole === role ? "border-violet-700 bg-violet-700 text-white" : "border-violet-200 text-violet-700 hover:bg-violet-50",
-              )}
-              key={role}
-              onClick={() => selectRole(role)}
-              type="button"
-            >
-              {role === "tens-1" ? "TENS 1 · Atención" : "TENS 2 · Preparación"}
-            </button>
-          ))}
+          {(["tens-1", "tens-2"] as const).map((role) => {
+            const lockedOut = Boolean(
+              session.selectedPlayerRole
+              || (scenario.requiredPlayerRole && scenario.requiredPlayerRole !== role),
+            );
+            return (
+              <button
+                aria-pressed={session.selectedPlayerRole === role}
+                className={cn(
+                  "min-h-10 rounded-xl border px-4 text-xs font-black transition",
+                  session.selectedPlayerRole === role
+                    ? "border-violet-700 bg-violet-700 text-white"
+                    : "border-violet-200 text-violet-700 hover:bg-violet-50",
+                  lockedOut && session.selectedPlayerRole !== role && "cursor-not-allowed opacity-40",
+                )}
+                disabled={lockedOut}
+                key={role}
+                onClick={() => selectRole(role)}
+                type="button"
+              >
+                {roleLabel(role)}
+              </button>
+            );
+          })}
         </div>
         <span className="rounded-full bg-violet-50 px-4 py-2 text-xs font-black text-violet-700">
           {scenario.mode === "guided" ? "Guiado" : scenario.mode === "practice" ? "Práctica" : "Evaluación"}
@@ -295,14 +325,22 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
           {!session.selectedPlayerRole ? (
             <div className="absolute inset-0 z-30 grid place-items-center bg-slate-950/55 p-6 backdrop-blur-[2px]">
               <div className="max-w-md rounded-3xl border border-white/30 bg-white/95 p-6 text-center shadow-2xl">
-                <p className="text-xs font-black uppercase tracking-[.18em] text-violet-600">Antes de comenzar</p>
-                <h2 className="mt-2 text-2xl font-black text-slate-950">Elige tu rol</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">Selecciona TENS 1 · Atención o TENS 2 · Preparación en la parte superior. La escena permanecerá bloqueada hasta elegir.</p>
+                <p className="text-xs font-black uppercase tracking-[.18em] text-violet-600">
+                  {scenario.requiredPlayerRole ? "Refuerzo dirigido" : "Antes de comenzar"}
+                </p>
+                <h2 className="mt-2 text-2xl font-black text-slate-950">
+                  {scenario.requiredPlayerRole ? `Continúa como ${roleLabel(scenario.requiredPlayerRole)}` : "Elige tu rol"}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {scenario.requiredPlayerRole
+                    ? "Este refuerzo entrena una competencia asociada a ese rol. El otro rol queda a cargo de la simulación."
+                    : "Selecciona TENS 1 · Atención o TENS 2 · Preparación en la parte superior. La escena permanecerá bloqueada hasta elegir."}
+                </p>
               </div>
             </div>
           ) : null}
 
-          {session.selectedPlayerRole && session.deliveryStatus !== "completed" ? hotspots.map((hotspot) => (
+          {session.selectedPlayerRole && !terminal ? hotspots.map((hotspot) => (
             <button
               aria-label={`Interactuar con ${hotspot.label}`}
               className="group absolute z-20 -translate-x-1/2 -translate-y-1/2 rounded-xl outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
@@ -319,7 +357,7 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
 
         <aside className="space-y-4 bg-[#fcfcfe] p-4 sm:p-5 xl:max-h-[720px] xl:overflow-y-auto xl:pb-28">
           <section className="rounded-2xl border border-violet-100 bg-white p-4 shadow-[0_12px_35px_rgba(76,48,130,.08)] sm:p-5" aria-live="polite">
-            {session.deliveryStatus === "completed" ? (
+            {terminal ? (
               <Results onReinforcement={startReinforcement} onRetry={persistAttempt} persistence={persistence} session={session} />
             ) : session.deliveryStatus === "blocked" && scenario.mode !== "assessment" ? (
               <SafetyStop session={session} send={send} />
@@ -418,6 +456,10 @@ function PatientCounseling({ scenario, send, session }: { scenario: ScenarioDefi
 function Computer({ scenario, searchPatient, send, session }: { scenario: ScenarioDefinition; searchPatient: () => void; send: Send; session: SimulationSession }) {
   const loaded = [scenario.patient, ...scenario.similarPatients].find((patient) => patient.id === session.loadedPatientId);
   const records = scenario.prescriptions.filter((record) => record.patientId === session.loadedPatientId && scenario.visibleClinicalRecordIds.includes(record.id));
+  const hasHeldCurrentPrescription = scenario.prescriptionsRelevantToCurrentWithdrawal.some(
+    (prescriptionId) => session.prescriptionDispositionById[prescriptionId] === "hold-for-review",
+  );
+
   return (
     <Panel eyebrow="COMPUTADOR" title="Sistema clínico simulado">
       <div className="flex gap-2">
@@ -433,7 +475,7 @@ function Computer({ scenario, searchPatient, send, session }: { scenario: Scenar
       <div className="mt-3 space-y-2">
         {records.map((record) => {
           const opened = session.openedPrescriptionIds.includes(record.id);
-          const verified = session.verifiedPrescriptionIds.includes(record.id);
+          const disposition = session.prescriptionDispositionById[record.id];
           const current = scenario.prescriptionsRelevantToCurrentWithdrawal.includes(record.id);
           const available = scenario.availablePrescriptionIds.includes(record.id);
           return (
@@ -461,14 +503,36 @@ function Computer({ scenario, searchPatient, send, session }: { scenario: Scenar
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button className="rounded-lg border px-3 py-2 font-black text-violet-700" onClick={() => send("record.scrolled", { recordId: record.id })} type="button">Revisar ficha completa</button>
-                    <button className={cn("rounded-lg px-3 py-2 font-black", verified ? "bg-emerald-100 text-emerald-700" : "bg-violet-700 text-white")} onClick={() => send("prescription.status_verified", { prescriptionId: record.id })} type="button">{verified ? "Estado verificado" : "Verificar estado"}</button>
                   </div>
+                  {current ? (
+                    <div className="rounded-xl border border-violet-100 bg-violet-50/40 p-3">
+                      <p className="font-black text-slate-800">Decisión sobre el estado</p>
+                      <p className="mt-1 leading-5 text-slate-500">Después de revisar el estado y las fechas, decide si el retiro puede continuar o debe detenerse para revisión.</p>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        <button
+                          className={cn("rounded-lg px-3 py-2 font-black", disposition === "proceed" ? "bg-emerald-100 text-emerald-800" : "border border-violet-200 bg-white text-violet-700")}
+                          onClick={() => send("prescription.status_verified", { prescriptionId: record.id, disposition: "proceed" })}
+                          type="button"
+                        >
+                          {disposition === "proceed" ? "✓ " : ""}Continuar retiro
+                        </button>
+                        <button
+                          className={cn("rounded-lg px-3 py-2 font-black", disposition === "hold-for-review" ? "bg-amber-100 text-amber-900" : "border border-amber-200 bg-white text-amber-800")}
+                          onClick={() => send("prescription.status_verified", { prescriptionId: record.id, disposition: "hold-for-review" })}
+                          type="button"
+                        >
+                          {disposition === "hold-for-review" ? "✓ " : ""}Detener para revisión
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
           );
         })}
       </div>
+      {hasHeldCurrentPrescription ? <Action onClick={() => send("qf_support.requested")}>Solicitar apoyo QF y detener la entrega</Action> : null}
       <button className="mt-4 w-full text-sm font-black text-slate-500" onClick={() => send("computer.exited")} type="button">← Volver a farmacia</button>
     </Panel>
   );
@@ -489,7 +553,7 @@ function MedicationView({ medication, scenario, send, session }: { medication: M
     .flatMap((record) => record.lines);
   const matchingLine = relevantLines.find((line) => line.medicationPresentationId === medication.id);
   const [lineId, setLineId] = useState(matchingLine?.id ?? "");
-  const [quantity, setQuantity] = useState(matchingLine?.quantity ?? medication.packageQuantity);
+  const [quantity, setQuantity] = useState(matchingLine?.quantity ?? 1);
 
   const returnToSource = () => {
     if (fromTray) send("tray.inspected");
@@ -502,7 +566,8 @@ function MedicationView({ medication, scenario, send, session }: { medication: M
       <dl className="grid grid-cols-2 gap-2 rounded-xl bg-violet-50 p-4 text-sm">
         <div><dt className="font-bold text-slate-500">Concentración</dt><dd className="font-black">{medication.strength}</dd></div>
         <div><dt className="font-bold text-slate-500">Forma</dt><dd className="font-black">{medication.pharmaceuticalForm}</dd></div>
-        <div><dt className="font-bold text-slate-500">Envase</dt><dd className="font-black">{medication.packageQuantity}</dd></div>
+        <div><dt className="font-bold text-slate-500">Unidad</dt><dd className="font-black">{medication.dispensingUnit ?? "No informada"}</dd></div>
+        {medication.sourceCode ? <div><dt className="font-bold text-slate-500">Código</dt><dd className="font-black">{medication.sourceCode}</dd></div> : null}
       </dl>
       {!fromTray && session.selectedPlayerRole === "tens-2" ? (
         <div className="mt-4 space-y-3 rounded-xl border border-violet-100 p-3">
@@ -556,14 +621,15 @@ function Results({ onReinforcement, onRetry, persistence, session }: { onReinfor
   const reminder = failed.some(([id]) => id.includes("identity"))
     ? "NO OLVIDAR: confirma la identidad en el sistema y nuevamente antes de entregar."
     : failed.some(([id]) => id.includes("prescription"))
-      ? "NO OLVIDAR: abrir una receta no equivale a verificar su estado y vigencia."
+      ? "NO OLVIDAR: abrir una receta no equivale a decidir correctamente qué hacer con su estado."
       : failed.some(([id]) => id.includes("compare"))
         ? "NO OLVIDAR: compara activamente cada producto de la bandeja con su prescripción."
         : failed.some(([id]) => id.includes("instructions"))
           ? instructionReminder
           : null;
   return (
-    <Panel eyebrow="RESULTADO" title="Entrega completada">
+    <Panel eyebrow="RESULTADO" title={session.deliveryStatus === "safely-stopped" ? "Caso detenido de forma segura" : "Entrega completada"}>
+      {session.deliveryStatus === "safely-stopped" ? <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">La dispensación se detuvo antes del handoff y se solicitó revisión al QF.</p> : null}
       <div className="space-y-2">{Object.entries(session.criteria).map(([id, status], index) => <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2" key={id}><span className="text-xs font-semibold">Criterio {index + 1}</span><span className={cn("rounded-md px-2 py-1 text-xs font-black", status === "met" ? "bg-emerald-100 text-emerald-700" : status === "intercepted" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700")}>{status === "met" ? "Cumplido" : status === "intercepted" ? "Interceptado" : "Reforzar"}</span></div>)}</div>
       {reminder ? <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-black text-amber-900">{reminder}</div> : null}
       {failed.length ? <Action onClick={onReinforcement}>Iniciar refuerzo con un escenario diferente</Action> : null}
