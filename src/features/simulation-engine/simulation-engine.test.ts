@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { scenario001 } from "@/data/simulation/scenario-001";
-import { ambulatoryArsenal, findAlternativeStrengths } from "@/data/simulation/arsenal";
+import { ambulatoryArsenal, alternativeStrengthPresentations } from "@/data/simulation/arsenal";
 import {
   buildExpectedTray,
   createSimulationSession,
@@ -16,9 +16,22 @@ import {
 const actorId = "tens-1";
 const now = "2026-08-18T12:00:00.000Z";
 
+function selectTens1(scenario: ScenarioDefinition, session: SimulationSession) {
+  return executeSimulationCommand(
+    scenario,
+    session,
+    { type: "role.selected", actorId, data: { selectedRole: "tens-1" } },
+    now,
+  );
+}
+
 function readySession(): SimulationSession {
+  const selected = selectTens1(
+    scenario001,
+    createSimulationSession(scenario001, { sessionId: "test-session", startedAt: now }),
+  );
   return {
-    ...createSimulationSession(scenario001, { sessionId: "test-session", startedAt: now }),
+    ...selected,
     loadedPatientId: scenario001.patient.id,
     verifiedPrescriptionIds: [...scenario001.prescriptionsRelevantToCurrentWithdrawal],
     tray: buildExpectedTray(scenario001),
@@ -86,19 +99,23 @@ describe("mandatory structural audit scenarios", () => {
   });
 
   it("B. ERROR DE CONCENTRACIÓN uses two real Atención Abierta strengths of the same medication", () => {
-    const carvedilol125 = ambulatoryArsenal.find((item) => item.id === "004-0308");
-    const carvedilol25 = ambulatoryArsenal.find((item) => item.id === "004-0251");
-    expect(carvedilol125?.medicationName).toBe("CARVEDILOL");
-    expect(carvedilol125?.strength).toBe("12,5 mg");
-    expect(carvedilol25?.medicationName).toBe("CARVEDILOL");
-    expect(carvedilol25?.strength).toBe("25 mg");
-    expect(findAlternativeStrengths("004-0308").map((item) => item.id)).toContain("004-0251");
+    const carvedilol125 = ambulatoryArsenal.find((item) => item.id === "trakcare-004-0308");
+    const carvedilol25 = ambulatoryArsenal.find((item) => item.id === "trakcare-004-0251");
+    expect(carvedilol125?.medicationName).toBe("Carvedilol");
+    expect(carvedilol125?.strength).toBe("12.5 MG");
+    expect(carvedilol25?.medicationName).toBe("Carvedilol");
+    expect(carvedilol25?.strength).toBe("25 MG");
+    expect(alternativeStrengthPresentations("trakcare-004-0308").map((item) => item.id)).toContain("trakcare-004-0251");
 
     const scenario = structuredClone(scenario001);
-    scenario.prescriptions[0].lines[0].medicationPresentationId = "004-0308";
+    scenario.prescriptions[0].lines[0].medicationPresentationId = "trakcare-004-0308";
     scenario.prescriptions[0].lines[0].quantity = 1;
-    const session = {
-      ...createSimulationSession(scenario, { sessionId: "real-strength", startedAt: now }),
+    const selected = selectTens1(
+      scenario,
+      createSimulationSession(scenario, { sessionId: "real-strength", startedAt: now }),
+    );
+    const session: SimulationSession = {
+      ...selected,
       loadedPatientId: scenario.patient.id,
       verifiedPrescriptionIds: [...scenario.prescriptionsRelevantToCurrentWithdrawal],
       tray: {
@@ -107,7 +124,7 @@ describe("mandatory structural audit scenarios", () => {
         items: [{
           id: "wrong-carvedilol-strength",
           prescriptionLineId: scenario.prescriptions[0].lines[0].id,
-          medicationPresentationId: "004-0251",
+          medicationPresentationId: "trakcare-004-0251",
           quantity: 1,
         }],
       },
@@ -137,7 +154,7 @@ describe("mandatory structural audit scenarios", () => {
 
   it("E. GAVETA INCORRECTA is detected even when the wrong product is never selected", () => {
     const scenario = structuredClone(scenario001);
-    scenario.drawers[0].contents.push("004-0087");
+    scenario.drawers[0].contents.push("trakcare-004-0087");
     const deviations = evaluateStorage(scenario);
     expect(deviations.map((item) => item.kind)).toContain("mixed-product");
 
@@ -148,11 +165,11 @@ describe("mandatory structural audit scenarios", () => {
 
   it("F. GAVETA INCORRECTA → PREPARACIÓN INCORRECTA becomes a medication discrepancy only after selection", () => {
     const scenario = structuredClone(scenario001);
-    scenario.drawers[0].contents.push("004-0087");
+    scenario.drawers[0].contents.push("trakcare-004-0087");
     const session = readySession();
     session.tray.items[0] = {
       ...session.tray.items[0],
-      medicationPresentationId: "004-0087",
+      medicationPresentationId: "trakcare-004-0087",
     };
     const kinds = evaluateDeliverySafety(scenario, session).map((item) => item.kind);
     expect(evaluateStorage(scenario).map((item) => item.kind)).toContain("mixed-product");
@@ -170,6 +187,7 @@ describe("mandatory structural audit scenarios", () => {
 describe("event semantics", () => {
   it("opening a prescription does not verify its status", () => {
     let session = createSimulationSession(scenario001, { sessionId: "rx-open", startedAt: now });
+    session = selectTens1(scenario001, session);
     session = executeSimulationCommand(
       scenario001,
       session,
@@ -210,12 +228,7 @@ describe("event semantics", () => {
 
   it("records PC tabs and scrolling independently", () => {
     let session = createSimulationSession(scenario001, { sessionId: "pc", startedAt: now });
-    session = executeSimulationCommand(
-      scenario001,
-      session,
-      { type: "role.selected", actorId, data: { selectedRole: "tens-1" } },
-      now,
-    );
+    session = selectTens1(scenario001, session);
     session = executeSimulationCommand(
       scenario001,
       session,
