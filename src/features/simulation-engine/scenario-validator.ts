@@ -52,6 +52,16 @@ export function validateScenarioDefinition(
   for (const id of scenario.expectedPrescriptionIds) {
     if (!prescriptionIds.has(id)) issues.push(`Unknown expected prescription: ${id}`);
   }
+
+  const withdrawalEstablishments = new Set(
+    scenario.prescriptions
+      .filter((record) => scenario.expectedPrescriptionIds.includes(record.id))
+      .map((record) => record.establishmentId),
+  );
+  if (withdrawalEstablishments.size > 1) {
+    issues.push("Current withdrawal must belong to a single dispensing establishment");
+  }
+
   for (const drawer of scenario.drawers) {
     if (!presentationIds.has(drawer.expectedMedicationPresentationId)) {
       issues.push(`Drawer ${drawer.id} expects an unknown presentation`);
