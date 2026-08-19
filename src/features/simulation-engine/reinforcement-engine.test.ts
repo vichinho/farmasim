@@ -52,7 +52,7 @@ describe("adaptive reinforcement memory", () => {
       mode: "practice",
       seed: first.seed,
     });
-    expect(firstScenario.version).toBe("2.3.0-reinforcement");
+    expect(firstScenario.version).toBe("2.4.0-reinforcement");
     expect(firstScenario.patient.id).toBe(first.variant.patientId);
     expect(firstScenario.prescriptions[0].establishmentId).toBe(first.variant.establishmentId);
     expect(firstScenario.prescriptions[0].lines[0].medicationPresentationId).toBe(first.variant.presentationId);
