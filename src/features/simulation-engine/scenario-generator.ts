@@ -1,5 +1,5 @@
 import { scenario001 } from "@/data/simulation/scenario-001";
-import type { ScenarioDefinition, SimulationMode, TrayItem } from "./types";
+import type { ScenarioDefinition, SimulationMode } from "./types";
 import { assertValidScenarioDefinition } from "./scenario-validator";
 
 function hashSeed(value: string) {
@@ -10,6 +10,7 @@ function hashSeed(value: string) {
   }
   return hash >>> 0;
 }
+
 function seededIndex(seed: number, length: number) {
   let state = seed || 1;
   state ^= state << 13;
@@ -52,10 +53,7 @@ export function generateScenarioDefinition({
     },
   ];
   const patient = patients[seededIndex(seed, patients.length)];
-  const corePrescriptions = base.prescriptions.map((record) => ({
-    ...record,
-    patientId: patient.id,
-  }));
+  const corePrescriptions = base.prescriptions.map((record) => ({ ...record, patientId: patient.id }));
   const recordTarget = mode === "guided" ? 3 : mode === "practice" ? 5 : 12;
   const establishments: ScenarioDefinition["prescriptions"][number]["establishmentId"][] = [
     "hospital-tome",
@@ -76,6 +74,7 @@ export function generateScenarioDefinition({
     "rejected",
     "historical",
   ];
+
   const prescriptions = Array.from({ length: recordTarget }, (_, index) => {
     if (index < corePrescriptions.length) return corePrescriptions[index];
     const template = corePrescriptions[index % corePrescriptions.length];
@@ -83,8 +82,8 @@ export function generateScenarioDefinition({
     return {
       ...template,
       id: recordId,
-      establishmentId: establishments[(seededIndex(seed + index, establishments.length))],
-      status: statuses[(seededIndex(seed + index * 7, statuses.length))],
+      establishmentId: establishments[seededIndex(seed + index, establishments.length)],
+      status: statuses[seededIndex(seed + index * 7, statuses.length)],
       dates: {
         ...template.dates,
         issuedAt: `202${4 + (index % 3)}-${String((index % 12) + 1).padStart(2, "0")}-10`,
@@ -93,52 +92,33 @@ export function generateScenarioDefinition({
       lines: template.lines.map((line) => ({ ...line, id: `${recordId}:${line.id}` })),
     };
   });
-  const expectedItems: TrayItem[] = prescriptions
-    .filter((record) => base.expectedPrescriptionIds.includes(record.id))
-    .flatMap((record) => record.lines)
-    .map((line) => ({
-      id: `tray:${line.id}`,
-      prescriptionLineId: line.id,
-      medicationPresentationId: line.medicationPresentationId,
-      quantity: line.quantity,
-    }));
 
-  let items = expectedItems;
-  if (id.includes("001") || id.includes("002") || id.includes("003")) {
-    items = expectedItems.map((item) =>
-      item.prescriptionLineId === "line-losartan"
-        ? { ...item, medicationPresentationId: "losartan-100-tablet-30" }
-        : item,
-    );
-  } else if (id.includes("006")) {
-    items = expectedItems.map((item) =>
-      item.prescriptionLineId === "line-losartan"
-        ? { ...item, medicationPresentationId: "losartan-100-tablet-30", quantity: 60 }
-        : item,
-    );
-  } else if (id.includes("007")) {
-    items = expectedItems
-      .filter((item) => item.prescriptionLineId !== "line-amlodipine")
-      .concat({
-        id: "tray:additional-paracetamol",
-        medicationPresentationId: "paracetamol-500-tablet-20",
-        quantity: 20,
-      });
-  }
+  const visibleClinicalRecordIds = prescriptions.map((record) => record.id);
+  const availablePrescriptionIds = prescriptions
+    .filter((record) => !["historical", "rejected", "completed", "dispensed"].includes(record.status))
+    .map((record) => record.id);
+  const baseRelevant = new Set(base.prescriptionsRelevantToCurrentWithdrawal);
+  const prescriptionsRelevantToCurrentWithdrawal = prescriptions
+    .filter((record) => baseRelevant.has(record.id) && availablePrescriptionIds.includes(record.id))
+    .map((record) => record.id);
 
   return assertValidScenarioDefinition({
     ...base,
     id,
-    version: "2.0.0-generated",
+    version: "2.1.0-generated",
     seed,
     mode,
     patient,
     prescriptions,
+    visibleClinicalRecordIds,
+    availablePrescriptionIds,
+    prescriptionsRelevantToCurrentWithdrawal,
     initialTray: {
       ...base.initialTray,
       id: `tray:${id}`,
       patientId: patient.id,
-      items,
+      status: "empty",
+      items: [],
     },
   });
 }
