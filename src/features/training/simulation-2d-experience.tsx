@@ -87,9 +87,10 @@ function roleLabel(role: PlayerRole) {
 }
 
 export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Props) {
+  const resolvedSimulationMode = simulationMode(mode);
   const baseScenario = useMemo(
-    () => generateScenarioDefinition({ id: trainingCase.id, mode: simulationMode(mode) }),
-    [mode, trainingCase.id],
+    () => generateScenarioDefinition({ id: trainingCase.id, mode: resolvedSimulationMode }),
+    [resolvedSimulationMode, trainingCase.id],
   );
   const [scenario, setScenario] = useState(baseScenario);
   const [session, setSession] = useState<SimulationSession>(() => createSimulationSession(baseScenario));
