@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 
 import {
@@ -708,7 +709,7 @@ function Results({ onReinforcement, onRetry, persistence, session }: { onReinfor
       {session.deliveryStatus === "safely-stopped" ? <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">La dispensación se detuvo antes del handoff y se solicitó revisión al QF.</p> : null}
       <div className="space-y-2">{Object.entries(session.criteria).map(([id, status], index) => <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2" key={id}><span className="text-xs font-semibold">Criterio {index + 1}</span><span className={cn("rounded-md px-2 py-1 text-xs font-black", status === "met" ? "bg-emerald-100 text-emerald-700" : status === "intercepted" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700")}>{status === "met" ? "Cumplido" : status === "intercepted" ? "Interceptado" : "Reforzar"}</span></div>)}</div>
       {reminder ? <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-black text-amber-900">{reminder}</div> : null}
-      {failed.length ? <a className="mt-3 block rounded-xl border border-violet-200 px-4 py-3 text-sm font-black text-violet-700 hover:bg-violet-50" href="/capsulas">Revisar cápsulas educativas asignadas</a> : null}
+      {failed.length ? <Link className="mt-3 block rounded-xl border border-violet-200 px-4 py-3 text-sm font-black text-violet-700 hover:bg-violet-50" href="/capsulas">Revisar cápsulas educativas asignadas</Link> : null}
       {failed.length ? <Action onClick={onReinforcement}>Iniciar refuerzo con un escenario diferente</Action> : null}
       <div className={cn("mt-4 rounded-xl border p-3 text-sm font-bold", persistence.status === "saved" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : persistence.status === "error" ? "border-rose-200 bg-rose-50 text-rose-800" : "border-violet-200 bg-violet-50 text-violet-800")} role="status"><p>{persistence.message || "Preparando el guardado del progreso…"}</p>{persistence.status === "error" ? <button className="mt-3 min-h-10 rounded-lg bg-rose-700 px-4 text-xs font-black text-white" onClick={onRetry} type="button">Reintentar guardado</button> : null}</div>
     </Panel>
