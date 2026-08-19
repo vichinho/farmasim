@@ -11,7 +11,12 @@ import {
   generateScenarioDefinition,
   getMissionSteps,
   getRecentLearnerActions,
+  instructionEvidenceKey,
+  instructionSectionLabels,
   recommendReinforcement,
+  requiredInstructionEvidence,
+  requiredInstructionSections,
+  type InstructionSection,
   type MedicationPresentation,
   type ScenarioDefinition,
   type SimulationCommand,
@@ -111,7 +116,6 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
     ));
   }, [scenario]);
 
-  const activeActor = scenario.actors.find((actor) => actor.id === session.activeActorId);
   const drawer = session.focusedObjectId?.startsWith("drawer:")
     ? scenario.drawers.find((item) => item.id === session.focusedObjectId?.slice(7))
     : undefined;
@@ -218,11 +222,18 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
           commands.push({ type: "medication.compared_to_prescription", actorId: "tens-1", data: { prescriptionLineId: item.prescriptionLineId } });
         }
       }
-      commands.push(
-        { type: "identity.rechecked", actorId: "tens-1", data: { patientId: scenario.patient.id } },
-        { type: "instructions.given", actorId: "tens-1", data: { patientId: scenario.patient.id } },
-        { type: "delivery.attempted", actorId: "tens-1" },
-      );
+      commands.push({ type: "identity.rechecked", actorId: "tens-1", data: { patientId: scenario.patient.id } });
+      for (const requirement of requiredInstructionEvidence(scenario)) {
+        commands.push({
+          type: "instruction.section_given",
+          actorId: "tens-1",
+          data: {
+            prescriptionLineId: requirement.prescriptionLineId,
+            section: requirement.section,
+          },
+        });
+      }
+      commands.push({ type: "delivery.attempted", actorId: "tens-1" });
       return commands;
     });
   }
@@ -281,7 +292,17 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-white/5" />
           </div>
 
-          {session.deliveryStatus !== "completed" ? hotspots.map((hotspot) => (
+          {!session.selectedPlayerRole ? (
+            <div className="absolute inset-0 z-30 grid place-items-center bg-slate-950/55 p-6 backdrop-blur-[2px]">
+              <div className="max-w-md rounded-3xl border border-white/30 bg-white/95 p-6 text-center shadow-2xl">
+                <p className="text-xs font-black uppercase tracking-[.18em] text-violet-600">Antes de comenzar</p>
+                <h2 className="mt-2 text-2xl font-black text-slate-950">Elige tu rol</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Selecciona TENS 1 · Atención o TENS 2 · Preparación en la parte superior. La escena permanecerá bloqueada hasta elegir.</p>
+              </div>
+            </div>
+          ) : null}
+
+          {session.selectedPlayerRole && session.deliveryStatus !== "completed" ? hotspots.map((hotspot) => (
             <button
               aria-label={`Interactuar con ${hotspot.label}`}
               className="group absolute z-20 -translate-x-1/2 -translate-y-1/2 rounded-xl outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
@@ -310,7 +331,6 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
               <DrawerView drawer={drawer} scenario={scenario} send={send} />
             ) : (
               <FocusView
-                activeRole={activeActor?.role}
                 finishPreparationAsTens2={finishPreparationAsTens2}
                 scenario={scenario}
                 searchPatient={searchPatient}
@@ -327,8 +347,7 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
   );
 }
 
-function FocusView({ activeRole, finishPreparationAsTens2, scenario, searchPatient, send, session }: {
-  activeRole?: string;
+function FocusView({ finishPreparationAsTens2, scenario, searchPatient, send, session }: {
   finishPreparationAsTens2: () => void;
   scenario: ScenarioDefinition;
   searchPatient: () => void;
@@ -337,13 +356,63 @@ function FocusView({ activeRole, finishPreparationAsTens2, scenario, searchPatie
 }) {
   const focus = session.focusedObjectId;
   if (!focus) return <Panel eyebrow="ESCENA GENERAL" title="Explora la farmacia"><p className="text-sm leading-6 text-slate-600">Selecciona un objeto de la escena para continuar.</p></Panel>;
-  if (focus === "patient") return <Panel eyebrow="ATENCIÓN" title="Paciente"><p className="rounded-xl bg-violet-50 p-3 text-sm">“Buenos días, vengo a retirar mis medicamentos.”</p><Action onClick={() => { send("document.requested"); send("document.opened"); }}>Solicitar documento</Action><Action onClick={() => send("identity.rechecked", { patientId: scenario.patient.id })}>Verificar identidad antes de entregar</Action><Action onClick={() => send("instructions.given", { patientId: scenario.patient.id })}>Entregar indicaciones</Action><button className="mt-3 min-h-12 w-full rounded-xl bg-violet-700 px-4 font-black text-white" onClick={() => send("delivery.attempted")} type="button">ENTREGAR</button><Back send={send} /></Panel>;
+  if (focus === "patient") return <Panel eyebrow="ATENCIÓN" title="Paciente"><p className="rounded-xl bg-violet-50 p-3 text-sm">“Buenos días, vengo a retirar mis medicamentos.”</p><Action onClick={() => { send("document.requested"); send("document.opened"); }}>Solicitar documento</Action><Action onClick={() => send("identity.rechecked", { patientId: scenario.patient.id })}>Verificar identidad antes de entregar</Action><PatientCounseling scenario={scenario} send={send} session={session} /><button className="mt-3 min-h-12 w-full rounded-xl bg-violet-700 px-4 font-black text-white" onClick={() => send("delivery.attempted")} type="button">ENTREGAR</button><Back send={send} /></Panel>;
   if (focus === "document") return <Panel eyebrow="DOCUMENTO FICTICIO" title="Identificación"><div className="rounded-xl bg-violet-50 p-4"><p className="font-black">{fullName(scenario)}</p><p className="text-sm">RUT {scenario.patient.rut}</p><p className="text-sm">Edad {scenario.patient.age} años</p></div><Back send={send} /></Panel>;
   if (focus === "computer") return <Computer scenario={scenario} searchPatient={searchPatient} send={send} session={session} />;
   if (focus === "storage") return <Storage scenario={scenario} send={send} />;
   if (focus === "preparation") return <Panel eyebrow="ROL" title="TENS 2 · Preparación"><p className="text-sm text-slate-600">Control actual: <strong>{session.actorControllers["tens-2"] === "participant" ? "participante" : "simulación"}</strong>.</p><Action onClick={() => send("storage.focused")}>Ir al almacenamiento</Action>{session.selectedPlayerRole === "tens-2" ? <Action onClick={finishPreparationAsTens2}>Enviar bandeja a TENS 1</Action> : null}<Back send={send} /></Panel>;
   if (focus === "tray") return <TrayView scenario={scenario} send={send} session={session} />;
   return <Panel eyebrow="ESCENA" title="Interacción"><Back send={send} /></Panel>;
+}
+
+function instructionContent(presentation: MedicationPresentation | undefined, section: InstructionSection) {
+  const education = presentation?.education;
+  if (!education) return [];
+  if (section === "purpose") return [education.purpose].filter(Boolean);
+  if (section === "schedule-administration") return [education.relevantSchedule, education.foodRelationship, education.administerWith].filter((item): item is string => Boolean(item));
+  if (section === "precautions") return [...(education.avoid ?? []), education.practicalRecommendation].filter((item): item is string => Boolean(item));
+  return education.consultQfWhen ?? [];
+}
+
+function PatientCounseling({ scenario, send, session }: { scenario: ScenarioDefinition; send: Send; session: SimulationSession }) {
+  const requirements = requiredInstructionEvidence(scenario);
+  const lineIds = Array.from(new Set(requirements.map((item) => item.prescriptionLineId)));
+  return (
+    <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/40 p-3">
+      <p className="text-xs font-black uppercase tracking-wider text-violet-700">Indicaciones al paciente</p>
+      <p className="mt-1 text-xs leading-5 text-slate-500">Registra cada parte que realmente comunicas. El simulador no inventa contenido clínico: solo muestra texto específico cuando la presentación tiene una fuente educativa cargada.</p>
+      <div className="mt-3 space-y-3">
+        {lineIds.map((lineId) => {
+          const line = scenario.prescriptions.flatMap((record) => record.lines).find((item) => item.id === lineId);
+          const presentation = line ? getPresentation(scenario, line.medicationPresentationId) : undefined;
+          return (
+            <div className="rounded-xl border border-violet-100 bg-white p-3" key={lineId}>
+              <p className="text-sm font-black">{presentation?.medicationName ?? "Medicamento"} · {presentation?.strength}</p>
+              <div className="mt-2 space-y-2">
+                {requiredInstructionSections.map((section) => {
+                  const key = instructionEvidenceKey(lineId, section);
+                  const completed = session.instructionEvidenceKeys.includes(key);
+                  const content = instructionContent(presentation, section);
+                  return (
+                    <div className="rounded-lg border border-slate-100 p-2" key={section}>
+                      <button
+                        className={cn("w-full rounded-lg px-3 py-2 text-left text-xs font-black", completed ? "bg-emerald-100 text-emerald-800" : "bg-violet-700 text-white")}
+                        onClick={() => send("instruction.section_given", { prescriptionLineId: lineId, section })}
+                        type="button"
+                      >
+                        {completed ? "✓ " : ""}{instructionSectionLabels[section]}
+                      </button>
+                      {scenario.mode === "guided" && content.length ? <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-5 text-slate-600">{content.map((item) => <li key={item}>{item}</li>)}</ul> : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function Computer({ scenario, searchPatient, send, session }: { scenario: ScenarioDefinition; searchPatient: () => void; send: Send; session: SimulationSession }) {
@@ -481,6 +550,9 @@ function AssessmentBlocked({ send }: { send: Send }) {
 
 function Results({ onReinforcement, onRetry, persistence, session }: { onReinforcement: () => void; onRetry: () => void; persistence: PersistenceState; session: SimulationSession }) {
   const failed = Object.entries(session.criteria).filter(([, status]) => status !== "met" && status !== "intercepted");
+  const instructionReminder = session.missingInstructionSections.length
+    ? `NO OLVIDAR: faltó comunicar ${session.missingInstructionSections.map((section) => instructionSectionLabels[section].toLowerCase()).join(", ")}.`
+    : "NO OLVIDAR: entrega todas las indicaciones correspondientes antes de finalizar.";
   const reminder = failed.some(([id]) => id.includes("identity"))
     ? "NO OLVIDAR: confirma la identidad en el sistema y nuevamente antes de entregar."
     : failed.some(([id]) => id.includes("prescription"))
@@ -488,7 +560,7 @@ function Results({ onReinforcement, onRetry, persistence, session }: { onReinfor
       : failed.some(([id]) => id.includes("compare"))
         ? "NO OLVIDAR: compara activamente cada producto de la bandeja con su prescripción."
         : failed.some(([id]) => id.includes("instructions"))
-          ? "NO OLVIDAR: entrega las indicaciones correspondientes antes de finalizar."
+          ? instructionReminder
           : null;
   return (
     <Panel eyebrow="RESULTADO" title="Entrega completada">
@@ -512,7 +584,7 @@ function LearnerSidebar({ scenario, session }: { scenario: ScenarioDefinition; s
 
 function TechnicalAudit({ session }: { session: SimulationSession }) {
   const recent = session.eventLog.slice(-12).reverse();
-  return <details className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-slate-600"><summary className="cursor-pointer text-xs font-black uppercase tracking-wider">Auditoría técnica</summary><p className="mt-2 text-xs">Desviaciones de almacenamiento: {session.storageDeviations.length}</p>{session.storageDeviations.map((item) => <p className="mt-1 text-xs" key={item.id}>{item.drawerId} · {item.kind}</p>)}{recent.length ? <ol className="mt-3 space-y-2">{recent.map((event) => <li className="rounded-lg bg-slate-50 px-3 py-2 text-xs" key={event.id}><p className="font-bold">{event.sequence}. {describeSimulationEvent(event)}</p><code className="text-[.65rem] text-slate-400">{event.type} · {event.actorId}</code></li>)}</ol> : null}</details>;
+  return <details className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-slate-600"><summary className="cursor-pointer text-xs font-black uppercase tracking-wider">Auditoría técnica</summary><p className="mt-2 text-xs">Desviaciones de almacenamiento: {session.storageDeviations.length}</p><p className="mt-1 text-xs">Secciones de indicaciones pendientes: {session.missingInstructionSections.length ? session.missingInstructionSections.join(", ") : "ninguna"}</p>{session.storageDeviations.map((item) => <p className="mt-1 text-xs" key={item.id}>{item.drawerId} · {item.kind}</p>)}{recent.length ? <ol className="mt-3 space-y-2">{recent.map((event) => <li className="rounded-lg bg-slate-50 px-3 py-2 text-xs" key={event.id}><p className="font-bold">{event.sequence}. {describeSimulationEvent(event)}</p><code className="text-[.65rem] text-slate-400">{event.type} · {event.actorId}</code></li>)}</ol> : null}</details>;
 }
 
 function Panel({ eyebrow, title, children }: { eyebrow: string; title: string; children: React.ReactNode }) { return <div><p className="text-[.65rem] font-black uppercase tracking-[.16em] text-violet-600">{eyebrow}</p><h1 className="mt-1 text-xl font-black">{title}</h1><div className="mt-4">{children}</div></div>; }
