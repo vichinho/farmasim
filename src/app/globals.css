@@ -360,6 +360,84 @@ h6 {
   }
 }
 
+/* Bloqueo visual previo a seleccionar TENS 1 / TENS 2. El motor también ignora comandos hasta role.selected. */
+div:has(> header [aria-label="Seleccionar rol"]) > div.grid {
+  position: relative;
+}
+
+div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > header [aria-label="Seleccionar rol"] {
+  position: relative;
+  z-index: 60;
+  padding: 0.35rem;
+  border: 1px solid rgb(221 214 254);
+  border-radius: 1rem;
+  background: rgb(245 243 255);
+  box-shadow: 0 10px 30px rgba(91, 33, 182, 0.12);
+}
+
+div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > header [aria-label="Seleccionar rol"]::before {
+  content: "Elige tu rol";
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.4rem);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  background: rgb(76 29 149);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > div.grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: rgba(15, 23, 42, 0.54);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  pointer-events: auto;
+}
+
+div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > div.grid::after {
+  content: "ELIGE TU ROL PARA COMENZAR\A TENS 1 · Atención y despacho    |    TENS 2 · Preparación";
+  white-space: pre-wrap;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 51;
+  width: min(90%, 42rem);
+  transform: translate(-50%, -50%);
+  padding: 1.4rem 1.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 1.4rem;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+  color: rgb(46 16 101);
+  text-align: center;
+  font-size: clamp(0.78rem, 1.8vw, 1rem);
+  font-weight: 800;
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > header [aria-label="Seleccionar rol"]::before {
+    display: none;
+  }
+
+  div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > div.grid::after {
+    content: "ELIGE TU ROL PARA COMENZAR\A TENS 1 · Atención y despacho\A TENS 2 · Preparación";
+    width: min(88%, 24rem);
+    padding: 1.1rem 1rem;
+    line-height: 1.65;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -369,6 +447,6 @@ h6 {
   }
 
   .simulation-panel-enter {
-    animation-duration: 0.01ms !important;
+    animation-duration: 0.01ms;
   }
 }
