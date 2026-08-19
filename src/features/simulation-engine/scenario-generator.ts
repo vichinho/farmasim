@@ -137,6 +137,20 @@ const reinforcementChallengeKeys: Record<ReinforcementCompetency, string[]> = {
   ],
 };
 
+const knownReinforcementCompetencies = new Set<ReinforcementCompetency>([
+  "patient-identification",
+  "prescription-review",
+  "preparation-comparison",
+  "final-identification",
+  "instructions",
+]);
+
+function competencyFromReinforcementId(id: string) {
+  if (!id.startsWith("reinforcement__")) return undefined;
+  const competency = id.split("__")[1] as ReinforcementCompetency | undefined;
+  return competency && knownReinforcementCompetencies.has(competency) ? competency : undefined;
+}
+
 const reinforcementPresentationPool = scenario001.arsenal.filter((presentation) => {
   const oralSolid = ["COMPRIMIDO ORAL", "CAPSULA ORAL", "GRAGEA"].includes(presentation.pharmaceuticalForm);
   const hasStrength = !presentation.strength.startsWith("NO ESPECIFICADA");
@@ -325,8 +339,9 @@ export function generateScenarioDefinition({
   reinforcementCompetency,
 }: ScenarioGenerationOptions): ScenarioDefinition {
   const base = structuredClone(scenario001);
-  const reinforcement = reinforcementCompetency
-    ? reinforcementContext(id, seed, reinforcementCompetency)
+  const resolvedCompetency = reinforcementCompetency ?? competencyFromReinforcementId(id);
+  const reinforcement = resolvedCompetency
+    ? reinforcementContext(id, seed, resolvedCompetency)
     : null;
 
   const patient = reinforcement?.patient ?? syntheticPatients[seededIndex(seed, 3)];
@@ -366,7 +381,7 @@ export function generateScenarioDefinition({
   return assertValidScenarioDefinition({
     ...base,
     id,
-    version: reinforcementCompetency ? "2.3.0-reinforcement" : "2.2.0-generated",
+    version: resolvedCompetency ? "2.3.0-reinforcement" : "2.2.0-generated",
     seed,
     mode,
     patient,
