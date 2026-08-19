@@ -158,10 +158,31 @@ const knownReinforcementCompetencies = new Set<ReinforcementCompetency>([
   "instructions",
 ]);
 
-function competencyFromReinforcementId(id: string) {
-  if (!id.startsWith("reinforcement__")) return undefined;
-  const competency = id.split("__")[1] as ReinforcementCompetency | undefined;
-  return competency && knownReinforcementCompetencies.has(competency) ? competency : undefined;
+type RuntimeScenarioDescriptor = {
+  kind: "reinforcement" | "pilot";
+  competency: ReinforcementCompetency;
+  seed?: number;
+  challengeKey?: string;
+};
+
+function runtimeScenarioDescriptor(id: string): RuntimeScenarioDescriptor | undefined {
+  const [kindPart, competencyPart, seedPart, challengeKey] = id.split("__");
+  if (kindPart !== "reinforcement" && kindPart !== "pilot") return undefined;
+  const competency = competencyPart as ReinforcementCompetency | undefined;
+  if (!competency || !knownReinforcementCompetencies.has(competency)) return undefined;
+
+  if (kindPart === "reinforcement") {
+    return { kind: "reinforcement", competency };
+  }
+
+  const parsedSeed = Number(seedPart);
+  if (!Number.isSafeInteger(parsedSeed) || parsedSeed < 0) return undefined;
+  return {
+    kind: "pilot",
+    competency,
+    seed: parsedSeed,
+    challengeKey: challengeKey || undefined,
+  };
 }
 
 function requiredRoleForCompetency(competency: ReinforcementCompetency | undefined) {
@@ -490,14 +511,26 @@ export type ScenarioGenerationOptions = {
 export function generateScenarioDefinition({
   id,
   mode,
-  seed = hashSeed(id),
+  seed: providedSeed,
   reinforcementCompetency,
 }: ScenarioGenerationOptions): ScenarioDefinition {
   const base = structuredClone(scenario001);
-  const resolvedCompetency = reinforcementCompetency ?? competencyFromReinforcementId(id);
+  const runtimeDescriptor = runtimeScenarioDescriptor(id);
+  const seed = providedSeed ?? runtimeDescriptor?.seed ?? hashSeed(id);
+  const resolvedCompetency = reinforcementCompetency ?? runtimeDescriptor?.competency;
   const context = resolvedCompetency
     ? reinforcementContext(id, seed, resolvedCompetency)
     : buildNormalContext(id, seed);
+
+  if (
+    runtimeDescriptor?.kind === "pilot"
+    && runtimeDescriptor.challengeKey
+    && context.reinforcementChallengeKey !== runtimeDescriptor.challengeKey
+  ) {
+    throw new Error(
+      `Pilot runtime id expected ${runtimeDescriptor.challengeKey} but seed ${seed} generated ${context.reinforcementChallengeKey ?? "none"}`,
+    );
+  }
 
   const patient = context.patient;
   const corePrescriptions = context.prescriptions.map((record) => ({ ...record, patientId: patient.id }));
@@ -539,7 +572,7 @@ export function generateScenarioDefinition({
   return assertValidScenarioDefinition({
     ...base,
     id,
-    version: resolvedCompetency ? "2.6.0-reinforcement" : "2.6.0-generated",
+    version: resolvedCompetency ? "2.7.0-reinforcement" : "2.7.0-generated",
     seed,
     mode,
     patient,
