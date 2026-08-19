@@ -1,0 +1,47 @@
+/* Desktop/notebook safeguards for the current FarmaVerse 2D simulation.
+ * Presentation only: simulation state, events and evaluation are unchanged.
+ */
+
+/* The React component already owns the role gate. Remove the legacy CSS-only
+ * overlay everywhere so desktop never renders two role prompts at once. */
+div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > header [aria-label="Seleccionar rol"]::before,
+div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > div.grid::before,
+div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > div.grid::after {
+  content: none !important;
+  display: none !important;
+}
+
+@media (min-width: 640px) {
+  /* Keep the actual role buttons visually neutral in desktop/tablet. */
+  div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > header [aria-label="Seleccionar rol"] {
+    position: static !important;
+    z-index: auto !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  div:has(> header [aria-label="Seleccionar rol"]) {
+    --desktop-simulation-height: clamp(30rem, calc(100svh - 10.5rem), 45rem);
+  }
+
+  /* Fit the whole 2D scene inside typical notebook viewports instead of
+   * forcing a fixed 720px canvas that spills below the fold. */
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main {
+    height: var(--desktop-simulation-height) !important;
+    min-height: var(--desktop-simulation-height) !important;
+  }
+
+  /* The contextual column follows the same viewport-aware height and scrolls
+   * internally only when its content genuinely needs more room. */
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > aside {
+    height: var(--desktop-simulation-height) !important;
+    max-height: var(--desktop-simulation-height) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+  }
+}
