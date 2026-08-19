@@ -60,6 +60,7 @@ export function createSimulationSession(
     loadedPatientId: scenario.initialClinicalSystemState === "previous_patient_open"
       ? scenario.similarPatients[0]?.id ?? null
       : null,
+    finalReidentifiedPatientId: null,
     openedPrescriptionIds: [],
     verifiedPrescriptionIds: [],
     prescriptionDispositionById: {},
@@ -142,6 +143,9 @@ function reduceEvent(
       }
       break;
     }
+    case "identity.rechecked":
+      next.finalReidentifiedPatientId = value(event, "patientId");
+      break;
     case "scene.returned":
     case "computer.exited":
       next.focusedObjectId = null;
@@ -275,8 +279,6 @@ export function executeSimulationCommand(
     return session;
   }
 
-  // No clinical/preparation action is accepted until the participant explicitly
-  // chooses TENS 1 or TENS 2. The selected role is immutable for the session.
   if (!session.selectedPlayerRole && command.type !== "role.selected") return session;
   if (session.selectedPlayerRole && command.type === "role.selected") return session;
 
@@ -291,6 +293,13 @@ export function executeSimulationCommand(
 
   const actor = scenario.actors.find((candidate) => candidate.id === command.actorId);
   if (!actor) throw new Error(`Unknown actor: ${command.actorId}`);
+
+  // A participant-controlled TENS 2 must correct the tray manually by returning
+  // and adding products. The one-click expected-tray replacement is reserved for
+  // the simulated counterpart when TENS 1 is the participant.
+  if (command.type === "tray.corrected" && session.actorControllers[command.actorId] === "participant") {
+    return session;
+  }
 
   let next = reduceEvent(scenario, session, appendEvent(session, command, occurredAt));
 
