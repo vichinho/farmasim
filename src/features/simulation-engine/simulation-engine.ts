@@ -1,10 +1,16 @@
 import { evaluateCriteria, emptyCriteria } from "./criteria-engine";
 import { appendEvent } from "./event-log";
+import {
+  instructionEvidenceKey,
+  missingInstructionSections,
+  requiredInstructionSections,
+} from "./instruction-engine";
 import { buildExpectedTray, evaluateDeliverySafety } from "./safety-engine";
 import { assertValidScenarioDefinition } from "./scenario-validator";
 import { evaluateStorage } from "./storage-evaluator";
 import type {
   ActorController,
+  InstructionSection,
   PlayerRole,
   ScenarioDefinition,
   SimulationCommand,
@@ -56,6 +62,8 @@ export function createSimulationSession(
     verifiedPrescriptionIds: [],
     inspectedMedicationIds: [],
     comparedPrescriptionLineIds: [],
+    instructionEvidenceKeys: [],
+    missingInstructionSections: missingInstructionSections(scenario, []),
     openedTabIds: [],
     scrolledRecordIds: [],
     tray: structuredClone(scenario.initialTray),
@@ -118,6 +126,17 @@ function reduceEvent(
     case "medication.compared_to_prescription": {
       const lineId = value(event, "prescriptionLineId");
       if (lineId) next.comparedPrescriptionLineIds = Array.from(new Set([...next.comparedPrescriptionLineIds, lineId]));
+      break;
+    }
+    case "instruction.section_given": {
+      const lineId = value(event, "prescriptionLineId");
+      const section = value(event, "section") as InstructionSection | null;
+      if (lineId && section && requiredInstructionSections.includes(section)) {
+        next.instructionEvidenceKeys = Array.from(new Set([
+          ...next.instructionEvidenceKeys,
+          instructionEvidenceKey(lineId, section),
+        ]));
+      }
       break;
     }
     case "scene.returned":
@@ -221,6 +240,7 @@ function reduceEvent(
       break;
   }
 
+  next.missingInstructionSections = missingInstructionSections(scenario, next.eventLog);
   next.criteria = evaluateCriteria(scenario, next.eventLog);
   return next;
 }
