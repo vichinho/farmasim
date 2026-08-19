@@ -24,11 +24,19 @@ export function evaluateCriteria(
 ): Record<DispensingCriterionId, CriterionStatus> {
   const result = emptyCriteria();
   const opened = new Set(eventValues(events, "prescription.opened", "prescriptionId"));
-  const verified = new Set(
-    eventValues(events, "prescription.status_verified", "prescriptionId"),
+  const verified = new Set(eventValues(events, "prescription.status_verified", "prescriptionId"));
+  const comparedLines = new Set(
+    eventValues(events, "medication.compared_to_prescription", "prescriptionLineId"),
   );
-  const allOpened = scenario.expectedPrescriptionIds.every((id) => opened.has(id));
-  const allVerified = scenario.expectedPrescriptionIds.every((id) => verified.has(id));
+
+  const relevantPrescriptionIds = scenario.prescriptionsRelevantToCurrentWithdrawal;
+  const allRelevantOpened = relevantPrescriptionIds.every((id) => opened.has(id));
+  const allRelevantVerified = relevantPrescriptionIds.every((id) => verified.has(id));
+  const relevantLineIds = scenario.prescriptions
+    .filter((record) => relevantPrescriptionIds.includes(record.id))
+    .flatMap((record) => record.lines.map((line) => line.id));
+  const preparationWasActuallyChecked =
+    relevantLineIds.length > 0 && relevantLineIds.every((lineId) => comparedLines.has(lineId));
 
   if (hasEvent(events, "document.requested")) {
     result["criterion-1-request-identity-document"] = "met";
@@ -42,15 +50,13 @@ export function evaluateCriteria(
   ) {
     result["criterion-2-system-identity-match"] = "met";
   }
-  if (allOpened) result["criterion-3-identify-all-prescriptions"] = "met";
-  if (allVerified) result["criterion-4-confirm-prescription-issued"] = "met";
+  if (allRelevantOpened) result["criterion-3-identify-all-prescriptions"] = "met";
+  if (allRelevantVerified) result["criterion-4-confirm-prescription-issued"] = "met";
 
-  if (hasEvent(events, "correction.requested")) {
-    result["criterion-5-compare-prepared-items"] = "intercepted";
-  } else if (hasEvent(events, "delivery.completed")) {
-    result["criterion-5-compare-prepared-items"] = "met";
-  } else if (hasEvent(events, "delivery.blocked")) {
-    result["criterion-5-compare-prepared-items"] = "reinforcement";
+  if (preparationWasActuallyChecked) {
+    result["criterion-5-compare-prepared-items"] = hasEvent(events, "correction.requested")
+      ? "intercepted"
+      : "met";
   }
 
   if (hasEvent(events, "identity.rechecked")) {
