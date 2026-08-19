@@ -12,7 +12,7 @@ function presentationById(scenario: ScenarioDefinition, id: string) {
 }
 
 export function expectedPrescriptionLines(scenario: ScenarioDefinition) {
-  const expectedIds = new Set(scenario.expectedPrescriptionIds);
+  const expectedIds = new Set(scenario.prescriptionsRelevantToCurrentWithdrawal);
   return scenario.prescriptions
     .filter((record) => expectedIds.has(record.id))
     .flatMap((record) => record.lines);
@@ -96,7 +96,7 @@ export function evaluateDeliverySafety(
     });
   }
 
-  for (const prescriptionId of scenario.expectedPrescriptionIds) {
+  for (const prescriptionId of scenario.prescriptionsRelevantToCurrentWithdrawal) {
     if (!session.verifiedPrescriptionIds.includes(prescriptionId)) {
       discrepancies.push({
         id: `prescription:${prescriptionId}`,
@@ -141,9 +141,7 @@ export function evaluateDeliverySafety(
       continue;
     }
 
-    discrepancies.push(
-      ...comparePresentation(line, expectedPresentation, item, actualPresentation),
-    );
+    discrepancies.push(...comparePresentation(line, expectedPresentation, item, actualPresentation));
   }
 
   const expectedLineIds = new Set(expected.map((line) => line.id));
