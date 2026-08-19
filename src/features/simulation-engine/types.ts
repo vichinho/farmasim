@@ -149,6 +149,7 @@ export type Tray = {
 
 export type DiscrepancyKind =
   | "patient"
+  | "final-patient"
   | "prescription"
   | "prescription-status"
   | "medication"
@@ -252,6 +253,7 @@ export type SimulationSession = {
   focusReturnObjectId: string | null;
   typedRut: string;
   loadedPatientId: string | null;
+  finalReidentifiedPatientId: string | null;
   openedPrescriptionIds: string[];
   verifiedPrescriptionIds: string[];
   prescriptionDispositionById: Record<string, PrescriptionDisposition>;
