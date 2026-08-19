@@ -5,6 +5,7 @@ import {
   missingInstructionSections,
   requiredInstructionSections,
 } from "./instruction-engine";
+import { canSafelyStopForPrescriptionReview } from "./prescription-status";
 import { buildExpectedTray, evaluateDeliverySafety } from "./safety-engine";
 import { assertValidScenarioDefinition } from "./scenario-validator";
 import { evaluateStorage } from "./storage-evaluator";
@@ -12,6 +13,7 @@ import type {
   ActorController,
   InstructionSection,
   PlayerRole,
+  PrescriptionDisposition,
   ScenarioDefinition,
   SimulationCommand,
   SimulationEvent,
@@ -60,6 +62,7 @@ export function createSimulationSession(
       : null,
     openedPrescriptionIds: [],
     verifiedPrescriptionIds: [],
+    prescriptionDispositionById: {},
     inspectedMedicationIds: [],
     comparedPrescriptionLineIds: [],
     instructionEvidenceKeys: [],
@@ -180,7 +183,16 @@ function reduceEvent(
     }
     case "prescription.status_verified": {
       const id = value(event, "prescriptionId");
-      if (id) next.verifiedPrescriptionIds = Array.from(new Set([...next.verifiedPrescriptionIds, id]));
+      const disposition = value(event, "disposition") as PrescriptionDisposition | null;
+      if (id) {
+        next.verifiedPrescriptionIds = Array.from(new Set([...next.verifiedPrescriptionIds, id]));
+        if (disposition === "proceed" || disposition === "hold-for-review") {
+          next.prescriptionDispositionById = {
+            ...next.prescriptionDispositionById,
+            [id]: disposition,
+          };
+        }
+      }
       break;
     }
     case "role.selected": {
@@ -232,6 +244,12 @@ function reduceEvent(
       next.discrepancies = [];
       next.deliveryStatus = "not-attempted";
       break;
+    case "qf_support.requested":
+      if (canSafelyStopForPrescriptionReview(scenario, next.eventLog)) {
+        next.deliveryStatus = "safely-stopped";
+        next.discrepancies = [];
+      }
+      break;
     case "delivery.blocked":
       next.deliveryStatus = "blocked";
       break;
@@ -253,9 +271,23 @@ export function executeSimulationCommand(
 ): SimulationSession {
   if (session.scenarioId !== scenario.id) throw new Error("Session and scenario do not match");
 
+  if (session.deliveryStatus === "completed" || session.deliveryStatus === "safely-stopped") {
+    return session;
+  }
+
   // No clinical/preparation action is accepted until the participant explicitly
-  // chooses TENS 1 or TENS 2. This prevents the previous implicit TENS 1 start.
+  // chooses TENS 1 or TENS 2. The selected role is immutable for the session.
   if (!session.selectedPlayerRole && command.type !== "role.selected") return session;
+  if (session.selectedPlayerRole && command.type === "role.selected") return session;
+
+  if (command.type === "role.selected") {
+    const selectedRaw = command.data?.selectedRole ?? command.data?.selectedActorId;
+    const selected = selectedRaw === "tens-1" || selectedRaw === "tens-2"
+      ? selectedRaw
+      : null;
+    if (!selected) return session;
+    if (scenario.requiredPlayerRole && selected !== scenario.requiredPlayerRole) return session;
+  }
 
   const actor = scenario.actors.find((candidate) => candidate.id === command.actorId);
   if (!actor) throw new Error(`Unknown actor: ${command.actorId}`);
