@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { evaluateStorage, reinforcementVariantForSeed } from "@/features/simulation-engine";
-import { buildPilotScenarioBank, pilotScenarioMatrix } from "./pilot-scenario-bank";
+import {
+  buildPilotRuntimeScenario,
+  buildPilotScenarioBank,
+  pilotRuntimeScenarioId,
+  pilotScenarioMatrix,
+} from "./pilot-scenario-bank";
 
 describe("pilot scenario bank", () => {
   it("has ten unique entries and balanced modes/difficulties", () => {
@@ -25,6 +30,18 @@ describe("pilot scenario bank", () => {
       expect(scenario.initialTray.status).toBe("empty");
       expect(scenario.initialTray.items).toEqual([]);
       expect(reinforcementVariantForSeed(spec.seed, spec.competency).challengeKey).toBe(spec.challengeKey);
+    }
+  });
+
+  it("reconstructs every pilot from its internal QA runtime id", () => {
+    for (const spec of pilotScenarioMatrix) {
+      const scenario = buildPilotRuntimeScenario(spec);
+      expect(scenario.id).toBe(pilotRuntimeScenarioId(spec));
+      expect(scenario.seed).toBe(spec.seed);
+      expect(scenario.mode).toBe(spec.mode);
+      expect(scenario.requiredPlayerRole).toBe(spec.playerRole);
+      expect(scenario.reinforcementChallengeKey).toBe(spec.challengeKey);
+      expect(scenario.initialTray.items).toEqual([]);
     }
   });
 
