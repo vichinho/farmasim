@@ -20,7 +20,7 @@ function selectTens1(session: SimulationSession) {
   );
 }
 
-function baseReadySession() {
+function baseReadySession(): SimulationSession {
   let session = selectTens1(createSimulationSession(scenario001, { sessionId: crypto.randomUUID(), startedAt: now }));
   session = {
     ...session,
@@ -33,13 +33,13 @@ function baseReadySession() {
   return session;
 }
 
-function wrongQuantitySession() {
+function wrongQuantitySession(): SimulationSession {
   const session = baseReadySession();
   return {
     ...session,
     tray: {
       ...session.tray,
-      status: "received" as const,
+      status: "received",
       items: session.tray.items.map((item, index) => index === 0 ? { ...item, quantity: item.quantity + 999 } : item),
     },
   };
@@ -47,7 +47,7 @@ function wrongQuantitySession() {
 
 describe("simulation alerts", () => {
   it("classifies a blocked wrong quantity as an intercepted medication discrepancy", () => {
-    let session = wrongQuantitySession();
+    let session: SimulationSession = wrongQuantitySession();
     session = executeSimulationCommand(
       scenario001,
       session,
@@ -64,7 +64,7 @@ describe("simulation alerts", () => {
   });
 
   it("preserves an intercepted discrepancy after correction and successful completion", () => {
-    let session = wrongQuantitySession();
+    let session: SimulationSession = wrongQuantitySession();
     session = executeSimulationCommand(
       scenario001,
       session,
@@ -100,7 +100,7 @@ describe("simulation alerts", () => {
   });
 
   it("keeps a generic preparation alert when correction is proven but the exact discrepancy is unknown", () => {
-    let session = baseReadySession();
+    let session: SimulationSession = baseReadySession();
     for (const item of buildExpectedTray(scenario001).items) {
       if (!item.prescriptionLineId) continue;
       session = executeSimulationCommand(
@@ -146,7 +146,7 @@ describe("simulation alerts", () => {
   it("records storage separately only after the drawer has been inspected", () => {
     const scenario = structuredClone(scenario001);
     scenario.drawers[0].contents.push("trakcare-004-0087");
-    let session = selectTens1(createSimulationSession(scenario, { sessionId: crypto.randomUUID(), startedAt: now }));
+    let session: SimulationSession = selectTens1(createSimulationSession(scenario, { sessionId: crypto.randomUUID(), startedAt: now }));
     expect(simulationAlertsFromSession(scenario, session).filter((item) => item.category === "storage-deviation")).toEqual([]);
 
     session = executeSimulationCommand(
