@@ -145,6 +145,6 @@ describe("normal scenario diversity", () => {
     );
     expect(scenario.prescriptions).toHaveLength(12);
     expect(presentationIds.size).toBeGreaterThan(5);
-    expect(scenario.version).toBe("2.6.0-generated");
+    expect(scenario.version).toBe("2.7.0-generated");
   });
 });
