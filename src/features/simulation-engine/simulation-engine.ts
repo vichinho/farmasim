@@ -160,7 +160,8 @@ function reduceEvent(
       break;
     }
     case "role.selected": {
-      const selected = value(event, "selectedRole") as PlayerRole | null;
+      const selectedRaw = value(event, "selectedRole") ?? value(event, "selectedActorId");
+      const selected = selectedRaw as PlayerRole | null;
       if (selected === "tens-1" || selected === "tens-2") {
         next.selectedPlayerRole = selected;
         next.activeActorId = selected;
@@ -237,7 +238,10 @@ export function executeSimulationCommand(
     const outcome: SimulationCommand = {
       type: discrepancies.length ? "delivery.blocked" : "delivery.completed",
       actorId: command.actorId,
-      data: { discrepancyIds: discrepancies.map((item) => item.id) },
+      data: {
+        discrepancyIds: discrepancies.map((item) => item.id),
+        discrepancyKinds: discrepancies.map((item) => item.kind),
+      },
     };
     next = reduceEvent(scenario, next, appendEvent(next, outcome, occurredAt));
   }
