@@ -18,15 +18,23 @@ describe("simulation event presentation", () => {
     session = executeSimulationCommand(
       scenario001,
       session,
+      { type: "role.selected", actorId, data: { selectedRole: "tens-1" } },
+      now,
+    );
+    session = executeSimulationCommand(
+      scenario001,
+      session,
       { type: "computer.focused", actorId },
       now,
     );
 
-    expect(describeSimulationEvent(session.eventLog[0])).toBe(
+    const computerEvent = session.eventLog.find((event) => event.type === "computer.focused");
+    expect(computerEvent).toBeDefined();
+    expect(describeSimulationEvent(computerEvent!)).toBe(
       "Consultaste el computador clínico",
     );
     expect(getRecentLearnerActions(session.eventLog)).toEqual([
-      { id: session.eventLog[0].id, label: "Consultaste el computador clínico" },
+      { id: computerEvent!.id, label: "Consultaste el computador clínico" },
     ]);
   });
 
@@ -51,6 +59,6 @@ describe("simulation event presentation", () => {
     const delivery = getMissionSteps(scenario001, session).at(-1);
 
     expect(delivery?.status).toBe("attention");
-    expect(delivery?.description).toContain("solicita la corrección");
+    expect(delivery?.description).toContain("revisa la causa detectada");
   });
 });
