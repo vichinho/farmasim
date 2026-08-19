@@ -20,11 +20,24 @@ export type ReinforcementVariantFingerprint = {
   presentationId: string;
   establishmentId: EstablishmentId;
   challengeKey: string;
+  drawerId: string;
+  visualContextKey: string;
 };
 
 type ReinforcementHistoryEntry = {
   competency: ReinforcementCompetency;
   seed: number;
+};
+
+export type RecentVariantMemoryEntry = ReinforcementVariantFingerprint & {
+  competencyTarget: ReinforcementCompetency;
+  scenarioId: string;
+  seed: number;
+};
+
+export type RecentVariantMemory = {
+  entries: RecentVariantMemoryEntry[];
+  windowSize: number;
 };
 
 export type ReinforcementRecommendation = {
@@ -63,7 +76,7 @@ const knownCompetencies = new Set<ReinforcementCompetency>([
   "instructions",
 ]);
 
-const HISTORY_LIMIT = 2;
+const HISTORY_LIMIT = 3;
 
 function nextSeed(seed: number) {
   return (Math.imul(seed ^ 0x9e3779b9, 1664525) + 1013904223) >>> 0;
@@ -105,29 +118,22 @@ function fingerprintForEntry(entry: ReinforcementHistoryEntry) {
   return reinforcementVariantForSeed(entry.seed, entry.competency);
 }
 
-function differsInEveryDimension(
-  candidate: ReinforcementVariantFingerprint,
-  recent: ReinforcementVariantFingerprint[],
-) {
-  return recent.every((previous) =>
-    candidate.patientId !== previous.patientId
-    && candidate.medicationId !== previous.medicationId
-    && candidate.presentationId !== previous.presentationId
-    && candidate.establishmentId !== previous.establishmentId
-    && candidate.challengeKey !== previous.challengeKey,
-  );
+function canonicalScenarioId(entry: ReinforcementHistoryEntry) {
+  return `reinforcement__${entry.competency}__${entry.seed.toString(36)}`;
 }
 
-function noveltyScore(
-  candidate: ReinforcementVariantFingerprint,
-  recent: ReinforcementVariantFingerprint[],
-) {
-  return recent.reduce((score, previous) => score
-    + Number(candidate.patientId !== previous.patientId)
-    + Number(candidate.medicationId !== previous.medicationId)
-    + Number(candidate.presentationId !== previous.presentationId)
-    + Number(candidate.establishmentId !== previous.establishmentId)
-    + Number(candidate.challengeKey !== previous.challengeKey), 0);
+function recentHistory(session: SimulationSession, recentScenarioIds: string[]) {
+  const parsedCurrent = parseReinforcementScenarioId(session.scenarioId);
+  const entries: ReinforcementHistoryEntry[] = [];
+  if (parsedCurrent) entries.push(...parsedCurrent.history);
+  for (const scenarioId of recentScenarioIds) {
+    const parsed = parseReinforcementScenarioId(scenarioId);
+    if (!parsed) continue;
+    entries.push({ competency: parsed.competency, seed: parsed.seed }, ...parsed.history);
+  }
+  const unique = new Map<string, ReinforcementHistoryEntry>();
+  for (const entry of entries) unique.set(`${entry.competency}:${entry.seed}`, entry);
+  return [...unique.values()].slice(0, HISTORY_LIMIT - 1);
 }
 
 function currentFingerprint(session: SimulationSession, competency: ReinforcementCompetency) {
@@ -141,20 +147,62 @@ function currentFingerprint(session: SimulationSession, competency: Reinforcemen
   return { ...baseline, challengeKey };
 }
 
-function recentHistory(session: SimulationSession, recentScenarioIds: string[]) {
-  const parsedCurrent = parseReinforcementScenarioId(session.scenarioId);
-  const entries: ReinforcementHistoryEntry[] = [];
-  if (parsedCurrent) {
-    entries.push(...parsedCurrent.history);
-  }
-  for (const scenarioId of recentScenarioIds) {
-    const parsed = parseReinforcementScenarioId(scenarioId);
-    if (!parsed) continue;
-    entries.push({ competency: parsed.competency, seed: parsed.seed }, ...parsed.history);
-  }
-  const unique = new Map<string, ReinforcementHistoryEntry>();
-  for (const entry of entries) unique.set(`${entry.competency}:${entry.seed}`, entry);
-  return [...unique.values()].slice(0, HISTORY_LIMIT - 1);
+export function buildRecentVariantMemory(
+  session: SimulationSession,
+  competency: ReinforcementCompetency,
+  recentScenarioIds: string[] = [],
+): RecentVariantMemory {
+  const currentParsed = parseReinforcementScenarioId(session.scenarioId);
+  const currentVariant = currentFingerprint(session, competency);
+  const history = recentHistory(session, recentScenarioIds);
+  const entries: RecentVariantMemoryEntry[] = [
+    {
+      ...currentVariant,
+      competencyTarget: currentParsed?.competency ?? competency,
+      scenarioId: session.scenarioId,
+      seed: currentParsed?.seed ?? session.seed,
+    },
+    ...history.map((entry) => ({
+      ...fingerprintForEntry(entry),
+      competencyTarget: entry.competency,
+      scenarioId: canonicalScenarioId(entry),
+      seed: entry.seed,
+    })),
+  ].slice(0, HISTORY_LIMIT);
+  return { entries, windowSize: HISTORY_LIMIT };
+}
+
+function differsFromRecent(
+  candidate: ReinforcementVariantFingerprint,
+  memory: RecentVariantMemory,
+) {
+  const [immediate] = memory.entries;
+  const differsCore = memory.entries.every((previous) =>
+    candidate.patientId !== previous.patientId
+    && candidate.medicationId !== previous.medicationId
+    && candidate.presentationId !== previous.presentationId
+    && candidate.establishmentId !== previous.establishmentId
+    && candidate.challengeKey !== previous.challengeKey,
+  );
+  if (!differsCore) return false;
+  return !immediate || (
+    candidate.drawerId !== immediate.drawerId
+    && candidate.visualContextKey !== immediate.visualContextKey
+  );
+}
+
+function noveltyScore(
+  candidate: ReinforcementVariantFingerprint,
+  memory: RecentVariantMemory,
+) {
+  return memory.entries.reduce((score, previous, index) => score
+    + Number(candidate.patientId !== previous.patientId)
+    + Number(candidate.medicationId !== previous.medicationId)
+    + Number(candidate.presentationId !== previous.presentationId)
+    + Number(candidate.establishmentId !== previous.establishmentId)
+    + Number(candidate.challengeKey !== previous.challengeKey)
+    + (index === 0 ? Number(candidate.drawerId !== previous.drawerId) : 0)
+    + (index === 0 ? Number(candidate.visualContextKey !== previous.visualContextKey) : 0), 0);
 }
 
 function preferredInstructionSection(
@@ -188,10 +236,8 @@ export function recommendReinforcement(
   const competency = [...grouped.entries()].sort((left, right) => right[1] - left[1])[0][0];
   const parsedCurrent = parseReinforcementScenarioId(session.scenarioId);
   const historyEntries = recentHistory(session, recentScenarioIds);
-  const recentFingerprints = [
-    currentFingerprint(session, competency),
-    ...historyEntries.map(fingerprintForEntry),
-  ];
+  const memory = buildRecentVariantMemory(session, competency, recentScenarioIds);
+  const recentFingerprints = memory.entries;
   const targetInstructionSection = competency === "instructions"
     ? preferredInstructionSection(session, recentFingerprints)
     : undefined;
@@ -204,16 +250,19 @@ export function recommendReinforcement(
   let bestVariant = reinforcementVariantForSeed(seed, competency);
   let bestScore = Number.NEGATIVE_INFINITY;
 
-  for (let attempt = 0; attempt < 256; attempt += 1) {
+  for (let attempt = 0; attempt < 512; attempt += 1) {
     const variant = reinforcementVariantForSeed(seed, competency);
     const matchesTarget = !targetChallengeKey || variant.challengeKey === targetChallengeKey;
-    const score = noveltyScore(variant, recentFingerprints) + (matchesTarget ? 1000 : 0);
+    const isKnownScenario = memory.entries.some(
+      (entry) => entry.competencyTarget === competency && entry.seed === seed,
+    );
+    const score = noveltyScore(variant, memory) + (matchesTarget ? 1000 : 0) - (isKnownScenario ? 5000 : 0);
     if (score > bestScore) {
       bestSeed = seed;
       bestVariant = variant;
       bestScore = score;
     }
-    if (matchesTarget && differsInEveryDimension(variant, recentFingerprints)) {
+    if (!isKnownScenario && matchesTarget && differsFromRecent(variant, memory)) {
       bestSeed = seed;
       bestVariant = variant;
       break;
