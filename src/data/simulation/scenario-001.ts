@@ -4,7 +4,7 @@ import type { ScenarioDefinition } from "@/features/simulation-engine/types";
 
 const definition: ScenarioDefinition = {
   id: "case-001-2d-engine",
-  version: "2.0.0",
+  version: "2.0.1",
   seed: 20260818,
   mode: "guided",
   patient: {
@@ -104,15 +104,11 @@ const definition: ScenarioDefinition = {
         medicationPresentationId: "losartan-100-tablet-30",
         quantity: 30,
       },
-      {
-        id: "tray-amlodipine",
-        prescriptionLineId: "line-amlodipine",
-        medicationPresentationId: "amlodipine-5-tablet-30",
-        quantity: 30,
-      },
     ],
   },
-  expectedPrescriptionIds: ["rx-tome-001", "rx-bellavista-002"],
+  // Retiro activo en Hospital de Tomé. La receta de CESFAM Bellavista permanece visible
+  // como antecedente clínico, pero no forma parte de la preparación ni de la entrega actual.
+  expectedPrescriptionIds: ["rx-tome-001"],
   educationalSourceIds: ["dispensing-evaluation-rubric-7-criteria", "arsenal-2026"],
 };
 
