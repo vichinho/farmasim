@@ -144,6 +144,10 @@ export function getPilotScenarioSpec(id: string) {
   return pilotScenarioMatrix.find((scenario) => scenario.id === id);
 }
 
+export function pilotRuntimeScenarioId(spec: PilotScenarioSpec) {
+  return `pilot__${spec.competency}__${spec.seed}__${spec.challengeKey}`;
+}
+
 export function buildPilotScenario(spec: PilotScenarioSpec): ScenarioDefinition {
   const variant = reinforcementVariantForSeed(spec.seed, spec.competency);
   if (variant.challengeKey !== spec.challengeKey) {
@@ -163,6 +167,23 @@ export function buildPilotScenario(spec: PilotScenarioSpec): ScenarioDefinition 
     throw new Error(
       `Pilot ${spec.id} expected role ${spec.playerRole} but generated ${scenario.requiredPlayerRole ?? "none"}`,
     );
+  }
+
+  return scenario;
+}
+
+export function buildPilotRuntimeScenario(spec: PilotScenarioSpec): ScenarioDefinition {
+  const scenario = generateScenarioDefinition({
+    id: pilotRuntimeScenarioId(spec),
+    mode: spec.mode,
+  });
+
+  if (
+    scenario.seed !== spec.seed
+    || scenario.requiredPlayerRole !== spec.playerRole
+    || scenario.reinforcementChallengeKey !== spec.challengeKey
+  ) {
+    throw new Error(`Pilot runtime scenario ${spec.id} does not match its matrix specification`);
   }
 
   return scenario;
