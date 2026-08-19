@@ -67,6 +67,22 @@ No se escala a los 48 escenarios hasta que el piloto cumpla simultáneamente:
 9. al menos seis presentaciones diferentes entre los retiros del piloto;
 10. `npm run check` y Vercel en estado `success`.
 
+## Estado del piloto
+
+**Puerta técnica: APROBADA.**
+
+Validación del HEAD `401004b76990b93c97cf5f01d95ea5b01679b6f8`:
+
+- `npm run check`: PASS;
+- ESLint: PASS;
+- TypeScript: PASS;
+- Vitest: **48/48 PASS** en 7 archivos;
+- `pilot-scenario-bank.test.ts`: **6/6 PASS**;
+- Next.js production build: PASS;
+- Vercel preview: SUCCESS.
+
+La muestra se mantiene separada del catálogo visible mientras se hace la revisión manual/visual de los pilotos. La aprobación técnica no sustituye esa revisión de experiencia.
+
 ## Regla de expansión
 
-Una vez aprobado el piloto, los nuevos escenarios deben añadirse por matriz, no por copia manual de casos existentes. La expansión debe mantener diversidad de paciente, medicamento/presentación, establecimiento y error exacto, conservando el arsenal y las barreras de seguridad ya validadas.
+Una vez aprobada también la revisión manual del piloto, los nuevos escenarios deben añadirse por matriz, no por copia manual de casos existentes. La expansión debe mantener diversidad de paciente, medicamento/presentación, establecimiento y error exacto, conservando el arsenal y las barreras de seguridad ya validadas.
