@@ -19,26 +19,31 @@ function selectTens1(session: SimulationSession) {
   );
 }
 
+function wrongQuantitySession() {
+  let session = selectTens1(createSimulationSession(scenario001, { sessionId: crypto.randomUUID(), startedAt: now }));
+  session = {
+    ...session,
+    loadedPatientId: scenario001.patient.id,
+    finalReidentifiedPatientId: scenario001.patient.id,
+    verifiedPrescriptionIds: [...scenario001.prescriptionsRelevantToCurrentWithdrawal],
+    prescriptionDispositionById: { "rx-tome-001": "proceed" },
+    tray: {
+      ...scenario001.initialTray,
+      status: "received",
+      items: [{
+        id: "wrong-qty",
+        prescriptionLineId: "line-losartan",
+        medicationPresentationId: "trakcare-004-0137",
+        quantity: 999,
+      }],
+    },
+  };
+  return session;
+}
+
 describe("simulation alerts", () => {
   it("classifies a blocked wrong quantity as an intercepted medication discrepancy", () => {
-    let session = selectTens1(createSimulationSession(scenario001, { sessionId: crypto.randomUUID(), startedAt: now }));
-    session = {
-      ...session,
-      loadedPatientId: scenario001.patient.id,
-      finalReidentifiedPatientId: scenario001.patient.id,
-      verifiedPrescriptionIds: [...scenario001.prescriptionsRelevantToCurrentWithdrawal],
-      prescriptionDispositionById: { "rx-tome-001": "proceed" },
-      tray: {
-        ...scenario001.initialTray,
-        status: "received",
-        items: [{
-          id: "wrong-qty",
-          prescriptionLineId: "line-losartan",
-          medicationPresentationId: "trakcare-004-0137",
-          quantity: 999,
-        }],
-      },
-    };
+    let session = wrongQuantitySession();
     session = executeSimulationCommand(
       scenario001,
       session,
@@ -50,6 +55,42 @@ describe("simulation alerts", () => {
     const quantity = alerts.find((item) => item.kind === "quantity");
     expect(quantity?.category).toBe("medication-discrepancy");
     expect(quantity?.originStage).toBe("preparation-check");
+    expect(quantity?.reachedPatient).toBe(false);
+  });
+
+  it("preserves an intercepted discrepancy after correction and successful completion", () => {
+    let session = wrongQuantitySession();
+    session = executeSimulationCommand(
+      scenario001,
+      session,
+      { type: "delivery.attempted", actorId: "tens-1" },
+      now,
+    );
+    expect(session.deliveryStatus).toBe("blocked");
+    const blockedEvent = session.eventLog.findLast((event) => event.type === "delivery.blocked");
+    expect(blockedEvent).toBeDefined();
+
+    session = executeSimulationCommand(
+      scenario001,
+      session,
+      { type: "tray.corrected", actorId: "tens-2" },
+      now,
+    );
+    expect(session.discrepancies).toEqual([]);
+
+    session = executeSimulationCommand(
+      scenario001,
+      session,
+      { type: "delivery.attempted", actorId: "tens-1" },
+      now,
+    );
+    expect(session.deliveryStatus).toBe("completed");
+    expect(session.discrepancies).toEqual([]);
+
+    const alerts = simulationAlertsFromSession(scenario001, session);
+    const quantity = alerts.find((item) => item.kind === "quantity");
+    expect(quantity?.category).toBe("medication-discrepancy");
+    expect(quantity?.sourceEventId.startsWith(`${blockedEvent?.id}:`)).toBe(true);
     expect(quantity?.reachedPatient).toBe(false);
   });
 
