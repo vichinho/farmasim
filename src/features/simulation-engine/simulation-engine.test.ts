@@ -176,15 +176,22 @@ describe("mandatory structural audit scenarios", () => {
   });
 
   it("C. MÚLTIPLES REGISTROS + PRESCRIPCIÓN OMITIDA separates history from current withdrawal", () => {
-    expect(scenario001.visibleClinicalRecordIds).toContain("rx-historical-003");
-    expect(scenario001.availablePrescriptionIds).not.toContain("rx-historical-003");
-    expect(scenario001.prescriptionsRelevantToCurrentWithdrawal).not.toContain("rx-historical-003");
+    const scenario = generateScenarioDefinition({ id: "audit-c-omission", mode: "guided", seed: 104 });
+    expect(scenario.prescriptions).toHaveLength(3);
+    expect(scenario.prescriptionsRelevantToCurrentWithdrawal).toHaveLength(2);
+    expect(scenario.prescriptions.some(
+      (record) => record.establishmentId !== scenario.activeDispensingFacilityId,
+    )).toBe(true);
 
-    const session = readySession();
+    const session = readySession(scenario);
+    const omittedLineId = scenario.prescriptions
+      .find((record) => scenario.prescriptionsRelevantToCurrentWithdrawal.includes(record.id))
+      ?.lines[0].id;
+    expect(omittedLineId).toBeDefined();
     session.tray.items = session.tray.items.filter(
-      (item) => item.prescriptionLineId !== "line-amlodipine",
+      (item) => item.prescriptionLineId !== omittedLineId,
     );
-    expect(evaluateDeliverySafety(scenario001, session).map((item) => item.kind)).toContain("omission");
+    expect(evaluateDeliverySafety(scenario, session).map((item) => item.kind)).toContain("omission");
   });
 
   it("D. PACIENTE INCORRECTO reinforces identity without changing criterion 5", () => {
@@ -263,6 +270,13 @@ describe("prescription integration semantics", () => {
       scenario,
       session,
       { type: "prescription.opened", actorId, data: { prescriptionId: scenario.prescriptions[2].id } },
+      now,
+    );
+    expect(session.criteria["criterion-3-identify-all-prescriptions"]).toBe("pending");
+    session = executeSimulationCommand(
+      scenario,
+      session,
+      { type: "prescription.opened", actorId, data: { prescriptionId: "rx-bellavista-002" } },
       now,
     );
     expect(session.criteria["criterion-3-identify-all-prescriptions"]).toBe("met");
