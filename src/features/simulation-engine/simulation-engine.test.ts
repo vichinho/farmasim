@@ -27,6 +27,15 @@ function selectTens1(scenario: ScenarioDefinition, session: SimulationSession) {
   );
 }
 
+function selectTens2(scenario: ScenarioDefinition, session: SimulationSession) {
+  return executeSimulationCommand(
+    scenario,
+    session,
+    { type: "role.selected", actorId: "tens-2", data: { selectedRole: "tens-2" } },
+    now,
+  );
+}
+
 function dispositionMap(scenario: ScenarioDefinition) {
   return Object.fromEntries(
     scenario.prescriptionsRelevantToCurrentWithdrawal.map((prescriptionId) => {
@@ -45,6 +54,7 @@ function readySession(scenario: ScenarioDefinition = scenario001): SimulationSes
   return {
     ...selected,
     loadedPatientId: scenario.patient.id,
+    finalReidentifiedPatientId: scenario.patient.id,
     verifiedPrescriptionIds: [...scenario.prescriptionsRelevantToCurrentWithdrawal],
     prescriptionDispositionById: dispositionMap(scenario),
     tray: buildExpectedTray(scenario),
@@ -148,6 +158,7 @@ describe("mandatory structural audit scenarios", () => {
     const session: SimulationSession = {
       ...selected,
       loadedPatientId: scenario.patient.id,
+      finalReidentifiedPatientId: scenario.patient.id,
       verifiedPrescriptionIds: [...scenario.prescriptionsRelevantToCurrentWithdrawal],
       prescriptionDispositionById: dispositionMap(scenario),
       tray: {
@@ -346,6 +357,104 @@ describe("prescription integration semantics", () => {
       now,
     );
     expect(afterQf.deliveryStatus).toBe("not-attempted");
+  });
+});
+
+describe("final handoff identity", () => {
+  it("criterion 6 requires reidentifying the actual scenario patient", () => {
+    let session = recordPreparationCheck(readySession());
+    session = executeSimulationCommand(
+      scenario001,
+      session,
+      {
+        type: "identity.rechecked",
+        actorId,
+        data: { patientId: scenario001.similarPatients[0].id },
+      },
+      now,
+    );
+    expect(session.finalReidentifiedPatientId).toBe(scenario001.similarPatients[0].id);
+    expect(session.criteria["criterion-6-recheck-identity-before-handoff"]).toBe("reinforcement");
+
+    const result = attempt(session);
+    expect(result.discrepancies.map((item) => item.kind)).toContain("final-patient");
+    expect(result.criteria["criterion-6-recheck-identity-before-handoff"]).toBe("reinforcement");
+    expect(result.criteria["criterion-2-system-identity-match"]).not.toBe("reinforcement");
+  });
+
+  it("a correct final reidentification meets criterion 6 and removes the final-patient barrier", () => {
+    let session = recordPreparationCheck(readySession());
+    session = executeSimulationCommand(
+      scenario001,
+      session,
+      {
+        type: "identity.rechecked",
+        actorId,
+        data: { patientId: scenario001.patient.id },
+      },
+      now,
+    );
+    expect(session.criteria["criterion-6-recheck-identity-before-handoff"]).toBe("met");
+    expect(evaluateDeliverySafety(scenario001, session).map((item) => item.kind)).not.toContain("final-patient");
+  });
+});
+
+describe("tray correction ownership", () => {
+  it("does not auto-correct the tray when TENS 2 is participant-controlled", () => {
+    let session = selectTens2(
+      scenario001,
+      createSimulationSession(scenario001, { sessionId: "manual-correction", startedAt: now }),
+    );
+    session = {
+      ...session,
+      tray: {
+        ...session.tray,
+        status: "correction-requested",
+        items: [{
+          id: "wrong-item",
+          prescriptionLineId: "line-losartan",
+          medicationPresentationId: "trakcare-004-0087",
+          quantity: 30,
+        }],
+      },
+    };
+    const beforeTray = structuredClone(session.tray);
+    const beforeEvents = session.eventLog.length;
+    session = executeSimulationCommand(
+      scenario001,
+      session,
+      { type: "tray.corrected", actorId: "tens-2" },
+      now,
+    );
+    expect(session.tray).toEqual(beforeTray);
+    expect(session.eventLog).toHaveLength(beforeEvents);
+  });
+
+  it("allows simulated TENS 2 to apply a requested correction for a TENS 1 participant", () => {
+    let session = selectTens1(
+      scenario001,
+      createSimulationSession(scenario001, { sessionId: "simulated-correction", startedAt: now }),
+    );
+    session = {
+      ...session,
+      tray: {
+        ...session.tray,
+        status: "correction-requested",
+        items: [{
+          id: "wrong-item",
+          prescriptionLineId: "line-losartan",
+          medicationPresentationId: "trakcare-004-0087",
+          quantity: 30,
+        }],
+      },
+    };
+    session = executeSimulationCommand(
+      scenario001,
+      session,
+      { type: "tray.corrected", actorId: "tens-2" },
+      now,
+    );
+    expect(session.tray).toEqual(buildExpectedTray(scenario001));
   });
 });
 
