@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
@@ -30,6 +30,12 @@ export const metadata: Metadata = {
     images: ["/og.png"],
     title: "FarmaVerse — Aprende. Practica. Simula.",
   },
+};
+
+export const viewport: Viewport = {
+  initialScale: 1,
+  viewportFit: "cover",
+  width: "device-width",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
