@@ -3,6 +3,7 @@ export * from "./simulation-event-presentation";
 export * from "./event-log";
 export * from "./reinforcement-engine";
 export * from "./safety-engine";
+export * from "./storage-evaluator";
 export * from "./scenario-generator";
 export * from "./scenario-validator";
 export * from "./simulation-engine";
