@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { summarizeCompetencies, type AttemptCompetencySource } from "@/features/supervision/competency-analytics";
 import { requireSupervisorContext } from "@/features/supervision/access";
+import { presentSimulationAlert } from "@/features/supervision/simulation-alert-presentation";
 import { createExtendedClient } from "@/lib/supabase/server-untyped";
 import type { Json } from "@/types/database";
 
@@ -23,7 +24,16 @@ type ProgressRow = { module_id: string; progress_percentage: number; status: str
 type ModuleRow = { id: string; title: string };
 type AssignmentRow = { id: string; status: string; capsule_id: string; assigned_at: string };
 type CapsuleRow = { id: string; title: string };
-type AlertRow = { id: string; kind: string; origin_stage: string; detected_at: string; reached_patient: boolean };
+type AlertRow = {
+  id: string;
+  category: string;
+  kind: string;
+  origin_stage: string;
+  severity: string;
+  detected_at: string;
+  reached_patient: boolean;
+  metadata: Json;
+};
 
 const statusLabel = {
   dominated: "DOMINADA",
@@ -43,7 +53,7 @@ export default async function TensProgressPage({ params }: Props) {
     supabase.from("modules").select("id, title"),
     supabase.from("capsule_assignments").select("id, status, capsule_id, assigned_at").eq("user_id", userId).order("assigned_at", { ascending: false }),
     supabase.from("educational_capsules").select("id, title"),
-    supabase.from("simulation_alerts").select("id, kind, origin_stage, detected_at, reached_patient").eq("user_id", userId).order("detected_at", { ascending: false }).limit(20),
+    supabase.from("simulation_alerts").select("id, category, kind, origin_stage, severity, detected_at, reached_patient, metadata").eq("user_id", userId).order("detected_at", { ascending: false }).limit(20),
   ]);
 
   const profile = profileResult.data as unknown as ProfileRow | null;
@@ -132,12 +142,27 @@ export default async function TensProgressPage({ params }: Props) {
 
         <Panel title="Alertas de simulación interceptadas">
           <div className="space-y-2">
-            {alerts.length ? alerts.map((alert) => (
-              <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-3" key={alert.id}>
-                <div className="flex justify-between gap-3"><p className="text-sm font-black">{alert.kind}</p><span className="text-[.65rem] font-black uppercase text-amber-800">{alert.origin_stage}</span></div>
-                <p className="mt-1 text-xs text-slate-500">{new Date(alert.detected_at).toLocaleString("es-CL")} · {alert.reached_patient ? "Revisar barrera" : "Interceptada antes del paciente simulado"}</p>
-              </div>
-            )) : <p className="text-sm text-slate-500">Sin alertas de simulación registradas.</p>}
+            {alerts.length ? alerts.map((alert) => {
+              const presentation = presentSimulationAlert({
+                category: alert.category,
+                kind: alert.kind,
+                metadata: alert.metadata,
+                originStage: alert.origin_stage,
+                severity: alert.severity,
+              });
+              return (
+                <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-3" key={alert.id}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-black text-slate-900">{presentation.title}</p>
+                      <p className="mt-1 text-[.7rem] font-bold text-amber-800">{presentation.categoryLabel} · Severidad {presentation.severityLabel}</p>
+                    </div>
+                    <span className="text-right text-[.65rem] font-black uppercase text-amber-800">{presentation.originLabel}</span>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500">{new Date(alert.detected_at).toLocaleString("es-CL")} · {alert.reached_patient ? "Revisar barrera de seguridad" : "Interceptada antes del paciente simulado"}</p>
+                </div>
+              );
+            }) : <p className="text-sm text-slate-500">Sin alertas de simulación registradas.</p>}
           </div>
         </Panel>
       </section>
