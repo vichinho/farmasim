@@ -117,11 +117,14 @@
   /* Explicit phone flow: scene -> tactile object dock -> contextual panel. */
   div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main {
     display: grid !important;
+    width: 100%;
+    max-width: 100%;
     min-height: 0 !important;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-content: start;
     gap: 0.6rem;
-    overflow: visible !important;
+    overflow-x: clip !important;
+    overflow-y: visible !important;
     background: rgb(248 250 252) !important;
     padding: 0 0.75rem 0.85rem;
   }
@@ -135,6 +138,7 @@
     margin: 0 -0.75rem 0.1rem;
     overflow: hidden;
     transform: none !important;
+    translate: none !important;
     border-bottom: 1px solid rgb(237 233 254);
   }
 
@@ -181,19 +185,24 @@
     position: relative !important;
     inset: auto !important;
     left: auto !important;
+    right: auto !important;
     top: auto !important;
+    bottom: auto !important;
     z-index: 20;
     display: grid !important;
     width: 100%;
+    max-width: none !important;
     min-width: 0;
     min-height: 3.7rem;
     grid-template-columns: 2rem minmax(0, 1fr);
     grid-template-rows: auto auto;
     align-items: center;
+    justify-self: stretch;
     column-gap: 0.55rem;
     row-gap: 0.05rem;
     margin: 0 !important;
     transform: none !important;
+    translate: none !important;
     overflow: hidden;
     border: 1px solid rgb(226 232 240);
     border-radius: 1rem;
@@ -240,6 +249,7 @@
     display: block !important;
     min-width: 0;
     transform: none !important;
+    translate: none !important;
     opacity: 1 !important;
     background: transparent !important;
     padding: 0 !important;
