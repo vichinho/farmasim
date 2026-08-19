@@ -4,7 +4,7 @@ import type { ScenarioDefinition } from "@/features/simulation-engine/types";
 
 const definition: ScenarioDefinition = {
   id: "case-001-2d-engine",
-  version: "2.1.0",
+  version: "2.2.0",
   seed: 20260818,
   mode: "guided",
   patient: {
@@ -44,7 +44,7 @@ const definition: ScenarioDefinition = {
       },
       repetition: "yes",
       lines: [
-        { id: "line-losartan", medicationPresentationId: "losartan-50-tablet-30", quantity: 30 },
+        { id: "line-losartan", medicationPresentationId: "trakcare-004-0137", quantity: 30 },
       ],
     },
     {
@@ -55,7 +55,7 @@ const definition: ScenarioDefinition = {
       dates: { issuedAt: "2026-08-05", enteredAt: "2026-08-06" },
       repetition: "review",
       lines: [
-        { id: "line-amlodipine", medicationPresentationId: "amlodipine-5-tablet-30", quantity: 30 },
+        { id: "line-amlodipine", medicationPresentationId: "trakcare-004-0374", quantity: 30 },
       ],
     },
     {
@@ -66,7 +66,7 @@ const definition: ScenarioDefinition = {
       dates: { issuedAt: "2025-11-10", dispatchedAt: "2025-11-12" },
       repetition: "no",
       lines: [
-        { id: "line-paracetamol-history", medicationPresentationId: "paracetamol-500-tablet-20", quantity: 20 },
+        { id: "line-paracetamol-history", medicationPresentationId: "trakcare-004-0087", quantity: 20 },
       ],
     },
   ],
@@ -78,22 +78,22 @@ const definition: ScenarioDefinition = {
     {
       id: "drawer-losartan",
       sectorId: "antihypertensives",
-      expectedMedicationPresentationId: "losartan-50-tablet-30",
+      expectedMedicationPresentationId: "trakcare-004-0137",
       expectedLabel: "LOSARTÁN 50 mg · Comprimidos",
       displayedLabel: "LOSARTÁN 50 mg · Comprimidos",
       physicalCondition: "normal",
       stockState: "available",
-      contents: ["losartan-50-tablet-30"],
+      contents: ["trakcare-004-0137"],
     },
     {
       id: "drawer-amlodipine",
       sectorId: "antihypertensives",
-      expectedMedicationPresentationId: "amlodipine-5-tablet-30",
+      expectedMedicationPresentationId: "trakcare-004-0374",
       expectedLabel: "AMLODIPINO 5 mg · Comprimidos",
       displayedLabel: "AMLODIPINO 5 mg · Comprimidos",
       physicalCondition: "normal",
       stockState: "available",
-      contents: ["amlodipine-5-tablet-30"],
+      contents: ["trakcare-004-0374"],
     },
   ],
   initialTray: {
