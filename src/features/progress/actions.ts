@@ -24,10 +24,18 @@ const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const criterionIdPattern = /^criterion-[1-7]-[a-z0-9-]+$/;
+const pilotQaScenarioPattern = /^pilot__(patient-identification|prescription-review|preparation-comparison|final-identification|instructions)__\d+__[a-z0-9-]+$/;
 
 export async function saveSimulationAttempt(
   input: SaveSimulationAttemptInput,
 ): Promise<SaveSimulationAttemptResult> {
+  if (pilotQaScenarioPattern.test(input.scenarioSlug)) {
+    return {
+      message: "Modo QA interno: este intento no modifica tu progreso.",
+      status: "saved",
+    };
+  }
+
   if (
     !uuidPattern.test(input.attemptId) ||
     !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.scenarioSlug) ||
