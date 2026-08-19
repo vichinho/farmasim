@@ -1,6 +1,11 @@
 import { alternativeStrengthPresentations } from "@/data/simulation/arsenal";
 import { scenario001 } from "@/data/simulation/scenario-001";
-import type { MedicationPresentation, ScenarioDefinition, SimulationMode } from "./types";
+import type {
+  InstructionSection,
+  MedicationPresentation,
+  ScenarioDefinition,
+  SimulationMode,
+} from "./types";
 import { assertValidScenarioDefinition } from "./scenario-validator";
 import type { ReinforcementCompetency, ReinforcementVariantFingerprint } from "./reinforcement-engine";
 
@@ -138,6 +143,13 @@ const reinforcementChallengeKeys: Record<ReinforcementCompetency, string[]> = {
   ],
 };
 
+const instructionSectionByChallenge: Record<string, InstructionSection> = {
+  "instructions-purpose": "purpose",
+  "instructions-schedule-administration": "schedule-administration",
+  "instructions-precautions": "precautions",
+  "instructions-qf-escalation": "qf-escalation",
+};
+
 const knownReinforcementCompetencies = new Set<ReinforcementCompetency>([
   "patient-identification",
   "prescription-review",
@@ -157,28 +169,45 @@ function requiredRoleForCompetency(competency: ReinforcementCompetency | undefin
   return competency === "preparation-comparison" ? "tens-2" as const : "tens-1" as const;
 }
 
-const reinforcementPresentationPool = scenario001.arsenal.filter((presentation) => {
-  const oralSolid = ["COMPRIMIDO ORAL", "CAPSULA ORAL", "GRAGEA"].includes(presentation.pharmaceuticalForm);
-  const hasStrength = !presentation.strength.startsWith("NO ESPECIFICADA");
-  const hasAlternativeStrength = alternativeStrengthPresentations(presentation.id).some(
+const generalPresentationPool = scenario001.arsenal.filter((presentation) =>
+  presentation.careSetting === "atencion-abierta"
+  && !presentation.strength.startsWith("NO ESPECIFICADA"),
+);
+
+const strengthChallengePool = generalPresentationPool.filter((presentation) =>
+  alternativeStrengthPresentations(presentation.id).some(
     (candidate) => candidate.pharmaceuticalForm === presentation.pharmaceuticalForm,
-  );
-  return oralSolid && hasStrength && hasAlternativeStrength;
-});
+  ),
+);
+
+if (!generalPresentationPool.length) {
+  throw new Error("Atención Abierta arsenal has no presentations with an explicit strength");
+}
+if (!strengthChallengePool.length) {
+  throw new Error("Atención Abierta arsenal has no presentation with a real alternative strength");
+}
 
 function patientForSeed(seed: number) {
   return syntheticPatients[seededIndex(seed + 17, syntheticPatients.length)];
 }
 
-function presentationForSeed(seed: number) {
-  if (!reinforcementPresentationPool.length) {
-    throw new Error("Atención Abierta arsenal has no oral solid presentation with a real alternative strength");
-  }
-  return reinforcementPresentationPool[seededIndex(seed + 97, reinforcementPresentationPool.length)];
+function presentationFromPool(seed: number, pool: MedicationPresentation[]) {
+  return pool[seededIndex(seed + 97, pool.length)];
+}
+
+function presentationForCompetency(seed: number, competency: ReinforcementCompetency) {
+  return presentationFromPool(
+    seed,
+    competency === "preparation-comparison" ? strengthChallengePool : generalPresentationPool,
+  );
 }
 
 function establishmentForSeed(seed: number) {
   return establishments[seededIndex(seed + 193, establishments.length)];
+}
+
+function differentEstablishment(excluded: ScenarioDefinition["prescriptions"][number]["establishmentId"]) {
+  return establishments.find((item) => item !== excluded) ?? "cesfam-bellavista";
 }
 
 function challengeForSeed(seed: number, competency: ReinforcementCompetency) {
@@ -191,7 +220,7 @@ export function reinforcementVariantForSeed(
   competency: ReinforcementCompetency,
 ): ReinforcementVariantFingerprint {
   const patient = patientForSeed(seed);
-  const presentation = presentationForSeed(seed);
+  const presentation = presentationForCompetency(seed, competency);
   return {
     patientId: patient.id,
     medicationId: presentation.medicationId,
@@ -202,13 +231,13 @@ export function reinforcementVariantForSeed(
 }
 
 export function baselineContextForSeed(seed: number): ReinforcementVariantFingerprint {
-  const patient = syntheticPatients[seededIndex(seed, 3)];
-  const presentation = scenario001.arsenal.find((item) => item.id === "trakcare-004-0137") ?? scenario001.arsenal[0];
+  const patient = patientForSeed(seed);
+  const presentation = presentationFromPool(seed + 31, generalPresentationPool);
   return {
     patientId: patient.id,
     medicationId: presentation.medicationId,
     presentationId: presentation.id,
-    establishmentId: "hospital-tome",
+    establishmentId: establishmentForSeed(seed),
     challengeKey: "baseline",
   };
 }
@@ -217,14 +246,29 @@ function presentationLabel(presentation: MedicationPresentation) {
   return `${presentation.medicationName.toUpperCase()} ${presentation.strength} · ${presentation.pharmaceuticalForm}`;
 }
 
-function differentPresentation(seed: number, excludedMedicationIds: Set<string>) {
-  for (let offset = 1; offset <= reinforcementPresentationPool.length; offset += 1) {
-    const candidate = reinforcementPresentationPool[
-      seededIndex(seed + offset * 131, reinforcementPresentationPool.length)
-    ];
+function differentPresentation(
+  seed: number,
+  excludedMedicationIds: Set<string>,
+  pool: MedicationPresentation[] = generalPresentationPool,
+) {
+  for (let offset = 1; offset <= pool.length; offset += 1) {
+    const candidate = pool[seededIndex(seed + offset * 131, pool.length)];
     if (!excludedMedicationIds.has(candidate.medicationId)) return candidate;
   }
-  return reinforcementPresentationPool[0];
+  return pool[0];
+}
+
+function trainingQuantity(presentation: MedicationPresentation, seed: number) {
+  const unit = presentation.dispensingUnit?.toUpperCase();
+  if (["CM", "CP", "CA"].includes(unit ?? "")) {
+    return [28, 30, 60][seededIndex(seed + 47, 3)];
+  }
+  if (["FC", "AM", "TU", "UN"].includes(unit ?? "")) return 1;
+  return [1, 5, 10][seededIndex(seed + 53, 3)];
+}
+
+function wrongSuggestedQuantity(expected: number) {
+  return expected === 1 ? 2 : expected + Math.max(1, Math.round(expected / 2));
 }
 
 function similarIdentity(patient: ScenarioDefinition["patient"], seed: number) {
@@ -238,13 +282,101 @@ function similarIdentity(patient: ScenarioDefinition["patient"], seed: number) {
   };
 }
 
+function buildNormalContext(id: string, seed: number) {
+  const patient = patientForSeed(seed);
+  const primary = presentationFromPool(seed + 101, generalPresentationPool);
+  const secondary = differentPresentation(seed + 211, new Set([primary.medicationId]));
+  const historicalPresentation = differentPresentation(
+    seed + 419,
+    new Set([primary.medicationId, secondary.medicationId]),
+  );
+  const primaryEstablishment = establishmentForSeed(seed);
+  const secondaryEstablishment = differentEstablishment(primaryEstablishment);
+
+  const currentA = {
+    ...scenario001.prescriptions[0],
+    patientId: patient.id,
+    establishmentId: primaryEstablishment,
+    status: "accepted" as const,
+    lines: [{
+      ...scenario001.prescriptions[0].lines[0],
+      id: `line-primary:${id}`,
+      medicationPresentationId: primary.id,
+      quantity: trainingQuantity(primary, seed),
+    }],
+  };
+  const currentB = {
+    ...scenario001.prescriptions[1],
+    patientId: patient.id,
+    establishmentId: secondaryEstablishment,
+    status: "sent" as const,
+    lines: [{
+      ...scenario001.prescriptions[1].lines[0],
+      id: `line-secondary:${id}`,
+      medicationPresentationId: secondary.id,
+      quantity: trainingQuantity(secondary, seed + 1),
+    }],
+  };
+  const historical = {
+    ...scenario001.prescriptions[2],
+    patientId: patient.id,
+    establishmentId: primaryEstablishment,
+    status: "historical" as const,
+    lines: [{
+      ...scenario001.prescriptions[2].lines[0],
+      id: `line-history:${id}`,
+      medicationPresentationId: historicalPresentation.id,
+      quantity: trainingQuantity(historicalPresentation, seed + 2),
+    }],
+  };
+
+  return {
+    patient,
+    similarPatients: [similarIdentity(patient, seed + 701)],
+    prescriptions: [currentA, currentB, historical],
+    relevantPrescriptionIds: [currentA.id, currentB.id],
+    drawers: [
+      {
+        ...scenario001.drawers[0],
+        id: `drawer-primary:${id}`,
+        expectedMedicationPresentationId: primary.id,
+        expectedLabel: presentationLabel(primary),
+        displayedLabel: presentationLabel(primary),
+        contents: [primary.id],
+      },
+      {
+        ...scenario001.drawers[1],
+        id: `drawer-secondary:${id}`,
+        expectedMedicationPresentationId: secondary.id,
+        expectedLabel: presentationLabel(secondary),
+        displayedLabel: presentationLabel(secondary),
+        contents: [secondary.id],
+      },
+    ],
+    initialClinicalSystemState: "clean_search" as const,
+    suggestedPreparationQuantityByLineId: undefined,
+    reinforcementInstructionFocusSection: undefined,
+    reinforcementChallengeKey: undefined,
+  };
+}
+
 function reinforcementContext(id: string, seed: number, competency: ReinforcementCompetency) {
   const variant = reinforcementVariantForSeed(seed, competency);
   const patient = syntheticPatients.find((item) => item.id === variant.patientId) ?? patientForSeed(seed);
-  const selectedPresentation = scenario001.arsenal.find((item) => item.id === variant.presentationId) ?? presentationForSeed(seed);
+  const selectedPresentation = scenario001.arsenal.find((item) => item.id === variant.presentationId)
+    ?? presentationForCompetency(seed, competency);
   const secondPresentation = differentPresentation(seed + 211, new Set([selectedPresentation.medicationId]));
-  const thirdPresentation = differentPresentation(seed + 419, new Set([selectedPresentation.medicationId, secondPresentation.medicationId]));
-  const secondEstablishment = establishments.find((item) => item !== variant.establishmentId) ?? "cesfam-bellavista";
+  const thirdPresentation = differentPresentation(
+    seed + 419,
+    new Set([selectedPresentation.medicationId, secondPresentation.medicationId]),
+  );
+
+  const secondEstablishment = variant.challengeKey === "prescription-multiple-establishments"
+    ? differentEstablishment(variant.establishmentId)
+    : variant.establishmentId;
+
+  const primaryQuantity = trainingQuantity(selectedPresentation, seed);
+  const secondaryQuantity = trainingQuantity(secondPresentation, seed + 1);
 
   const currentA = {
     ...scenario001.prescriptions[0],
@@ -255,7 +387,7 @@ function reinforcementContext(id: string, seed: number, competency: Reinforcemen
       ...scenario001.prescriptions[0].lines[0],
       id: `line-primary:${id}`,
       medicationPresentationId: selectedPresentation.id,
-      quantity: 30,
+      quantity: primaryQuantity,
     }],
   };
   const currentB = {
@@ -267,19 +399,20 @@ function reinforcementContext(id: string, seed: number, competency: Reinforcemen
       ...scenario001.prescriptions[1].lines[0],
       id: `line-secondary:${id}`,
       medicationPresentationId: secondPresentation.id,
-      quantity: 30,
+      quantity: secondaryQuantity,
     }],
   };
   const historical = {
     ...scenario001.prescriptions[2],
     patientId: patient.id,
+    establishmentId: variant.establishmentId,
     lines: [{
       ...scenario001.prescriptions[2].lines[0],
       id: `line-history:${id}`,
       medicationPresentationId: variant.challengeKey === "prescription-historical-lookalike"
         ? selectedPresentation.id
         : thirdPresentation.id,
-      quantity: 20,
+      quantity: trainingQuantity(thirdPresentation, seed + 2),
     }],
     apparentlyDuplicateOf: variant.challengeKey === "prescription-historical-lookalike" ? currentA.id : undefined,
   };
@@ -291,17 +424,37 @@ function reinforcementContext(id: string, seed: number, competency: Reinforcemen
     );
     if (alternative) primaryDrawerContents.push(alternative.id);
   }
-  if (variant.challengeKey === "preparation-wrong-product") primaryDrawerContents.push(secondPresentation.id);
+  if (variant.challengeKey === "preparation-wrong-product") {
+    primaryDrawerContents.push(secondPresentation.id);
+  }
 
-  const relevantPrescriptionIds = variant.challengeKey === "instructions-purpose"
-    ? [currentA.id]
-    : [currentA.id, currentB.id];
+  const firstSimilar = similarIdentity(patient, seed + 701);
+  const secondSimilar = similarIdentity(patient, seed + 1701);
+  let similarPatients = [firstSimilar];
+  if (variant.challengeKey === "patient-ambiguous-context") {
+    similarPatients = [firstSimilar, secondSimilar];
+  }
+  if (variant.challengeKey === "final-handoff-recheck") {
+    similarPatients = [];
+  }
+
+  const initialClinicalSystemState = [
+    "patient-previous-record",
+    "patient-ambiguous-context",
+    "final-previous-record",
+  ].includes(variant.challengeKey)
+    ? "previous_patient_open" as const
+    : "clean_search" as const;
+
+  const suggestedPreparationQuantityByLineId = variant.challengeKey === "preparation-wrong-quantity"
+    ? { [currentA.lines[0].id]: wrongSuggestedQuantity(primaryQuantity) }
+    : undefined;
 
   return {
     patient,
-    similarPatients: [similarIdentity(patient, seed), ...scenario001.similarPatients.filter((item) => item.id !== patient.id)],
+    similarPatients,
     prescriptions: [currentA, currentB, historical],
-    relevantPrescriptionIds,
+    relevantPrescriptionIds: [currentA.id, currentB.id],
     drawers: [
       {
         ...scenario001.drawers[0],
@@ -320,14 +473,10 @@ function reinforcementContext(id: string, seed: number, competency: Reinforcemen
         contents: [secondPresentation.id],
       },
     ],
-    initialClinicalSystemState: [
-      "patient-previous-record",
-      "patient-similar-identity",
-      "final-similar-identity",
-      "final-previous-record",
-    ].includes(variant.challengeKey)
-      ? "previous_patient_open" as const
-      : "clean_search" as const,
+    initialClinicalSystemState,
+    suggestedPreparationQuantityByLineId,
+    reinforcementInstructionFocusSection: instructionSectionByChallenge[variant.challengeKey],
+    reinforcementChallengeKey: variant.challengeKey,
   };
 }
 
@@ -346,30 +495,35 @@ export function generateScenarioDefinition({
 }: ScenarioGenerationOptions): ScenarioDefinition {
   const base = structuredClone(scenario001);
   const resolvedCompetency = reinforcementCompetency ?? competencyFromReinforcementId(id);
-  const reinforcement = resolvedCompetency
+  const context = resolvedCompetency
     ? reinforcementContext(id, seed, resolvedCompetency)
-    : null;
+    : buildNormalContext(id, seed);
 
-  const patient = reinforcement?.patient ?? syntheticPatients[seededIndex(seed, 3)];
-  const corePrescriptions = (reinforcement?.prescriptions ?? base.prescriptions)
-    .map((record) => ({ ...record, patientId: patient.id }));
+  const patient = context.patient;
+  const corePrescriptions = context.prescriptions.map((record) => ({ ...record, patientId: patient.id }));
   const recordTarget = mode === "guided" ? 3 : mode === "practice" ? 5 : 12;
 
   const prescriptions = Array.from({ length: recordTarget }, (_, index) => {
     if (index < corePrescriptions.length) return corePrescriptions[index];
     const template = corePrescriptions[index % corePrescriptions.length];
     const recordId = `generated-record-${index + 1}`;
+    const extraPresentation = presentationFromPool(seed + index * 977, generalPresentationPool);
     return {
       ...template,
       id: recordId,
-      establishmentId: establishments[seededIndex(seed + index, establishments.length)],
+      establishmentId: establishments[seededIndex(seed + index * 13, establishments.length)],
       status: statuses[seededIndex(seed + index * 7, statuses.length)],
       dates: {
         ...template.dates,
         issuedAt: `202${4 + (index % 3)}-${String((index % 12) + 1).padStart(2, "0")}-10`,
       },
       apparentlyDuplicateOf: index % 4 === 0 ? corePrescriptions[0].id : undefined,
-      lines: template.lines.map((line) => ({ ...line, id: `${recordId}:${line.id}` })),
+      lines: [{
+        ...template.lines[0],
+        id: `${recordId}:line-1`,
+        medicationPresentationId: extraPresentation.id,
+        quantity: trainingQuantity(extraPresentation, seed + index),
+      }],
     };
   });
 
@@ -377,9 +531,7 @@ export function generateScenarioDefinition({
   const availablePrescriptionIds = prescriptions
     .filter((record) => !["historical", "rejected", "completed", "dispensed"].includes(record.status))
     .map((record) => record.id);
-  const relevantSource = new Set(
-    reinforcement?.relevantPrescriptionIds ?? base.prescriptionsRelevantToCurrentWithdrawal,
-  );
+  const relevantSource = new Set(context.relevantPrescriptionIds);
   const prescriptionsRelevantToCurrentWithdrawal = prescriptions
     .filter((record) => relevantSource.has(record.id) && availablePrescriptionIds.includes(record.id))
     .map((record) => record.id);
@@ -387,18 +539,21 @@ export function generateScenarioDefinition({
   return assertValidScenarioDefinition({
     ...base,
     id,
-    version: resolvedCompetency ? "2.5.0-reinforcement" : "2.2.0-generated",
+    version: resolvedCompetency ? "2.6.0-reinforcement" : "2.6.0-generated",
     seed,
     mode,
     patient,
-    similarPatients: reinforcement?.similarPatients ?? base.similarPatients,
+    similarPatients: context.similarPatients,
     requiredPlayerRole: requiredRoleForCompetency(resolvedCompetency),
+    reinforcementChallengeKey: context.reinforcementChallengeKey,
+    reinforcementInstructionFocusSection: context.reinforcementInstructionFocusSection,
+    suggestedPreparationQuantityByLineId: context.suggestedPreparationQuantityByLineId,
     prescriptions,
     visibleClinicalRecordIds,
     availablePrescriptionIds,
     prescriptionsRelevantToCurrentWithdrawal,
-    drawers: reinforcement?.drawers ?? base.drawers,
-    initialClinicalSystemState: reinforcement?.initialClinicalSystemState ?? base.initialClinicalSystemState,
+    drawers: context.drawers,
+    initialClinicalSystemState: context.initialClinicalSystemState,
     initialTray: {
       ...base.initialTray,
       id: `tray:${id}`,
