@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { openCapsuleAndRedirectAction } from "@/features/capsules/navigation-actions";
@@ -20,13 +21,22 @@ export default async function CapsulesPage() {
   const capsuleMap = new Map(capsules.map((capsule) => [capsule.id, capsule]));
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-8 sm:px-6 lg:px-8">
-      <header className="rounded-[2rem] border border-violet-100 bg-white p-6 sm:p-8">
-        <p className="text-xs font-black uppercase tracking-[.18em] text-violet-600">Mi capacitación</p>
-        <h1 className="mt-2 text-3xl font-black text-slate-950">Cápsulas educativas</h1>
+    <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 sm:px-6 sm:pt-8 lg:px-8">
+      <nav className="mb-3 flex items-center justify-between sm:mb-4" aria-label="Navegación de cápsulas">
+        <Link
+          className="inline-flex min-h-10 items-center rounded-xl border border-violet-100 bg-white px-3 text-sm font-black text-violet-700 shadow-[0_5px_18px_rgba(76,48,130,.06)] transition hover:bg-violet-50"
+          href="/dashboard"
+        >
+          ← Dashboard
+        </Link>
+      </nav>
+
+      <header className="rounded-[1.5rem] border border-violet-100 bg-white p-5 sm:rounded-[2rem] sm:p-8">
+        <p className="text-[.65rem] font-black uppercase tracking-[.18em] text-violet-600 sm:text-xs">Mi capacitación</p>
+        <h1 className="mt-1.5 text-2xl font-black text-slate-950 sm:mt-2 sm:text-3xl">Cápsulas educativas</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">Contenido asignado por tu Supervisor/QF. Abrir una cápsula no la marca como completada.</p>
       </header>
-      <section className="mt-6 grid gap-4 sm:grid-cols-2">
+      <section className="mt-4 grid gap-4 sm:mt-6 sm:grid-cols-2">
         {assignments.length ? assignments.map((assignment) => {
           const capsule = capsuleMap.get(assignment.capsule_id);
           if (!capsule) return null;
