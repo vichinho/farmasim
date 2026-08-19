@@ -82,8 +82,11 @@ export type MedicationPresentation = {
   medicationName: string;
   strength: string;
   pharmaceuticalForm: string;
-  packageQuantity: number;
+  packageQuantity?: number;
   careSetting?: "atencion-abierta" | "other";
+  sourceCode?: string;
+  sourceDescription?: string;
+  dispensingUnit?: string;
   education?: MedicationEducation;
 };
 
@@ -234,7 +237,7 @@ export type SimulationSession = {
   seed: number;
   mode: SimulationMode;
   activeActorId: string;
-  selectedPlayerRole: PlayerRole;
+  selectedPlayerRole: PlayerRole | null;
   actorControllers: Record<string, ActorController>;
   focusedObjectId: string | null;
   focusReturnObjectId: string | null;
