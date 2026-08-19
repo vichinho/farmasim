@@ -2,7 +2,10 @@ import { evaluateCriteria, emptyCriteria } from "./criteria-engine";
 import { appendEvent } from "./event-log";
 import { buildExpectedTray, evaluateDeliverySafety } from "./safety-engine";
 import { assertValidScenarioDefinition } from "./scenario-validator";
+import { evaluateStorage } from "./storage-evaluator";
 import type {
+  ActorController,
+  PlayerRole,
   ScenarioDefinition,
   SimulationCommand,
   SimulationEvent,
@@ -13,6 +16,12 @@ function normalizeRut(value: string) {
   return value.toUpperCase().replace(/[^0-9K]/g, "");
 }
 
+function controllersForRole(role: PlayerRole): Record<string, ActorController> {
+  return role === "tens-1"
+    ? { "tens-1": "participant", "tens-2": "simulation", "qf-support": "simulation" }
+    : { "tens-1": "simulation", "tens-2": "participant", "qf-support": "simulation" };
+}
+
 export function createSimulationSession(
   scenarioInput: ScenarioDefinition,
   options?: { sessionId?: string; startedAt?: string },
@@ -20,6 +29,7 @@ export function createSimulationSession(
   const scenario = assertValidScenarioDefinition(scenarioInput);
   const participant = scenario.actors.find((actor) => actor.controller === "participant");
   if (!participant) throw new Error("Scenario has no participant actor");
+  const selectedPlayerRole: PlayerRole = participant.id === "tens-2" ? "tens-2" : "tens-1";
   const startedAt = options?.startedAt ?? new Date().toISOString();
 
   return {
@@ -29,16 +39,24 @@ export function createSimulationSession(
     seed: scenario.seed,
     mode: scenario.mode,
     activeActorId: participant.id,
+    selectedPlayerRole,
+    actorControllers: controllersForRole(selectedPlayerRole),
     focusedObjectId: null,
     focusReturnObjectId: null,
     typedRut: "",
-    loadedPatientId: null,
+    loadedPatientId: scenario.initialClinicalSystemState === "previous_patient_open"
+      ? scenario.similarPatients[0]?.id ?? null
+      : null,
     openedPrescriptionIds: [],
     verifiedPrescriptionIds: [],
     inspectedMedicationIds: [],
+    comparedPrescriptionLineIds: [],
+    openedTabIds: [],
+    scrolledRecordIds: [],
     tray: structuredClone(scenario.initialTray),
     eventLog: [],
     discrepancies: [],
+    storageDeviations: evaluateStorage(scenario),
     criteria: emptyCriteria(),
     deliveryStatus: "not-attempted",
     startedAt,
@@ -80,9 +98,7 @@ function reduceEvent(
       break;
     case "tray.inspected":
       next.focusedObjectId = "tray";
-      if (session.deliveryStatus === "blocked") {
-        next.deliveryStatus = "not-attempted";
-      }
+      if (session.deliveryStatus === "blocked") next.deliveryStatus = "not-attempted";
       break;
     case "drawer.opened":
       next.focusedObjectId = `drawer:${value(event, "drawerId") ?? "unknown"}`;
@@ -91,9 +107,12 @@ function reduceEvent(
       const id = value(event, "medicationPresentationId");
       next.focusReturnObjectId = session.focusedObjectId;
       next.focusedObjectId = `medication:${id ?? "unknown"}`;
-      if (id) {
-        next.inspectedMedicationIds = Array.from(new Set([...next.inspectedMedicationIds, id]));
-      }
+      if (id) next.inspectedMedicationIds = Array.from(new Set([...next.inspectedMedicationIds, id]));
+      break;
+    }
+    case "medication.compared_to_prescription": {
+      const lineId = value(event, "prescriptionLineId");
+      if (lineId) next.comparedPrescriptionLineIds = Array.from(new Set([...next.comparedPrescriptionLineIds, lineId]));
       break;
     }
     case "scene.returned":
@@ -115,6 +134,16 @@ function reduceEvent(
     case "patient_record.opened":
       next.loadedPatientId = value(event, "patientId");
       break;
+    case "tab.opened": {
+      const tabId = value(event, "tabId");
+      if (tabId) next.openedTabIds = Array.from(new Set([...next.openedTabIds, tabId]));
+      break;
+    }
+    case "record.scrolled": {
+      const recordId = value(event, "recordId");
+      if (recordId) next.scrolledRecordIds = Array.from(new Set([...next.scrolledRecordIds, recordId]));
+      break;
+    }
     case "prescription.opened": {
       const id = value(event, "prescriptionId");
       if (id) next.openedPrescriptionIds = Array.from(new Set([...next.openedPrescriptionIds, id]));
@@ -122,9 +151,7 @@ function reduceEvent(
     }
     case "prescription.closed": {
       const id = value(event, "prescriptionId");
-      next.openedPrescriptionIds = next.openedPrescriptionIds.filter(
-        (prescriptionId) => prescriptionId !== id,
-      );
+      next.openedPrescriptionIds = next.openedPrescriptionIds.filter((prescriptionId) => prescriptionId !== id);
       break;
     }
     case "prescription.status_verified": {
@@ -133,8 +160,12 @@ function reduceEvent(
       break;
     }
     case "role.selected": {
-      const actorId = value(event, "selectedActorId");
-      if (actorId) next.activeActorId = actorId;
+      const selected = value(event, "selectedRole") as PlayerRole | null;
+      if (selected === "tens-1" || selected === "tens-2") {
+        next.selectedPlayerRole = selected;
+        next.activeActorId = selected;
+        next.actorControllers = controllersForRole(selected);
+      }
       break;
     }
     case "medication.added_to_tray": {
