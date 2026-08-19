@@ -52,6 +52,11 @@ export function validateScenarioDefinition(
     if (!scenario.availablePrescriptionIds.includes(id)) issues.push(`Current-withdrawal prescription ${id} must also be available`);
   }
 
+  for (const [lineId, quantity] of Object.entries(scenario.suggestedPreparationQuantityByLineId ?? {})) {
+    if (!lineIds.has(lineId)) issues.push(`Suggested preparation quantity uses unknown prescription line: ${lineId}`);
+    if (!Number.isFinite(quantity) || quantity <= 0) issues.push(`Suggested preparation quantity must be positive for line: ${lineId}`);
+  }
+
   for (const drawer of scenario.drawers) {
     if (!presentationIds.has(drawer.expectedMedicationPresentationId)) issues.push(`Drawer ${drawer.id} expects an unknown presentation`);
     for (const id of drawer.contents) if (!presentationIds.has(id)) issues.push(`Drawer ${drawer.id} contains an unknown presentation: ${id}`);
