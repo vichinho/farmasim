@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
+import { createExtendedClient } from "@/lib/supabase/server-untyped";
+import type { SimulationAlertPayload } from "@/features/simulation-engine";
 import type { AttemptCriterionResult } from "@/types/training-simulation";
 
 type SaveSimulationAttemptInput = {
@@ -12,6 +14,7 @@ type SaveSimulationAttemptInput = {
   incorrectAnswers: number;
   levelNumber?: number;
   scenarioSlug: string;
+  simulationAlerts?: SimulationAlertPayload[];
   startedAt: string;
 };
 
@@ -42,6 +45,7 @@ export async function saveSimulationAttempt(
     !Number.isInteger(input.correctAnswers) ||
     !Number.isInteger(input.incorrectAnswers) ||
     (input.criterionResults !== undefined && !Array.isArray(input.criterionResults)) ||
+    (input.simulationAlerts !== undefined && !Array.isArray(input.simulationAlerts)) ||
     (input.criterionResults ?? []).some(
       (result) =>
         !criterionIdPattern.test(result.criterionId) ||
@@ -82,9 +86,21 @@ export async function saveSimulationAttempt(
     };
   }
 
+  if ((input.simulationAlerts?.length ?? 0) > 0) {
+    const extended = await createExtendedClient();
+    const alertResult = await extended.rpc("record_simulation_alerts", {
+      p_attempt_id: input.attemptId,
+      p_alerts: input.simulationAlerts ?? [],
+    });
+    if (alertResult.error) {
+      console.error("Unable to save simulation alerts", alertResult.error.message);
+    }
+  }
+
   revalidatePath("/dashboard");
   revalidatePath("/progreso");
   revalidatePath("/simulaciones");
+  revalidatePath("/supervision");
 
   if (!data) {
     return { message: "Este intento ya estaba guardado.", status: "duplicate" };
