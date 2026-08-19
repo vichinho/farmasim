@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildRecentVariantMemory,
   createSimulationSession,
   evaluateStorage,
   generateScenarioDefinition,
@@ -31,6 +32,14 @@ function expectDifferentVariant(
   expect(next.challengeKey).not.toBe(previous.challengeKey);
 }
 
+function expectDifferentImmediateContext(
+  next: ReinforcementVariantFingerprint,
+  previous: ReinforcementVariantFingerprint,
+) {
+  expect(next.drawerId).not.toBe(previous.drawerId);
+  expect(next.visualContextKey).not.toBe(previous.visualContextKey);
+}
+
 function seedForChallenge(challengeKey: string) {
   for (let seed = 1; seed < 10_000; seed += 1) {
     if (reinforcementVariantForSeed(seed, "preparation-comparison").challengeKey === challengeKey) return seed;
@@ -39,7 +48,7 @@ function seedForChallenge(challengeKey: string) {
 }
 
 describe("adaptive reinforcement memory", () => {
-  it("rotates patient, medication, presentation, establishment and exact challenge across recent reinforcements", () => {
+  it("rotates patient, medication, presentation, facility, error, drawer and immediate context", () => {
     const baseScenario = generateScenarioDefinition({ id: "adaptive-base", mode: "practice", seed: 20260818 });
     const baseSession = withPreparationFailure(createSimulationSession(baseScenario));
 
@@ -53,17 +62,28 @@ describe("adaptive reinforcement memory", () => {
       mode: "practice",
       seed: first.seed,
     });
-    expect(firstScenario.version).toBe("2.7.0-reinforcement");
+    expect(firstScenario.version).toBe("2.8.0-reinforcement");
     expect(firstScenario.requiredPlayerRole).toBe("tens-2");
     expect(firstScenario.patient.id).toBe(first.variant.patientId);
-    expect(firstScenario.prescriptions[0].establishmentId).toBe(first.variant.establishmentId);
-    expect(firstScenario.prescriptions[0].lines[0].medicationPresentationId).toBe(first.variant.presentationId);
+    expect(firstScenario.activeDispensingFacilityId).toBe(first.variant.establishmentId);
+    expect(firstScenario.prescriptions.some(
+      (record) => record.lines.some((line) => line.medicationPresentationId === first.variant.presentationId),
+    )).toBe(true);
     expect(firstScenario.reinforcementChallengeKey).toBe(first.variant.challengeKey);
+
+    const firstMemory = buildRecentVariantMemory(
+      withPreparationFailure(createSimulationSession(firstScenario)),
+      "preparation-comparison",
+    );
+    expect(firstMemory.windowSize).toBe(3);
+    expect(firstMemory.entries[0]?.scenarioId).toBe(firstScenario.id);
+    expect(firstMemory.entries[0]?.drawerId).toBe(first.variant.drawerId);
 
     const second = recommendReinforcement(withPreparationFailure(createSimulationSession(firstScenario)));
     expect(second).not.toBeNull();
     if (!second) return;
     expectDifferentVariant(second.variant, first.variant);
+    expectDifferentImmediateContext(second.variant, first.variant);
 
     const secondScenario = generateScenarioDefinition({
       id: second.scenarioId,
@@ -76,6 +96,7 @@ describe("adaptive reinforcement memory", () => {
 
     expectDifferentVariant(third.variant, second.variant);
     expectDifferentVariant(third.variant, first.variant);
+    expectDifferentImmediateContext(third.variant, second.variant);
   });
 
   it("routes attention/prescription reinforcement to TENS 1", () => {
@@ -101,10 +122,12 @@ describe("adaptive reinforcement memory", () => {
 
   it("builds wrong-strength reinforcement only from real same-medication Atención Abierta presentations", () => {
     const seed = seedForChallenge("preparation-wrong-strength");
+    const variant = reinforcementVariantForSeed(seed, "preparation-comparison");
     const id = `reinforcement__preparation-comparison__${seed.toString(36)}__`;
     const scenario = generateScenarioDefinition({ id, mode: "practice", seed });
-    const primaryDrawer = scenario.drawers[0];
-    const presentations = primaryDrawer.contents.map((presentationId) =>
+    const challengeDrawer = scenario.drawers.find((drawer) => drawer.id.startsWith(variant.drawerId));
+    expect(challengeDrawer).toBeDefined();
+    const presentations = (challengeDrawer?.contents ?? []).map((presentationId) =>
       scenario.arsenal.find((item) => item.id === presentationId),
     );
 
@@ -120,10 +143,12 @@ describe("adaptive reinforcement memory", () => {
 
   it("builds wrong-product reinforcement as a storage deviation before selection", () => {
     const seed = seedForChallenge("preparation-wrong-product");
+    const variant = reinforcementVariantForSeed(seed, "preparation-comparison");
     const id = `reinforcement__preparation-comparison__${seed.toString(36)}__`;
     const scenario = generateScenarioDefinition({ id, mode: "practice", seed });
-    const primaryDrawer = scenario.drawers[0];
-    const presentations = primaryDrawer.contents.map((presentationId) =>
+    const challengeDrawer = scenario.drawers.find((drawer) => drawer.id.startsWith(variant.drawerId));
+    expect(challengeDrawer).toBeDefined();
+    const presentations = (challengeDrawer?.contents ?? []).map((presentationId) =>
       scenario.arsenal.find((item) => item.id === presentationId),
     );
 
