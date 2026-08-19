@@ -34,13 +34,23 @@ describe("materialized reinforcement challenges", () => {
     expect(scenario.reinforcementChallengeKey).toBe("preparation-wrong-quantity");
     expect(scenario.initialTray.items).toEqual([]);
 
-    const primaryLine = scenario.prescriptions[0].lines[0];
-    const suggestion = scenario.suggestedPreparationQuantityByLineId?.[primaryLine.id];
-    expect(suggestion).toBeTypeOf("number");
-    expect(suggestion).not.toBe(primaryLine.quantity);
+    const suggestionEntry = Object.entries(scenario.suggestedPreparationQuantityByLineId ?? {})[0];
+    expect(suggestionEntry).toBeDefined();
+    if (!suggestionEntry) return;
+    const [lineId, suggestion] = suggestionEntry;
+    const expectedLine = scenario.prescriptions
+      .flatMap((record) => record.lines)
+      .find((line) => line.id === lineId);
+    expect(expectedLine).toBeDefined();
+    expect(suggestion).not.toBe(expectedLine?.quantity);
 
     const expectedTray = buildExpectedTray(scenario);
-    expectedTray.items[0] = { ...expectedTray.items[0], quantity: suggestion ?? primaryLine.quantity };
+    const targetIndex = expectedTray.items.findIndex((item) => item.prescriptionLineId === lineId);
+    expect(targetIndex).toBeGreaterThanOrEqual(0);
+    expectedTray.items[targetIndex] = {
+      ...expectedTray.items[targetIndex],
+      quantity: suggestion,
+    };
     const prescriptionDispositionById = Object.fromEntries(
       scenario.prescriptionsRelevantToCurrentWithdrawal.map((prescriptionId) => {
         const prescription = scenario.prescriptions.find((item) => item.id === prescriptionId);
@@ -73,16 +83,28 @@ describe("materialized reinforcement challenges", () => {
     expect(ambiguous.similarPatients.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("materializes prescription-review challenge differences", () => {
+  it("materializes prescription-review challenge differences without mixing active facilities", () => {
     const pending = reinforcementScenario("prescription-review", "prescription-pending-status");
     const historical = reinforcementScenario("prescription-review", "prescription-historical-lookalike");
     const multiple = reinforcementScenario("prescription-review", "prescription-multiple-establishments");
 
     expect(pending.prescriptions[0].status).toBe("pending");
-    expect(historical.prescriptions[2].apparentlyDuplicateOf).toBe(historical.prescriptions[0].id);
+    const duplicateTarget = historical.prescriptions.find(
+      (record) => record.id === historical.prescriptions[2].apparentlyDuplicateOf,
+    );
+    expect(duplicateTarget).toBeDefined();
     expect(historical.prescriptions[2].lines[0].medicationPresentationId)
-      .toBe(historical.prescriptions[0].lines[0].medicationPresentationId);
-    expect(multiple.prescriptions[0].establishmentId).not.toBe(multiple.prescriptions[1].establishmentId);
+      .toBe(duplicateTarget?.lines[0].medicationPresentationId);
+
+    const currentFacilities = new Set(
+      multiple.prescriptions
+        .filter((record) => multiple.prescriptionsRelevantToCurrentWithdrawal.includes(record.id))
+        .map((record) => record.establishmentId),
+    );
+    expect([...currentFacilities]).toEqual([multiple.activeDispensingFacilityId]);
+    expect(multiple.prescriptions.some(
+      (record) => record.establishmentId !== multiple.activeDispensingFacilityId,
+    )).toBe(true);
   });
 
   it("materializes distinct final-identification contexts", () => {
@@ -124,6 +146,7 @@ describe("normal scenario diversity", () => {
       patients.add(scenario.patient.id);
       for (const prescriptionId of scenario.prescriptionsRelevantToCurrentWithdrawal) {
         const record = scenario.prescriptions.find((item) => item.id === prescriptionId);
+        expect(record?.establishmentId).toBe(scenario.activeDispensingFacilityId);
         for (const line of record?.lines ?? []) {
           medicationPresentations.add(line.medicationPresentationId);
           expect(scenario.arsenal.find((item) => item.id === line.medicationPresentationId)?.careSetting)
@@ -145,6 +168,6 @@ describe("normal scenario diversity", () => {
     );
     expect(scenario.prescriptions).toHaveLength(12);
     expect(presentationIds.size).toBeGreaterThan(5);
-    expect(scenario.version).toBe("2.7.0-generated");
+    expect(scenario.version).toBe("2.8.0-generated");
   });
 });
