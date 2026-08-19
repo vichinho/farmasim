@@ -1,0 +1,18 @@
+/* Smooth camera movement for the 2D simulation scene.
+ * This changes presentation only; simulation state and events are untouched.
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div:first-child {
+    transition-property: transform, transform-origin !important;
+    transition-duration: 900ms !important;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
+    will-change: transform, transform-origin;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div:first-child {
+    transition-duration: 1ms !important;
+  }
+}
