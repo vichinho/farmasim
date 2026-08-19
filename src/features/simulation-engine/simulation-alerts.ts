@@ -170,6 +170,37 @@ export function simulationAlertsFromSession(
         },
       });
     }
+
+    const preparationCriterionId = "criterion-5-compare-prepared-items";
+    const preparationWasIntercepted = session.criteria[preparationCriterionId] === "intercepted";
+    const correctionWasRequested = session.eventLog.some((event) => event.type === "correction.requested");
+    const hasSpecificPreparationAlert = alerts.some((alert) =>
+      alert.originStage === "preparation-check" && alert.category === "medication-discrepancy",
+    );
+
+    // If the workflow proves that a preparation correction was requested but the
+    // event history does not contain enough evidence to name an exact medication
+    // discrepancy, keep a generic intercepted-preparation alert instead of inventing
+    // a kind such as quantity or strength.
+    if (preparationWasIntercepted && correctionWasRequested && !hasSpecificPreparationAlert) {
+      alerts.push({
+        sourceEventId: `${terminalEvent.id}:${preparationCriterionId}:intercepted`,
+        category: "process-deviation",
+        kind: "other",
+        originStage: "preparation-check",
+        detectedAt: terminalEvent.occurredAt,
+        detectedBy: "criteria-engine",
+        interceptedBy: terminalEvent.actorId,
+        severity: "moderate",
+        reachedPatient: false,
+        metadata: {
+          scenarioId: scenario.id,
+          activeDispensingFacilityId: scenario.activeDispensingFacilityId,
+          criterionId: preparationCriterionId,
+          evidence: "correction-requested",
+        },
+      });
+    }
   }
 
   return alerts;
