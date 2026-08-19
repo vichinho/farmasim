@@ -41,8 +41,9 @@ export function evaluateCriteria(
     eventValues(events, "medication.compared_to_prescription", "prescriptionLineId"),
   );
 
+  const availablePrescriptionIds = scenario.availablePrescriptionIds;
   const relevantPrescriptionIds = scenario.prescriptionsRelevantToCurrentWithdrawal;
-  const allRelevantOpened = relevantPrescriptionIds.every((id) => opened.has(id));
+  const allAvailableOpened = availablePrescriptionIds.every((id) => opened.has(id));
   const allRelevantVerified = relevantPrescriptionIds.every((id) => verified.has(id));
   const relevantLineIds = scenario.prescriptions
     .filter((record) => relevantPrescriptionIds.includes(record.id))
@@ -62,7 +63,7 @@ export function evaluateCriteria(
   ) {
     result["criterion-2-system-identity-match"] = "met";
   }
-  if (allRelevantOpened) result["criterion-3-identify-all-prescriptions"] = "met";
+  if (allAvailableOpened) result["criterion-3-identify-all-prescriptions"] = "met";
   if (allRelevantVerified) result["criterion-4-confirm-prescription-issued"] = "met";
 
   if (preparationWasActuallyChecked) {
@@ -71,7 +72,13 @@ export function evaluateCriteria(
       : "met";
   }
 
-  if (hasEvent(events, "identity.rechecked")) {
+  if (
+    hasEvent(
+      events,
+      "identity.rechecked",
+      (event) => event.data.patientId === scenario.patient.id,
+    )
+  ) {
     result["criterion-6-recheck-identity-before-handoff"] = "met";
   }
 
