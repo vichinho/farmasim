@@ -37,6 +37,19 @@ const medicationKinds = new Set<DiscrepancyKind>([
   "additional-product",
 ]);
 
+const discrepancyKinds = new Set<DiscrepancyKind>([
+  "patient",
+  "final-patient",
+  "prescription",
+  "prescription-status",
+  "medication",
+  "strength",
+  "pharmaceutical-form",
+  "quantity",
+  "omission",
+  "additional-product",
+]);
+
 function discrepancyOrigin(kind: DiscrepancyKind) {
   if (kind === "patient") return "clinical-system";
   if (kind === "final-patient") return "final-check";
@@ -61,36 +74,55 @@ function relevantStorageDetectionEvent(events: SimulationEvent[], drawerId: stri
   );
 }
 
+function stringArray(value: SimulationEvent["data"][string]) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function isDiscrepancyKind(value: string): value is DiscrepancyKind {
+  return discrepancyKinds.has(value as DiscrepancyKind);
+}
+
 export function simulationAlertsFromSession(
   scenario: ScenarioDefinition,
   session: SimulationSession,
 ): SimulationAlertPayload[] {
   const alerts: SimulationAlertPayload[] = [];
+  const seenDiscrepancies = new Set<string>();
   const blockedEvents = session.eventLog.filter((event) => event.type === "delivery.blocked");
-  const latestBlocked = blockedEvents.at(-1);
 
-  if (latestBlocked) {
-    for (const discrepancy of session.discrepancies) {
+  // A blocked delivery is historical evidence. Do not depend on session.discrepancies,
+  // because a later correction intentionally clears the active discrepancies before
+  // the attempt is persisted.
+  for (const blockedEvent of blockedEvents) {
+    const ids = stringArray(blockedEvent.data.discrepancyIds);
+    const kinds = stringArray(blockedEvent.data.discrepancyKinds);
+
+    ids.forEach((discrepancyId, index) => {
+      const kind = kinds[index];
+      if (!kind || !isDiscrepancyKind(kind) || seenDiscrepancies.has(discrepancyId)) return;
+      seenDiscrepancies.add(discrepancyId);
+
+      const activeSnapshot = session.discrepancies.find((item) => item.id === discrepancyId);
       alerts.push({
-        sourceEventId: `${latestBlocked.id}:${discrepancy.id}`,
-        category: medicationKinds.has(discrepancy.kind)
+        sourceEventId: `${blockedEvent.id}:${discrepancyId}`,
+        category: medicationKinds.has(kind)
           ? "medication-discrepancy"
           : "process-deviation",
-        kind: discrepancy.kind,
-        originStage: discrepancyOrigin(discrepancy.kind),
-        detectedAt: latestBlocked.occurredAt,
+        kind,
+        originStage: discrepancyOrigin(kind),
+        detectedAt: blockedEvent.occurredAt,
         detectedBy: "safety-engine",
-        interceptedBy: latestBlocked.actorId,
-        severity: discrepancySeverity(discrepancy.kind),
+        interceptedBy: blockedEvent.actorId,
+        severity: discrepancySeverity(kind),
         reachedPatient: false,
         metadata: {
           scenarioId: scenario.id,
           activeDispensingFacilityId: scenario.activeDispensingFacilityId,
-          prescriptionLineId: discrepancy.prescriptionLineId ?? null,
-          trayItemId: discrepancy.trayItemId ?? null,
+          prescriptionLineId: activeSnapshot?.prescriptionLineId ?? null,
+          trayItemId: activeSnapshot?.trayItemId ?? null,
         },
       });
-    }
+    });
   }
 
   for (const deviation of session.storageDeviations) {
