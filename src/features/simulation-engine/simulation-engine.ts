@@ -22,14 +22,19 @@ function controllersForRole(role: PlayerRole): Record<string, ActorController> {
     : { "tens-1": "simulation", "tens-2": "participant", "qf-support": "simulation" };
 }
 
+const controllersBeforeRoleSelection: Record<string, ActorController> = {
+  "tens-1": "simulation",
+  "tens-2": "simulation",
+  "qf-support": "simulation",
+};
+
 export function createSimulationSession(
   scenarioInput: ScenarioDefinition,
   options?: { sessionId?: string; startedAt?: string },
 ): SimulationSession {
   const scenario = assertValidScenarioDefinition(scenarioInput);
-  const participant = scenario.actors.find((actor) => actor.controller === "participant");
-  if (!participant) throw new Error("Scenario has no participant actor");
-  const selectedPlayerRole: PlayerRole = participant.id === "tens-2" ? "tens-2" : "tens-1";
+  const initialActor = scenario.actors.find((actor) => actor.id === "tens-1") ?? scenario.actors[0];
+  if (!initialActor) throw new Error("Scenario has no actors");
   const startedAt = options?.startedAt ?? new Date().toISOString();
 
   return {
@@ -38,9 +43,9 @@ export function createSimulationSession(
     scenarioVersion: scenario.version,
     seed: scenario.seed,
     mode: scenario.mode,
-    activeActorId: participant.id,
-    selectedPlayerRole,
-    actorControllers: controllersForRole(selectedPlayerRole),
+    activeActorId: initialActor.id,
+    selectedPlayerRole: null,
+    actorControllers: { ...controllersBeforeRoleSelection },
     focusedObjectId: null,
     focusReturnObjectId: null,
     typedRut: "",
@@ -227,6 +232,11 @@ export function executeSimulationCommand(
   occurredAt?: string,
 ): SimulationSession {
   if (session.scenarioId !== scenario.id) throw new Error("Session and scenario do not match");
+
+  // No clinical/preparation action is accepted until the participant explicitly
+  // chooses TENS 1 or TENS 2. This prevents the previous implicit TENS 1 start.
+  if (!session.selectedPlayerRole && command.type !== "role.selected") return session;
+
   const actor = scenario.actors.find((candidate) => candidate.id === command.actorId);
   if (!actor) throw new Error(`Unknown actor: ${command.actorId}`);
 
