@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./responsive-audit.css";
 
 const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
 const siteUrl =
