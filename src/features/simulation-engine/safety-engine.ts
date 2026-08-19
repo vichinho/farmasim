@@ -1,3 +1,4 @@
+import { expectedPrescriptionDisposition } from "./prescription-status";
 import type {
   MedicationPresentation,
   PrescriptionLine,
@@ -96,16 +97,42 @@ export function evaluateDeliverySafety(
     });
   }
 
+  let prescriptionGateFailed = false;
+  let correctlyHeldPrescription = false;
   for (const prescriptionId of scenario.prescriptionsRelevantToCurrentWithdrawal) {
-    if (!session.verifiedPrescriptionIds.includes(prescriptionId)) {
+    const prescription = scenario.prescriptions.find((item) => item.id === prescriptionId);
+    if (!prescription) continue;
+    const expectedDisposition = expectedPrescriptionDisposition(prescription);
+    const actualDisposition = session.prescriptionDispositionById[prescriptionId];
+
+    if (!actualDisposition || actualDisposition !== expectedDisposition) {
+      prescriptionGateFailed = true;
       discrepancies.push({
         id: `prescription:${prescriptionId}`,
         kind: "prescription",
-        expected: `${prescriptionId}:verified`,
-        actual: `${prescriptionId}:not-verified`,
+        expected: `${prescription.status}:${expectedDisposition}`,
+        actual: actualDisposition ?? "not-assessed",
       });
+      continue;
+    }
+
+    if (expectedDisposition === "hold-for-review") {
+      correctlyHeldPrescription = true;
     }
   }
+
+  if (correctlyHeldPrescription) {
+    discrepancies.push({
+      id: "prescription-status:handoff-not-allowed",
+      kind: "prescription-status",
+      expected: "stop-and-review-with-qf",
+      actual: "delivery-attempted",
+    });
+  }
+
+  // Prescription state is an upstream safety gate. Do not cascade downstream
+  // medication/omission errors when the correct action is to stop the handoff.
+  if (prescriptionGateFailed || correctlyHeldPrescription) return discrepancies;
 
   const expected = expectedPrescriptionLines(scenario);
   const trayItemsByLine = new Map(
