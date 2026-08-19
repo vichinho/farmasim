@@ -1,5 +1,12 @@
 import type { MedicationPresentation } from "@/features/simulation-engine/types";
 
+/**
+ * Temporary subset kept only so the current 2D flow remains runnable.
+ * It is NOT the authoritative Atención Abierta arsenal and must not be used
+ * to fabricate alternative strengths/forms for discrepancy scenarios.
+ * Replace this module with the institutional source before enabling the
+ * concentration/form scenario bank.
+ */
 export const ambulatoryArsenal: MedicationPresentation[] = [
   {
     id: "losartan-50-tablet-30",
@@ -18,27 +25,11 @@ export const ambulatoryArsenal: MedicationPresentation[] = [
     },
   },
   {
-    id: "losartan-100-tablet-30",
-    medicationId: "losartan",
-    medicationName: "Losartán",
-    strength: "100 mg",
-    pharmaceuticalForm: "Comprimido",
-    packageQuantity: 30,
-  },
-  {
     id: "amlodipine-5-tablet-30",
     medicationId: "amlodipine",
     medicationName: "Amlodipino",
     strength: "5 mg",
     pharmaceuticalForm: "Comprimido",
-    packageQuantity: 30,
-  },
-  {
-    id: "amlodipine-5-capsule-30",
-    medicationId: "amlodipine",
-    medicationName: "Amlodipino",
-    strength: "5 mg",
-    pharmaceuticalForm: "Cápsula",
     packageQuantity: 30,
   },
   {
