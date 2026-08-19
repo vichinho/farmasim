@@ -1,16 +1,15 @@
-/* Responsive safeguards for the current FarmaVerse 2D experience.
+/* Mobile safeguards for the current FarmaVerse 2D experience.
  * Presentation only: simulation events, persistence and evaluation are unchanged.
  */
 
 @media (max-width: 639.98px) {
   div:has(> header [aria-label="Seleccionar rol"]) {
-    --mobile-simulation-header-height: 3.8rem;
-    --mobile-simulation-scene-height: clamp(15rem, 34svh, 18rem);
+    --mobile-simulation-header-height: 3.7rem;
+    --mobile-simulation-scene-height: clamp(19rem, 43svh, 22rem);
     position: relative;
   }
 
-  /* Disable the obsolete CSS-only gate. The React component is the only real
-   * role gate; this prevents duplicated cards and duplicate visual choices. */
+  /* Keep only the real React role gate; disable the old CSS-only duplicate gate. */
   div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > header [aria-label="Seleccionar rol"]::before,
   div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > div.grid::before,
   div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > div.grid::after {
@@ -18,15 +17,14 @@
     display: none !important;
   }
 
-  /* Header is information-only on phones. Role selection is visually moved
-   * into the real modal below. */
+  /* Compact information-only header on phones. */
   div:has(> header [aria-label="Seleccionar rol"]) > header {
     display: grid !important;
     min-height: var(--mobile-simulation-header-height);
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center !important;
     gap: 0.5rem !important;
-    padding: 0.65rem 0.8rem !important;
+    padding: 0.62rem 0.78rem !important;
   }
 
   div:has(> header [aria-label="Seleccionar rol"]) > header > :first-child {
@@ -34,58 +32,58 @@
   }
 
   div:has(> header [aria-label="Seleccionar rol"]) > header > :first-child p:first-child {
-    font-size: 0.92rem !important;
+    font-size: 0.9rem !important;
     line-height: 1.12 !important;
   }
 
   div:has(> header [aria-label="Seleccionar rol"]) > header > :first-child p:last-child {
-    margin-top: 0.15rem;
+    margin-top: 0.12rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.61rem !important;
+    font-size: 0.6rem !important;
   }
 
   div:has(> header [aria-label="Seleccionar rol"]) > header > span {
     grid-column: 2;
     grid-row: 1;
     justify-self: end;
-    padding: 0.34rem 0.5rem !important;
-    font-size: 0.58rem !important;
+    padding: 0.32rem 0.48rem !important;
+    font-size: 0.57rem !important;
   }
 
-  /* Before choosing a role, use the existing real buttons but place them over
-   * the lower part of the React gate so they read as part of that popup. */
+  /* Visually place the two real role buttons inside the real role popup. */
   div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > header [aria-label="Seleccionar rol"] {
     position: absolute !important;
     z-index: 45;
-    top: calc(var(--mobile-simulation-header-height) + var(--mobile-simulation-scene-height) - 5.45rem);
-    left: 1.45rem;
-    right: 1.45rem;
+    top: calc(var(--mobile-simulation-header-height) + (var(--mobile-simulation-scene-height) / 2) + 2.25rem);
+    left: 1.9rem;
+    right: 1.9rem;
     display: grid !important;
     width: auto !important;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.55rem !important;
     margin: 0 !important;
     padding: 0 !important;
+    border: 0 !important;
     background: transparent !important;
   }
 
   div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > header [aria-label="Seleccionar rol"] button {
     display: flex;
     min-width: 0;
-    min-height: 3.7rem;
+    min-height: 3.55rem;
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
-    gap: 0.16rem;
+    gap: 0.12rem;
     border: 1px solid rgb(221 214 254) !important;
     border-radius: 0.95rem !important;
-    background: rgb(255 255 255 / 0.98) !important;
-    padding: 0.6rem 0.7rem !important;
+    background: white !important;
+    padding: 0.55rem 0.65rem !important;
     color: rgb(91 33 182) !important;
     box-shadow: 0 7px 20px rgb(76 48 130 / 0.12);
-    font-size: 0.7rem !important;
+    font-size: 0.68rem !important;
     line-height: 1.15;
     text-align: left;
   }
@@ -100,76 +98,65 @@
 
   div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > header [aria-label="Seleccionar rol"] button::after {
     display: block;
-    font-size: 0.58rem;
+    font-size: 0.56rem;
     font-weight: 700;
     color: rgb(100 116 139);
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > header [aria-label="Seleccionar rol"] button:disabled {
-    opacity: 0.38;
-  }
-
-  /* Once selected, role buttons disappear from the phone header entirely. */
   div:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"]) > header [aria-label="Seleccionar rol"] {
     display: none !important;
   }
 
-  /* Explicit phone flow: scene -> tactile object dock -> contextual panel. */
+  /* The scene remains a real image canvas on mobile, like desktop. */
   div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main {
-    display: grid !important;
+    position: relative !important;
+    display: block !important;
     width: 100%;
-    max-width: 100%;
-    min-height: 0 !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-content: start;
-    gap: 0.6rem;
-    overflow-x: clip !important;
-    overflow-y: visible !important;
-    background: rgb(248 250 252) !important;
-    padding: 0 0.75rem 0.85rem;
+    min-height: var(--mobile-simulation-scene-height) !important;
+    height: var(--mobile-simulation-scene-height);
+    overflow: hidden !important;
+    padding: 0 !important;
+    background: rgb(226 232 240) !important;
   }
 
   div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div:first-child {
-    position: relative !important;
-    inset: auto !important;
-    grid-column: 1 / -1;
-    width: calc(100% + 1.5rem);
-    height: var(--mobile-simulation-scene-height);
-    margin: 0 -0.75rem 0.1rem;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
     overflow: hidden;
-    transform: none !important;
-    translate: none !important;
-    border-bottom: 1px solid rgb(237 233 254);
   }
 
   div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div:first-child img {
     object-position: 40% center !important;
   }
 
-  /* The real React role gate gets enough room for the two real role buttons. */
+  /* Compact real role gate; room at the bottom is reserved for role buttons. */
   div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div.absolute.inset-0.z-30 {
-    grid-column: 1 / -1;
-    padding: 0.9rem !important;
+    position: absolute !important;
+    inset: 0 !important;
+    padding: 1rem !important;
   }
 
   div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div.absolute.inset-0.z-30 > div {
     width: min(100%, 21rem);
-    min-height: 11.3rem;
-    padding: 1rem 1rem 4.8rem !important;
+    min-height: 12rem;
+    padding: 1rem 1rem 5rem !important;
     border-radius: 1.25rem !important;
   }
 
   div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div.absolute.inset-0.z-30 h2 {
     margin-top: 0.3rem !important;
-    font-size: 1.12rem !important;
+    font-size: 1.1rem !important;
     line-height: 1.2 !important;
   }
 
   div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div.absolute.inset-0.z-30 h2::after {
-    content: "Selecciona una opción para comenzar la simulación.";
+    content: "Selecciona una opción para comenzar.";
     display: block;
-    margin-top: 0.45rem;
-    font-size: 0.68rem;
+    margin-top: 0.42rem;
+    font-size: 0.67rem;
     font-weight: 600;
     line-height: 1.4;
     color: rgb(100 116 139);
@@ -179,127 +166,106 @@
     display: none !important;
   }
 
-  /* Tactile scene dock. It is visually independent from the photo and cannot
-   * drift when object-cover crops the scene. */
+  /* Hotspots stay on the scene. Visual dot is small, hit area is 44x44px. */
   div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "] {
-    position: relative !important;
-    inset: auto !important;
-    left: auto !important;
-    right: auto !important;
-    top: auto !important;
-    bottom: auto !important;
-    z-index: 20;
+    position: absolute !important;
+    z-index: 25;
+    width: 2.75rem;
+    height: 2.75rem;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
     display: grid !important;
-    width: 100%;
-    max-width: none !important;
-    min-width: 0;
-    min-height: 3.7rem;
-    grid-template-columns: 2rem minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    align-items: center;
-    justify-self: stretch;
-    column-gap: 0.55rem;
-    row-gap: 0.05rem;
+    place-items: center;
     margin: 0 !important;
+    padding: 0 !important;
+    translate: -50% -50% !important;
     transform: none !important;
-    translate: none !important;
-    overflow: hidden;
-    border: 1px solid rgb(226 232 240);
-    border-radius: 1rem;
-    background: white;
-    padding: 0.62rem 0.7rem;
-    box-shadow: 0 5px 18px rgb(15 23 42 / 0.06);
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 999px;
+    background: transparent !important;
+    box-shadow: none !important;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "]:focus-visible {
-    outline: 2px solid rgb(124 58 237);
-    outline-offset: 2px;
+  /* Mobile coordinates tuned to the portrait crop of the current scene. */
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label="Interactuar con Paciente"] {
+    left: 14% !important;
+    top: 59% !important;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "] > span:first-child {
-    display: grid !important;
-    width: 2rem !important;
-    height: 2rem !important;
-    grid-column: 1;
-    grid-row: 1 / 3;
-    place-items: center;
-    margin: 0 !important;
-    border: 1px solid rgb(221 214 254) !important;
-    border-radius: 0.7rem !important;
-    background: rgb(245 243 255) !important;
-    box-shadow: none !important;
-    opacity: 1 !important;
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label="Interactuar con Computador"] {
+    left: 43% !important;
+    top: 68% !important;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "] > span:first-child::after {
-    content: "";
-    width: 0.52rem;
-    height: 0.52rem;
-    border-radius: 999px;
-    background: rgb(124 58 237);
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label="Interactuar con Almacenamiento"] {
+    left: 79% !important;
+    top: 18% !important;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "] > span:last-child {
-    grid-column: 2;
-    grid-row: 1;
-    align-self: end;
-    margin: 0 !important;
-    display: block !important;
-    min-width: 0;
-    transform: none !important;
-    translate: none !important;
-    opacity: 1 !important;
-    background: transparent !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    text-align: left;
-    font-size: 0.72rem !important;
-    font-weight: 900;
-    line-height: 1.15;
-    color: rgb(30 41 59);
-  }
-
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "]::after {
-    grid-column: 2;
-    grid-row: 2;
-    align-self: start;
-    font-size: 0.58rem;
-    font-weight: 700;
-    line-height: 1.15;
-    color: rgb(100 116 139);
-    text-align: left;
-  }
-
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label="Interactuar con Paciente"]::after {
-    content: "Atención";
-  }
-
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label="Interactuar con Computador"]::after {
-    content: "Sistema clínico";
-  }
-
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label="Interactuar con Almacenamiento"]::after {
-    content: "Gavetas";
-  }
-
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label="Interactuar con TENS 2"]::after {
-    content: "Preparación";
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label="Interactuar con TENS 2"] {
+    left: 59% !important;
+    top: 42% !important;
   }
 
   div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label="Interactuar con Bandeja"] {
-    grid-column: 1 / -1;
+    left: 84% !important;
+    top: 73% !important;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label="Interactuar con Bandeja"]::after {
-    content: "Revisión de preparación";
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "] > span:first-child {
+    display: block !important;
+    width: 0.9rem !important;
+    height: 0.9rem !important;
+    margin: 0 !important;
+    border: 3px solid white !important;
+    border-radius: 999px !important;
+    background: rgb(124 58 237) !important;
+    box-shadow: 0 2px 9px rgb(15 23 42 / 0.4) !important;
+    opacity: 1 !important;
   }
 
-  /* Contextual panel clearly follows the object dock. */
+  /* Label appears only when the user taps/focuses the hotspot. */
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "] > span:last-child {
+    position: absolute !important;
+    left: 50%;
+    top: calc(50% + 1rem);
+    display: block !important;
+    width: max-content;
+    max-width: 8.5rem;
+    margin: 0 !important;
+    padding: 0.38rem 0.55rem !important;
+    translate: -50% 0 !important;
+    transform: none !important;
+    border: 1px solid rgb(221 214 254);
+    border-radius: 0.65rem;
+    background: rgb(255 255 255 / 0.97) !important;
+    box-shadow: 0 5px 16px rgb(15 23 42 / 0.16) !important;
+    opacity: 0 !important;
+    pointer-events: none;
+    white-space: nowrap;
+    text-align: center;
+    font-size: 0.66rem !important;
+    font-weight: 900;
+    line-height: 1.1;
+    color: rgb(91 33 182);
+    transition: opacity 120ms ease, translate 120ms ease;
+  }
+
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "]:focus > span:last-child,
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "]:active > span:last-child {
+    opacity: 1 !important;
+    translate: -50% 0.18rem !important;
+  }
+
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "]:focus-visible {
+    outline: 2px solid rgb(196 181 253);
+    outline-offset: 1px;
+  }
+
+  /* Contextual panel follows below the scene. */
   div:has(> header [aria-label="Seleccionar rol"]) > div.grid > aside {
     border-top: 1px solid rgb(237 233 254);
     background: rgb(252 252 254) !important;
@@ -312,14 +278,8 @@
 
   div:has(> header [aria-label="Seleccionar rol"]) input,
   div:has(> header [aria-label="Seleccionar rol"]) select,
-  div:has(> header [aria-label="Seleccionar rol"]) textarea,
-  div:has(> header [aria-label="Seleccionar rol"]) button {
-    max-width: 100%;
-  }
-
-  div:has(> header [aria-label="Seleccionar rol"]) input,
-  div:has(> header [aria-label="Seleccionar rol"]) select,
   div:has(> header [aria-label="Seleccionar rol"]) textarea {
     min-width: 0;
+    max-width: 100%;
   }
 }
