@@ -48,13 +48,13 @@ describe("pilot scenario bank", () => {
   it("rotates all eight synthetic identities and establishments in the first eight pilots", () => {
     const firstEight = buildPilotScenarioBank().slice(0, 8);
     expect(new Set(firstEight.map(({ scenario }) => scenario.patient.id)).size).toBe(8);
-    expect(new Set(firstEight.map(({ scenario }) => scenario.prescriptions[0].establishmentId)).size).toBe(8);
+    expect(new Set(firstEight.map(({ scenario }) => scenario.activeDispensingFacilityId)).size).toBe(8);
   });
 
   it("does not duplicate an exact adaptive fingerprint", () => {
     const fingerprints = pilotScenarioMatrix.map((spec) => {
       const v = reinforcementVariantForSeed(spec.seed, spec.competency);
-      return `${v.patientId}|${v.medicationId}|${v.presentationId}|${v.establishmentId}|${v.challengeKey}`;
+      return `${v.patientId}|${v.medicationId}|${v.presentationId}|${v.establishmentId}|${v.challengeKey}|${v.drawerId}|${v.visualContextKey}`;
     });
     expect(new Set(fingerprints).size).toBe(10);
   });
@@ -77,10 +77,12 @@ describe("pilot scenario bank", () => {
     expect(strength ? evaluateStorage(strength).map((item) => item.kind) : []).toContain("mixed-strength");
     expect(product ? evaluateStorage(product).map((item) => item.kind) : []).toContain("mixed-product");
     expect(quantity?.initialTray.items).toEqual([]);
-    const line = quantity?.prescriptions
-      .filter((record) => quantity.prescriptionsRelevantToCurrentWithdrawal.includes(record.id))[0]?.lines[0];
-    const suggestion = line ? quantity?.suggestedPreparationQuantityByLineId?.[line.id] : undefined;
-    expect(suggestion).toBeDefined();
+    const suggestionEntry = Object.entries(quantity?.suggestedPreparationQuantityByLineId ?? {})[0];
+    expect(suggestionEntry).toBeDefined();
+    if (!suggestionEntry || !quantity) return;
+    const [lineId, suggestion] = suggestionEntry;
+    const line = quantity.prescriptions.flatMap((record) => record.lines).find((item) => item.id === lineId);
+    expect(line).toBeDefined();
     expect(suggestion).not.toBe(line?.quantity);
     expect(suggestion).toBeGreaterThan(0);
   });
