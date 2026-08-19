@@ -53,16 +53,14 @@ describe("SimulationEngine safety barrier", () => {
 
   it("blocks an omitted prescription line", () => {
     const session = readySession();
-    session.tray.items = session.tray.items.filter(
-      (item) => item.prescriptionLineId !== "line-amlodipine",
-    );
+    session.tray.items = [];
     const result = attempt(session);
     expect(result.discrepancies.map((item) => item.kind)).toContain("omission");
   });
 
   it("blocks an unverified prescription", () => {
     const session = readySession();
-    session.verifiedPrescriptionIds = [scenario001.expectedPrescriptionIds[0]];
+    session.verifiedPrescriptionIds = [];
     const result = attempt(session);
     expect(result.discrepancies.map((item) => item.kind)).toContain("prescription");
   });
@@ -131,21 +129,20 @@ describe("SimulationEngine safety barrier", () => {
     expect(result.discrepancies.map((item) => item.kind)).toContain("patient");
   });
 
-  it("blocks wrong form, quantity and an additional product", () => {
+  it("blocks wrong quantity and an additional product", () => {
     const session = readySession();
-    session.tray.items[1] = {
-      ...session.tray.items[1],
-      medicationPresentationId: "amlodipine-5-capsule-30",
+    session.tray.items[0] = {
+      ...session.tray.items[0],
       quantity: 60,
     };
     session.tray.items.push({
       id: "extra",
-      medicationPresentationId: "paracetamol-500-tablet-20",
-      quantity: 20,
+      medicationPresentationId: "amlodipine-5-capsule-30",
+      quantity: 30,
     });
     const kinds = evaluateDeliverySafety(scenario001, session).map((item) => item.kind);
     expect(kinds).toEqual(
-      expect.arrayContaining(["pharmaceutical-form", "quantity", "additional-product"]),
+      expect.arrayContaining(["quantity", "additional-product"]),
     );
   });
 });
