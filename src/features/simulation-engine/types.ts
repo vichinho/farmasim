@@ -178,6 +178,7 @@ export type ScenarioDefinition = {
   patient: PatientIdentity;
   similarPatients: PatientIdentity[];
   actors: Actor[];
+  activeDispensingFacilityId: EstablishmentId;
   requiredPlayerRole?: PlayerRole;
   reinforcementChallengeKey?: string;
   reinforcementInstructionFocusSection?: InstructionSection;
