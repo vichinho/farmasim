@@ -364,7 +364,7 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
             ) : session.deliveryStatus === "blocked" ? (
               <AssessmentBlocked send={send} />
             ) : medication ? (
-              <MedicationView medication={medication} scenario={scenario} send={send} session={session} />
+              <MedicationView key={medication.id} medication={medication} scenario={scenario} send={send} session={session} />
             ) : drawer ? (
               <DrawerView drawer={drawer} scenario={scenario} send={send} />
             ) : (
@@ -454,6 +454,9 @@ function PatientCounseling({ scenario, send, session }: { scenario: ScenarioDefi
     <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/40 p-3">
       <p className="text-xs font-black uppercase tracking-wider text-violet-700">Indicaciones al paciente</p>
       <p className="mt-1 text-xs leading-5 text-slate-500">Registra cada parte que realmente comunicas. El simulador no inventa contenido clínico: solo muestra texto específico cuando la presentación tiene una fuente educativa cargada.</p>
+      {scenario.mode === "guided" && scenario.reinforcementInstructionFocusSection ? (
+        <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-black text-amber-900">Foco del refuerzo: {instructionSectionLabels[scenario.reinforcementInstructionFocusSection]}.</p>
+      ) : null}
       <div className="mt-3 space-y-3">
         {lineIds.map((lineId) => {
           const line = scenario.prescriptions.flatMap((record) => record.lines).find((item) => item.id === lineId);
@@ -587,8 +590,11 @@ function MedicationView({ medication, scenario, send, session }: { medication: M
     .filter((record) => scenario.prescriptionsRelevantToCurrentWithdrawal.includes(record.id))
     .flatMap((record) => record.lines);
   const matchingLine = relevantLines.find((line) => line.medicationPresentationId === medication.id);
+  const suggestedQuantity = matchingLine
+    ? scenario.suggestedPreparationQuantityByLineId?.[matchingLine.id]
+    : undefined;
   const [lineId, setLineId] = useState(matchingLine?.id ?? "");
-  const [quantity, setQuantity] = useState(matchingLine?.quantity ?? 1);
+  const [quantity, setQuantity] = useState(suggestedQuantity ?? matchingLine?.quantity ?? 1);
 
   const returnToSource = () => {
     if (fromTray) send("tray.inspected");
