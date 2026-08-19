@@ -17,6 +17,7 @@ import {
   recommendReinforcement,
   requiredInstructionEvidence,
   requiredInstructionSections,
+  simulationAlertsFromSession,
   type InstructionSection,
   type MedicationPresentation,
   type PlayerRole,
@@ -146,6 +147,7 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
         criterionResults,
         levelNumber,
         scenarioSlug: trainingCase.id,
+        simulationAlerts: simulationAlertsFromSession(scenario, session),
         startedAt: session.startedAt,
       });
       setPersistence({
@@ -155,7 +157,7 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
     } catch {
       setPersistence({ message: "No pudimos guardar el progreso. Revisa tu conexión y vuelve a intentarlo.", status: "error" });
     }
-  }, [levelNumber, session, trainingCase.id]);
+  }, [levelNumber, scenario, session, trainingCase.id]);
 
   useEffect(() => {
     if (terminal && persistence.status === "idle") {
@@ -497,9 +499,15 @@ function Computer({ scenario, searchPatient, send, session }: { scenario: Scenar
   const hasHeldCurrentPrescription = scenario.prescriptionsRelevantToCurrentWithdrawal.some(
     (prescriptionId) => session.prescriptionDispositionById[prescriptionId] === "hold-for-review",
   );
+  const activeFacilityName = establishmentNames[scenario.activeDispensingFacilityId] ?? scenario.activeDispensingFacilityId;
 
   return (
     <Panel eyebrow="COMPUTADOR" title="Sistema clínico simulado">
+      <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50 p-3">
+        <p className="text-[.65rem] font-black uppercase tracking-wider text-violet-700">Establecimiento de retiro activo</p>
+        <p className="mt-1 text-sm font-black text-slate-900">{activeFacilityName}</p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">Los registros de otros establecimientos siguen visibles como antecedentes, pero no alimentan la preparación de esta atención.</p>
+      </div>
       <div className="flex gap-2">
         <button className="rounded-lg border border-violet-200 px-3 py-2 text-xs font-black text-violet-700" onClick={() => send("tab.opened", { tabId: "patient-search" })} type="button">Búsqueda</button>
         <button className="rounded-lg border border-violet-200 px-3 py-2 text-xs font-black text-violet-700" onClick={() => send("tab.opened", { tabId: "prescriptions" })} type="button">Prescripciones</button>
@@ -516,13 +524,21 @@ function Computer({ scenario, searchPatient, send, session }: { scenario: Scenar
           const disposition = session.prescriptionDispositionById[record.id];
           const current = scenario.prescriptionsRelevantToCurrentWithdrawal.includes(record.id);
           const available = scenario.availablePrescriptionIds.includes(record.id);
+          const otherFacility = record.establishmentId !== scenario.activeDispensingFacilityId;
+          const contextLabel = current
+            ? "RETIRO ACTUAL"
+            : otherFacility
+              ? "ANTECEDENTE · OTRO ESTABLECIMIENTO"
+              : available
+                ? "DISPONIBLE · ESTABLECIMIENTO ACTIVO"
+                : "REGISTRO HISTÓRICO";
           return (
             <div className="rounded-xl border p-3" key={record.id}>
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-black">{establishmentNames[record.establishmentId] ?? record.establishmentId}</p>
                   <p className="text-xs text-slate-500">Estado: {record.status} · Emisión: {record.dates.issuedAt}</p>
-                  <p className="mt-1 text-[.7rem] font-bold text-violet-700">{current ? "RETIRO ACTUAL" : available ? "DISPONIBLE" : "REGISTRO HISTÓRICO"}</p>
+                  <p className="mt-1 text-[.7rem] font-bold text-violet-700">{contextLabel}</p>
                 </div>
                 <button className="text-xs font-black text-violet-700" onClick={() => send(opened ? "prescription.closed" : "prescription.opened", { prescriptionId: record.id })} type="button">{opened ? "Cerrar" : "Abrir"}</button>
               </div>
@@ -570,7 +586,8 @@ function Computer({ scenario, searchPatient, send, session }: { scenario: Scenar
           );
         })}
       </div>
-      {hasHeldCurrentPrescription ? <Action onClick={() => send("qf_support.requested")}>Solicitar apoyo QF y detener la entrega</Action> : null}
+      <Action onClick={() => send("qf_support.requested")}>{hasHeldCurrentPrescription ? "Solicitar apoyo QF y detener la entrega" : "Solicitar apoyo QF"}</Action>
+      <p className="mt-2 text-[.7rem] leading-5 text-slate-500">La solicitud de apoyo permite escalar una situación que requiere interpretación; FarmaVerse no concluye automáticamente duplicidad terapéutica.</p>
       <button className="mt-4 w-full text-sm font-black text-slate-500" onClick={() => send("computer.exited")} type="button">← Volver a farmacia</button>
     </Panel>
   );
@@ -691,6 +708,7 @@ function Results({ onReinforcement, onRetry, persistence, session }: { onReinfor
       {session.deliveryStatus === "safely-stopped" ? <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">La dispensación se detuvo antes del handoff y se solicitó revisión al QF.</p> : null}
       <div className="space-y-2">{Object.entries(session.criteria).map(([id, status], index) => <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2" key={id}><span className="text-xs font-semibold">Criterio {index + 1}</span><span className={cn("rounded-md px-2 py-1 text-xs font-black", status === "met" ? "bg-emerald-100 text-emerald-700" : status === "intercepted" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700")}>{status === "met" ? "Cumplido" : status === "intercepted" ? "Interceptado" : "Reforzar"}</span></div>)}</div>
       {reminder ? <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-black text-amber-900">{reminder}</div> : null}
+      {failed.length ? <a className="mt-3 block rounded-xl border border-violet-200 px-4 py-3 text-sm font-black text-violet-700 hover:bg-violet-50" href="/capsulas">Revisar cápsulas educativas asignadas</a> : null}
       {failed.length ? <Action onClick={onReinforcement}>Iniciar refuerzo con un escenario diferente</Action> : null}
       <div className={cn("mt-4 rounded-xl border p-3 text-sm font-bold", persistence.status === "saved" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : persistence.status === "error" ? "border-rose-200 bg-rose-50 text-rose-800" : "border-violet-200 bg-violet-50 text-violet-800")} role="status"><p>{persistence.message || "Preparando el guardado del progreso…"}</p>{persistence.status === "error" ? <button className="mt-3 min-h-10 rounded-lg bg-rose-700 px-4 text-xs font-black text-white" onClick={onRetry} type="button">Reintentar guardado</button> : null}</div>
     </Panel>
