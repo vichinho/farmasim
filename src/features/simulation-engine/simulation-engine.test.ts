@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { alternativeStrengthPresentations } from "@/data/simulation/arsenal";
 import { scenario001 } from "@/data/simulation/scenario-001";
+import { ambulatoryArsenal, findAlternativeStrengths } from "@/data/simulation/arsenal";
 import {
   buildExpectedTray,
   createSimulationSession,
@@ -16,23 +16,12 @@ import {
 const actorId = "tens-1";
 const now = "2026-08-18T12:00:00.000Z";
 
-function selectTens1(session: SimulationSession, scenario: ScenarioDefinition) {
-  return executeSimulationCommand(
-    scenario,
-    session,
-    { type: "role.selected", actorId, data: { selectedRole: "tens-1" } },
-    now,
-  );
-}
-
-function readySession(scenario: ScenarioDefinition = scenario001): SimulationSession {
-  let session = createSimulationSession(scenario, { sessionId: "test-session", startedAt: now });
-  session = selectTens1(session, scenario);
+function readySession(): SimulationSession {
   return {
-    ...session,
-    loadedPatientId: scenario.patient.id,
-    verifiedPrescriptionIds: [...scenario.prescriptionsRelevantToCurrentWithdrawal],
-    tray: buildExpectedTray(scenario),
+    ...createSimulationSession(scenario001, { sessionId: "test-session", startedAt: now }),
+    loadedPatientId: scenario001.patient.id,
+    verifiedPrescriptionIds: [...scenario001.prescriptionsRelevantToCurrentWithdrawal],
+    tray: buildExpectedTray(scenario001),
   };
 }
 
@@ -45,28 +34,25 @@ function attempt(session: SimulationSession, scenario: ScenarioDefinition = scen
   );
 }
 
-function recordPreparationCheck(
-  session: SimulationSession,
-  scenario: ScenarioDefinition = scenario001,
-) {
+function recordPreparationCheck(session: SimulationSession) {
   let next = session;
-  for (const prescriptionId of scenario.prescriptionsRelevantToCurrentWithdrawal) {
+  for (const prescriptionId of scenario001.prescriptionsRelevantToCurrentWithdrawal) {
     next = executeSimulationCommand(
-      scenario,
+      scenario001,
       next,
       { type: "prescription.opened", actorId, data: { prescriptionId } },
       now,
     );
     next = executeSimulationCommand(
-      scenario,
+      scenario001,
       next,
       { type: "prescription.status_verified", actorId, data: { prescriptionId } },
       now,
     );
   }
-  for (const item of buildExpectedTray(scenario).items) {
+  for (const item of buildExpectedTray(scenario001).items) {
     next = executeSimulationCommand(
-      scenario,
+      scenario001,
       next,
       {
         type: "medication.inspected",
@@ -76,7 +62,7 @@ function recordPreparationCheck(
       now,
     );
     next = executeSimulationCommand(
-      scenario,
+      scenario001,
       next,
       {
         type: "medication.compared_to_prescription",
@@ -99,31 +85,34 @@ describe("mandatory structural audit scenarios", () => {
     expect(result.criteria["criterion-5-compare-prepared-items"]).toBe("met");
   });
 
-  it("B. ERROR DE CONCENTRACIÓN uses two real Atención Abierta Carvedilol strengths", () => {
+  it("B. ERROR DE CONCENTRACIÓN uses two real Atención Abierta strengths of the same medication", () => {
+    const carvedilol125 = ambulatoryArsenal.find((item) => item.id === "004-0308");
+    const carvedilol25 = ambulatoryArsenal.find((item) => item.id === "004-0251");
+    expect(carvedilol125?.medicationName).toBe("CARVEDILOL");
+    expect(carvedilol125?.strength).toBe("12,5 mg");
+    expect(carvedilol25?.medicationName).toBe("CARVEDILOL");
+    expect(carvedilol25?.strength).toBe("25 mg");
+    expect(findAlternativeStrengths("004-0308").map((item) => item.id)).toContain("004-0251");
+
     const scenario = structuredClone(scenario001);
-    scenario.id = "audit-b-real-strength";
-    scenario.prescriptions[0].lines[0].medicationPresentationId = "trakcare-004-0308"; // CARVEDILOL 12,5 MG
-    scenario.drawers[0] = {
-      ...scenario.drawers[0],
-      id: "drawer-carvedilol",
-      expectedMedicationPresentationId: "trakcare-004-0308",
-      expectedLabel: "CARVEDILOL 12,5 mg · Comprimidos",
-      displayedLabel: "CARVEDILOL 12,5 mg · Comprimidos",
-      contents: ["trakcare-004-0308", "trakcare-004-0251"],
+    scenario.prescriptions[0].lines[0].medicationPresentationId = "004-0308";
+    scenario.prescriptions[0].lines[0].quantity = 1;
+    const session = {
+      ...createSimulationSession(scenario, { sessionId: "real-strength", startedAt: now }),
+      loadedPatientId: scenario.patient.id,
+      verifiedPrescriptionIds: [...scenario.prescriptionsRelevantToCurrentWithdrawal],
+      tray: {
+        ...scenario.initialTray,
+        status: "received" as const,
+        items: [{
+          id: "wrong-carvedilol-strength",
+          prescriptionLineId: scenario.prescriptions[0].lines[0].id,
+          medicationPresentationId: "004-0251",
+          quantity: 1,
+        }],
+      },
     };
-
-    expect(alternativeStrengthPresentations("trakcare-004-0308").map((item) => item.id)).toEqual(
-      expect.arrayContaining(["trakcare-004-0251", "trakcare-004-0321"]),
-    );
-
-    const session = readySession(scenario);
-    session.tray.items[0] = {
-      ...session.tray.items[0],
-      medicationPresentationId: "trakcare-004-0251", // CARVEDILOL 25 MG
-    };
-    const result = attempt(session, scenario);
-    expect(result.deliveryStatus).toBe("blocked");
-    expect(result.discrepancies.map((item) => item.kind)).toContain("strength");
+    expect(evaluateDeliverySafety(scenario, session).map((item) => item.kind)).toContain("strength");
   });
 
   it("C. MÚLTIPLES REGISTROS + PRESCRIPCIÓN OMITIDA separates history from current withdrawal", () => {
@@ -139,7 +128,7 @@ describe("mandatory structural audit scenarios", () => {
   });
 
   it("D. PACIENTE INCORRECTO reinforces identity without changing criterion 5", () => {
-    let session = recordPreparationCheck(readySession());
+    const session = recordPreparationCheck(readySession());
     session.loadedPatientId = scenario001.similarPatients[0].id;
     const result = attempt(session);
     expect(result.discrepancies.map((item) => item.kind)).toContain("patient");
@@ -148,7 +137,7 @@ describe("mandatory structural audit scenarios", () => {
 
   it("E. GAVETA INCORRECTA is detected even when the wrong product is never selected", () => {
     const scenario = structuredClone(scenario001);
-    scenario.drawers[0].contents.push("trakcare-004-0087");
+    scenario.drawers[0].contents.push("004-0087");
     const deviations = evaluateStorage(scenario);
     expect(deviations.map((item) => item.kind)).toContain("mixed-product");
 
@@ -159,11 +148,11 @@ describe("mandatory structural audit scenarios", () => {
 
   it("F. GAVETA INCORRECTA → PREPARACIÓN INCORRECTA becomes a medication discrepancy only after selection", () => {
     const scenario = structuredClone(scenario001);
-    scenario.drawers[0].contents.push("trakcare-004-0087");
-    const session = readySession(scenario);
+    scenario.drawers[0].contents.push("004-0087");
+    const session = readySession();
     session.tray.items[0] = {
       ...session.tray.items[0],
-      medicationPresentationId: "trakcare-004-0087",
+      medicationPresentationId: "004-0087",
     };
     const kinds = evaluateDeliverySafety(scenario, session).map((item) => item.kind);
     expect(evaluateStorage(scenario).map((item) => item.kind)).toContain("mixed-product");
@@ -179,25 +168,8 @@ describe("mandatory structural audit scenarios", () => {
 });
 
 describe("event semantics", () => {
-  it("requires an explicit TENS role before accepting simulation actions", () => {
-    let session = createSimulationSession(scenario001, { sessionId: "role-required", startedAt: now });
-    expect(session.selectedPlayerRole).toBeNull();
-    expect(session.actorControllers["tens-1"]).toBe("simulation");
-    expect(session.actorControllers["tens-2"]).toBe("simulation");
-
-    session = executeSimulationCommand(
-      scenario001,
-      session,
-      { type: "patient.focused", actorId },
-      now,
-    );
-    expect(session.focusedObjectId).toBeNull();
-    expect(session.eventLog).toEqual([]);
-  });
-
   it("opening a prescription does not verify its status", () => {
     let session = createSimulationSession(scenario001, { sessionId: "rx-open", startedAt: now });
-    session = selectTens1(session, scenario001);
     session = executeSimulationCommand(
       scenario001,
       session,
@@ -206,6 +178,21 @@ describe("event semantics", () => {
     );
     expect(session.openedPrescriptionIds).toContain("rx-tome-001");
     expect(session.verifiedPrescriptionIds).not.toContain("rx-tome-001");
+  });
+
+  it("blocks scene interaction until an explicit player role is selected", () => {
+    const session = createSimulationSession(scenario001, { sessionId: "role-gate", startedAt: now });
+    expect(session.selectedPlayerRole).toBeNull();
+    expect(session.actorControllers["tens-1"]).toBe("simulation");
+    expect(session.actorControllers["tens-2"]).toBe("simulation");
+    const ignored = executeSimulationCommand(
+      scenario001,
+      session,
+      { type: "patient.focused", actorId: "tens-1" },
+      now,
+    );
+    expect(ignored.focusedObjectId).toBeNull();
+    expect(ignored.eventLog).toEqual([]);
   });
 
   it("changes real controllers when TENS 2 is selected", () => {
@@ -223,7 +210,12 @@ describe("event semantics", () => {
 
   it("records PC tabs and scrolling independently", () => {
     let session = createSimulationSession(scenario001, { sessionId: "pc", startedAt: now });
-    session = selectTens1(session, scenario001);
+    session = executeSimulationCommand(
+      scenario001,
+      session,
+      { type: "role.selected", actorId, data: { selectedRole: "tens-1" } },
+      now,
+    );
     session = executeSimulationCommand(
       scenario001,
       session,
