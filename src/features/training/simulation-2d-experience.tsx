@@ -394,13 +394,48 @@ function FocusView({ finishPreparationAsTens2, scenario, searchPatient, send, se
 }) {
   const focus = session.focusedObjectId;
   if (!focus) return <Panel eyebrow="ESCENA GENERAL" title="Explora la farmacia"><p className="text-sm leading-6 text-slate-600">Selecciona un objeto de la escena para continuar.</p></Panel>;
-  if (focus === "patient") return <Panel eyebrow="ATENCIÓN" title="Paciente"><p className="rounded-xl bg-violet-50 p-3 text-sm">“Buenos días, vengo a retirar mis medicamentos.”</p><Action onClick={() => { send("document.requested"); send("document.opened"); }}>Solicitar documento</Action><Action onClick={() => send("identity.rechecked", { patientId: scenario.patient.id })}>Verificar identidad antes de entregar</Action><PatientCounseling scenario={scenario} send={send} session={session} /><button className="mt-3 min-h-12 w-full rounded-xl bg-violet-700 px-4 font-black text-white" onClick={() => send("delivery.attempted")} type="button">ENTREGAR</button><Back send={send} /></Panel>;
+  if (focus === "patient") return <Panel eyebrow="ATENCIÓN" title="Paciente"><p className="rounded-xl bg-violet-50 p-3 text-sm">“Buenos días, vengo a retirar mis medicamentos.”</p><Action onClick={() => { send("document.requested"); send("document.opened"); }}>Solicitar documento</Action><FinalIdentityCheck scenario={scenario} send={send} session={session} /><PatientCounseling scenario={scenario} send={send} session={session} /><button className="mt-3 min-h-12 w-full rounded-xl bg-violet-700 px-4 font-black text-white" onClick={() => send("delivery.attempted")} type="button">ENTREGAR</button><Back send={send} /></Panel>;
   if (focus === "document") return <Panel eyebrow="DOCUMENTO FICTICIO" title="Identificación"><div className="rounded-xl bg-violet-50 p-4"><p className="font-black">{fullName(scenario)}</p><p className="text-sm">RUT {scenario.patient.rut}</p><p className="text-sm">Edad {scenario.patient.age} años</p></div><Back send={send} /></Panel>;
   if (focus === "computer") return <Computer scenario={scenario} searchPatient={searchPatient} send={send} session={session} />;
   if (focus === "storage") return <Storage scenario={scenario} send={send} />;
   if (focus === "preparation") return <Panel eyebrow="ROL" title="TENS 2 · Preparación"><p className="text-sm text-slate-600">Control actual: <strong>{session.actorControllers["tens-2"] === "participant" ? "participante" : "simulación"}</strong>.</p><Action onClick={() => send("storage.focused")}>Ir al almacenamiento</Action>{session.selectedPlayerRole === "tens-2" ? <Action onClick={finishPreparationAsTens2}>Enviar bandeja a TENS 1</Action> : null}<Back send={send} /></Panel>;
   if (focus === "tray") return <TrayView scenario={scenario} send={send} session={session} />;
   return <Panel eyebrow="ESCENA" title="Interacción"><Back send={send} /></Panel>;
+}
+
+function FinalIdentityCheck({ scenario, send, session }: { scenario: ScenarioDefinition; send: Send; session: SimulationSession }) {
+  const [rut, setRut] = useState("");
+  const candidates = [scenario.patient, ...scenario.similarPatients];
+  const confirmed = session.finalReidentifiedPatientId;
+  const correct = confirmed === scenario.patient.id;
+
+  function confirm() {
+    const normalized = normalizeRut(rut);
+    const match = candidates.find((patient) => normalizeRut(patient.rut) === normalized);
+    send("identity.rechecked", { patientId: match?.id ?? `unknown:${normalized || "empty"}` });
+  }
+
+  return (
+    <div className="mt-4 rounded-2xl border border-violet-100 bg-white p-3">
+      <p className="text-xs font-black uppercase tracking-wider text-violet-700">Reidentificación antes del handoff</p>
+      <p className="mt-1 text-xs leading-5 text-slate-500">Vuelve a ingresar el RUT del paciente que recibirá la preparación.</p>
+      <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
+        <input
+          aria-label="RUT para reidentificación final"
+          className="min-h-10 rounded-lg border border-violet-200 px-3 text-sm"
+          onChange={(event) => setRut(event.target.value)}
+          placeholder="RUT del paciente"
+          value={rut}
+        />
+        <button className="rounded-lg bg-violet-700 px-3 text-xs font-black text-white" onClick={confirm} type="button">Confirmar</button>
+      </div>
+      {confirmed ? (
+        scenario.mode === "assessment"
+          ? <p className="mt-2 text-xs font-bold text-slate-500">Reidentificación registrada.</p>
+          : <p className={cn("mt-2 text-xs font-black", correct ? "text-emerald-700" : "text-amber-700")}>{correct ? "Identidad final coincidente." : "La identidad final no coincide. Revisa nuevamente al paciente."}</p>
+      ) : null}
+    </div>
+  );
 }
 
 function instructionContent(presentation: MedicationPresentation | undefined, section: InstructionSection) {
@@ -583,6 +618,8 @@ function MedicationView({ medication, scenario, send, session }: { medication: M
 
 function TrayView({ scenario, send, session }: { scenario: ScenarioDefinition; send: Send; session: SimulationSession }) {
   const preparationActor = scenario.actors.find((actor) => actor.role === "preparation");
+  const participantIsTens2 = session.actorControllers["tens-2"] === "participant";
+
   return (
     <Panel eyebrow="VERIFICACIÓN" title="Bandeja">
       {!session.tray.items.length ? <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">La bandeja está vacía.</p> : null}
@@ -599,18 +636,34 @@ function TrayView({ scenario, send, session }: { scenario: ScenarioDefinition; s
           );
         })}
       </div>
-      {session.tray.status === "correction-requested" ? <Action onClick={() => send("tray.corrected", {}, preparationActor?.id)}>Aplicar corrección de TENS 2</Action> : <Action onClick={() => send("correction.requested")}>Solicitar corrección</Action>}
+      {participantIsTens2 ? (
+        <div className="mt-3 rounded-xl border border-violet-100 bg-violet-50/50 p-3">
+          <p className="text-xs font-bold leading-5 text-slate-600">Como TENS 2 debes corregir la preparación manualmente: retira lo incorrecto y vuelve a seleccionar el producto o cantidad desde almacenamiento.</p>
+          <Action onClick={() => send("storage.focused")}>Ir al almacenamiento para corregir</Action>
+        </div>
+      ) : session.tray.status === "correction-requested" ? (
+        <Action onClick={() => send("tray.corrected", {}, preparationActor?.id)}>Aplicar corrección de TENS 2 simulado</Action>
+      ) : (
+        <Action onClick={() => send("correction.requested")}>Solicitar corrección a TENS 2</Action>
+      )}
       <Back send={send} />
     </Panel>
   );
 }
 
 function SafetyStop({ send, session }: { send: Send; session: SimulationSession }) {
-  return <Panel eyebrow="DETENTE · NO ENTREGAR" title="Barrera de seguridad activada"><div className="space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-3">{session.discrepancies.map((item) => <p className="text-sm" key={item.id}><strong>{item.kind}</strong>: esperado {item.expected}; actual {item.actual}.</p>)}</div><Action onClick={() => send("tray.inspected")}>Volver a revisar</Action></Panel>;
+  const kinds = new Set(session.discrepancies.map((item) => item.kind));
+  const recovery = kinds.has("final-patient")
+    ? { label: "Volver al paciente y reidentificar", type: "patient.focused" as const }
+    : kinds.has("prescription") || kinds.has("prescription-status")
+      ? { label: "Volver al computador", type: "computer.focused" as const }
+      : { label: "Volver a revisar la bandeja", type: "tray.inspected" as const };
+
+  return <Panel eyebrow="DETENTE · NO ENTREGAR" title="Barrera de seguridad activada"><div className="space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-3">{session.discrepancies.map((item) => <p className="text-sm" key={item.id}><strong>{item.kind}</strong>: esperado {item.expected}; actual {item.actual}.</p>)}</div><Action onClick={() => send(recovery.type)}>{recovery.label}</Action></Panel>;
 }
 
 function AssessmentBlocked({ send }: { send: Send }) {
-  return <Panel eyebrow="EVALUACIÓN" title="Continúa revisando el caso"><p className="text-sm leading-6 text-slate-600">La simulación registró tu intento. No se mostrarán pistas sobre la causa durante la evaluación.</p><Action onClick={() => send("tray.inspected")}>Continuar</Action></Panel>;
+  return <Panel eyebrow="EVALUACIÓN" title="Continúa revisando el caso"><p className="text-sm leading-6 text-slate-600">La simulación registró tu intento. No se mostrarán pistas sobre la causa durante la evaluación.</p><Action onClick={() => send("scene.returned")}>Continuar revisando</Action></Panel>;
 }
 
 function Results({ onReinforcement, onRetry, persistence, session }: { onReinforcement: () => void; onRetry: () => void; persistence: PersistenceState; session: SimulationSession }) {
@@ -650,7 +703,7 @@ function LearnerSidebar({ scenario, session }: { scenario: ScenarioDefinition; s
 
 function TechnicalAudit({ session }: { session: SimulationSession }) {
   const recent = session.eventLog.slice(-12).reverse();
-  return <details className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-slate-600"><summary className="cursor-pointer text-xs font-black uppercase tracking-wider">Auditoría técnica</summary><p className="mt-2 text-xs">Desviaciones de almacenamiento: {session.storageDeviations.length}</p><p className="mt-1 text-xs">Secciones de indicaciones pendientes: {session.missingInstructionSections.length ? session.missingInstructionSections.join(", ") : "ninguna"}</p>{session.storageDeviations.map((item) => <p className="mt-1 text-xs" key={item.id}>{item.drawerId} · {item.kind}</p>)}{recent.length ? <ol className="mt-3 space-y-2">{recent.map((event) => <li className="rounded-lg bg-slate-50 px-3 py-2 text-xs" key={event.id}><p className="font-bold">{event.sequence}. {describeSimulationEvent(event)}</p><code className="text-[.65rem] text-slate-400">{event.type} · {event.actorId}</code></li>)}</ol> : null}</details>;
+  return <details className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-slate-600"><summary className="cursor-pointer text-xs font-black uppercase tracking-wider">Auditoría técnica</summary><p className="mt-2 text-xs">Desviaciones de almacenamiento: {session.storageDeviations.length}</p><p className="mt-1 text-xs">Reidentificación final: {session.finalReidentifiedPatientId ?? "pendiente"}</p><p className="mt-1 text-xs">Secciones de indicaciones pendientes: {session.missingInstructionSections.length ? session.missingInstructionSections.join(", ") : "ninguna"}</p>{session.storageDeviations.map((item) => <p className="mt-1 text-xs" key={item.id}>{item.drawerId} · {item.kind}</p>)}{recent.length ? <ol className="mt-3 space-y-2">{recent.map((event) => <li className="rounded-lg bg-slate-50 px-3 py-2 text-xs" key={event.id}><p className="font-bold">{event.sequence}. {describeSimulationEvent(event)}</p><code className="text-[.65rem] text-slate-400">{event.type} · {event.actorId}</code></li>)}</ol> : null}</details>;
 }
 
 function Panel({ eyebrow, title, children }: { eyebrow: string; title: string; children: React.ReactNode }) { return <div><p className="text-[.65rem] font-black uppercase tracking-[.16em] text-violet-600">{eyebrow}</p><h1 className="mt-1 text-xl font-black">{title}</h1><div className="mt-4">{children}</div></div>; }
