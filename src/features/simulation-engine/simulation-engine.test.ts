@@ -8,7 +8,9 @@ import {
   evaluateDeliverySafety,
   evaluateStorage,
   executeSimulationCommand,
+  expectedPrescriptionDisposition,
   generateScenarioDefinition,
+  reinforcementVariantForSeed,
   type ScenarioDefinition,
   type SimulationSession,
 } from "@/features/simulation-engine";
@@ -25,16 +27,27 @@ function selectTens1(scenario: ScenarioDefinition, session: SimulationSession) {
   );
 }
 
-function readySession(): SimulationSession {
+function dispositionMap(scenario: ScenarioDefinition) {
+  return Object.fromEntries(
+    scenario.prescriptionsRelevantToCurrentWithdrawal.map((prescriptionId) => {
+      const prescription = scenario.prescriptions.find((item) => item.id === prescriptionId);
+      if (!prescription) throw new Error(`Missing prescription ${prescriptionId}`);
+      return [prescriptionId, expectedPrescriptionDisposition(prescription)];
+    }),
+  ) as SimulationSession["prescriptionDispositionById"];
+}
+
+function readySession(scenario: ScenarioDefinition = scenario001): SimulationSession {
   const selected = selectTens1(
-    scenario001,
-    createSimulationSession(scenario001, { sessionId: "test-session", startedAt: now }),
+    scenario,
+    createSimulationSession(scenario, { sessionId: "test-session", startedAt: now }),
   );
   return {
     ...selected,
-    loadedPatientId: scenario001.patient.id,
-    verifiedPrescriptionIds: [...scenario001.prescriptionsRelevantToCurrentWithdrawal],
-    tray: buildExpectedTray(scenario001),
+    loadedPatientId: scenario.patient.id,
+    verifiedPrescriptionIds: [...scenario.prescriptionsRelevantToCurrentWithdrawal],
+    prescriptionDispositionById: dispositionMap(scenario),
+    tray: buildExpectedTray(scenario),
   };
 }
 
@@ -47,25 +60,36 @@ function attempt(session: SimulationSession, scenario: ScenarioDefinition = scen
   );
 }
 
-function recordPreparationCheck(session: SimulationSession) {
+function recordPreparationCheck(session: SimulationSession, scenario: ScenarioDefinition = scenario001) {
   let next = session;
-  for (const prescriptionId of scenario001.prescriptionsRelevantToCurrentWithdrawal) {
+  for (const prescriptionId of scenario.availablePrescriptionIds) {
     next = executeSimulationCommand(
-      scenario001,
+      scenario,
       next,
       { type: "prescription.opened", actorId, data: { prescriptionId } },
       now,
     );
-    next = executeSimulationCommand(
-      scenario001,
-      next,
-      { type: "prescription.status_verified", actorId, data: { prescriptionId } },
-      now,
-    );
+    if (scenario.prescriptionsRelevantToCurrentWithdrawal.includes(prescriptionId)) {
+      const prescription = scenario.prescriptions.find((item) => item.id === prescriptionId);
+      if (!prescription) continue;
+      next = executeSimulationCommand(
+        scenario,
+        next,
+        {
+          type: "prescription.status_verified",
+          actorId,
+          data: {
+            prescriptionId,
+            disposition: expectedPrescriptionDisposition(prescription),
+          },
+        },
+        now,
+      );
+    }
   }
-  for (const item of buildExpectedTray(scenario001).items) {
+  for (const item of buildExpectedTray(scenario).items) {
     next = executeSimulationCommand(
-      scenario001,
+      scenario,
       next,
       {
         type: "medication.inspected",
@@ -75,7 +99,7 @@ function recordPreparationCheck(session: SimulationSession) {
       now,
     );
     next = executeSimulationCommand(
-      scenario001,
+      scenario,
       next,
       {
         type: "medication.compared_to_prescription",
@@ -86,6 +110,13 @@ function recordPreparationCheck(session: SimulationSession) {
     );
   }
   return next;
+}
+
+function seedForPrescriptionChallenge(challengeKey: string) {
+  for (let seed = 1; seed < 10_000; seed += 1) {
+    if (reinforcementVariantForSeed(seed, "prescription-review").challengeKey === challengeKey) return seed;
+  }
+  throw new Error(`No seed found for ${challengeKey}`);
 }
 
 describe("mandatory structural audit scenarios", () => {
@@ -118,6 +149,7 @@ describe("mandatory structural audit scenarios", () => {
       ...selected,
       loadedPatientId: scenario.patient.id,
       verifiedPrescriptionIds: [...scenario.prescriptionsRelevantToCurrentWithdrawal],
+      prescriptionDispositionById: dispositionMap(scenario),
       tray: {
         ...scenario.initialTray,
         status: "received" as const,
@@ -184,20 +216,140 @@ describe("mandatory structural audit scenarios", () => {
   });
 });
 
-describe("event semantics", () => {
-  it("opening a prescription does not verify its status", () => {
-    let session = createSimulationSession(scenario001, { sessionId: "rx-open", startedAt: now });
-    session = selectTens1(scenario001, session);
+describe("prescription integration semantics", () => {
+  it("criterion 3 requires every available prescription, not only current-withdrawal prescriptions", () => {
+    const scenario = structuredClone(scenario001);
+    scenario.prescriptions[2].status = "accepted";
+    scenario.availablePrescriptionIds = [
+      ...scenario.availablePrescriptionIds,
+      scenario.prescriptions[2].id,
+    ];
+    let session = selectTens1(scenario, createSimulationSession(scenario, { sessionId: "available-rx", startedAt: now }));
+
+    for (const prescriptionId of scenario.prescriptionsRelevantToCurrentWithdrawal) {
+      const prescription = scenario.prescriptions.find((item) => item.id === prescriptionId);
+      if (!prescription) continue;
+      session = executeSimulationCommand(
+        scenario,
+        session,
+        { type: "prescription.opened", actorId, data: { prescriptionId } },
+        now,
+      );
+      session = executeSimulationCommand(
+        scenario,
+        session,
+        {
+          type: "prescription.status_verified",
+          actorId,
+          data: { prescriptionId, disposition: expectedPrescriptionDisposition(prescription) },
+        },
+        now,
+      );
+    }
+
+    expect(session.criteria["criterion-3-identify-all-prescriptions"]).toBe("pending");
     session = executeSimulationCommand(
-      scenario001,
+      scenario,
       session,
-      { type: "prescription.opened", actorId, data: { prescriptionId: "rx-tome-001" } },
+      { type: "prescription.opened", actorId, data: { prescriptionId: scenario.prescriptions[2].id } },
       now,
     );
-    expect(session.openedPrescriptionIds).toContain("rx-tome-001");
-    expect(session.verifiedPrescriptionIds).not.toContain("rx-tome-001");
+    expect(session.criteria["criterion-3-identify-all-prescriptions"]).toBe("met");
   });
 
+  it("a pending prescription requires hold-for-review and can end as a safe QF stop", () => {
+    const seed = seedForPrescriptionChallenge("prescription-pending-status");
+    const scenario = generateScenarioDefinition({
+      id: `reinforcement__prescription-review__${seed.toString(36)}__`,
+      mode: "guided",
+      seed,
+    });
+    expect(scenario.requiredPlayerRole).toBe("tens-1");
+    expect(scenario.prescriptions[0].status).toBe("pending");
+
+    let session = selectTens1(scenario, createSimulationSession(scenario, { sessionId: "pending-hold", startedAt: now }));
+    for (const prescriptionId of scenario.availablePrescriptionIds) {
+      session = executeSimulationCommand(
+        scenario,
+        session,
+        { type: "prescription.opened", actorId, data: { prescriptionId } },
+        now,
+      );
+      if (!scenario.prescriptionsRelevantToCurrentWithdrawal.includes(prescriptionId)) continue;
+      const prescription = scenario.prescriptions.find((item) => item.id === prescriptionId);
+      if (!prescription) continue;
+      session = executeSimulationCommand(
+        scenario,
+        session,
+        {
+          type: "prescription.status_verified",
+          actorId,
+          data: { prescriptionId, disposition: expectedPrescriptionDisposition(prescription) },
+        },
+        now,
+      );
+    }
+
+    expect(session.prescriptionDispositionById[scenario.prescriptions[0].id]).toBe("hold-for-review");
+    expect(session.criteria["criterion-3-identify-all-prescriptions"]).toBe("met");
+    expect(session.criteria["criterion-4-confirm-prescription-issued"]).toBe("intercepted");
+
+    session = executeSimulationCommand(
+      scenario,
+      session,
+      { type: "qf_support.requested", actorId },
+      now,
+    );
+    expect(session.deliveryStatus).toBe("safely-stopped");
+    expect(session.criteria["criterion-5-compare-prepared-items"]).toBe("intercepted");
+  });
+
+  it("does not accept a wrong proceed decision for a pending prescription", () => {
+    const seed = seedForPrescriptionChallenge("prescription-pending-status");
+    const scenario = generateScenarioDefinition({
+      id: `reinforcement__prescription-review__${seed.toString(36)}__`,
+      mode: "guided",
+      seed,
+    });
+    let session = selectTens1(scenario, createSimulationSession(scenario, { sessionId: "pending-wrong", startedAt: now }));
+
+    for (const prescriptionId of scenario.availablePrescriptionIds) {
+      session = executeSimulationCommand(
+        scenario,
+        session,
+        { type: "prescription.opened", actorId, data: { prescriptionId } },
+        now,
+      );
+      if (!scenario.prescriptionsRelevantToCurrentWithdrawal.includes(prescriptionId)) continue;
+      const prescription = scenario.prescriptions.find((item) => item.id === prescriptionId);
+      if (!prescription) continue;
+      session = executeSimulationCommand(
+        scenario,
+        session,
+        {
+          type: "prescription.status_verified",
+          actorId,
+          data: {
+            prescriptionId,
+            disposition: prescription.status === "pending" ? "proceed" : expectedPrescriptionDisposition(prescription),
+          },
+        },
+        now,
+      );
+    }
+
+    expect(session.criteria["criterion-4-confirm-prescription-issued"]).toBe("reinforcement");
+    const afterQf = executeSimulationCommand(
+      scenario,
+      session,
+      { type: "qf_support.requested", actorId },
+      now,
+    );
+    expect(afterQf.deliveryStatus).toBe("not-attempted");
+  });
+});
+
+describe("role semantics", () => {
   it("blocks scene interaction until an explicit player role is selected", () => {
     const session = createSimulationSession(scenario001, { sessionId: "role-gate", startedAt: now });
     expect(session.selectedPlayerRole).toBeNull();
@@ -224,6 +376,62 @@ describe("event semantics", () => {
     expect(session.activeActorId).toBe("tens-2");
     expect(session.actorControllers["tens-1"]).toBe("simulation");
     expect(session.actorControllers["tens-2"]).toBe("participant");
+  });
+
+  it("keeps the selected role immutable for the rest of the session", () => {
+    let session = selectTens1(scenario001, createSimulationSession(scenario001, { sessionId: "role-lock", startedAt: now }));
+    const eventCount = session.eventLog.length;
+    session = executeSimulationCommand(
+      scenario001,
+      session,
+      { type: "role.selected", actorId: "tens-2", data: { selectedRole: "tens-2" } },
+      now,
+    );
+    expect(session.selectedPlayerRole).toBe("tens-1");
+    expect(session.actorControllers["tens-1"]).toBe("participant");
+    expect(session.actorControllers["tens-2"]).toBe("simulation");
+    expect(session.eventLog).toHaveLength(eventCount);
+  });
+
+  it("rejects a role that does not match a reinforcement competency", () => {
+    const scenario = generateScenarioDefinition({
+      id: "targeted-preparation",
+      mode: "practice",
+      seed: 41,
+      reinforcementCompetency: "preparation-comparison",
+    });
+    expect(scenario.requiredPlayerRole).toBe("tens-2");
+    let session = createSimulationSession(scenario, { sessionId: "target-role", startedAt: now });
+    session = executeSimulationCommand(
+      scenario,
+      session,
+      { type: "role.selected", actorId: "tens-1", data: { selectedRole: "tens-1" } },
+      now,
+    );
+    expect(session.selectedPlayerRole).toBeNull();
+    expect(session.eventLog).toEqual([]);
+
+    session = executeSimulationCommand(
+      scenario,
+      session,
+      { type: "role.selected", actorId: "tens-2", data: { selectedRole: "tens-2" } },
+      now,
+    );
+    expect(session.selectedPlayerRole).toBe("tens-2");
+  });
+
+  it("opening a prescription does not assess its status", () => {
+    let session = createSimulationSession(scenario001, { sessionId: "rx-open", startedAt: now });
+    session = selectTens1(scenario001, session);
+    session = executeSimulationCommand(
+      scenario001,
+      session,
+      { type: "prescription.opened", actorId, data: { prescriptionId: "rx-tome-001" } },
+      now,
+    );
+    expect(session.openedPrescriptionIds).toContain("rx-tome-001");
+    expect(session.verifiedPrescriptionIds).not.toContain("rx-tome-001");
+    expect(session.prescriptionDispositionById["rx-tome-001"]).toBeUndefined();
   });
 
   it("records PC tabs and scrolling independently", () => {
