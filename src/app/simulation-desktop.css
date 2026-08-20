@@ -12,10 +12,14 @@ div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="
 }
 
 @media (min-width: 640px) {
-  /* Keep the actual role buttons visually neutral in desktop/tablet. */
-  div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > header [aria-label="Seleccionar rol"] {
+  /* Keep the actual role buttons visually neutral in tablet/desktop after a
+   * role has already been selected. */
+  div:has(> header [aria-label="Seleccionar rol"]) > header [aria-label="Seleccionar rol"] {
+    z-index: auto;
+  }
+
+  div:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"]) > header [aria-label="Seleccionar rol"] {
     position: static !important;
-    z-index: auto !important;
     padding: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
@@ -27,6 +31,8 @@ div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="
 @media (min-width: 1280px) {
   div:has(> header [aria-label="Seleccionar rol"]) {
     --desktop-simulation-height: clamp(30rem, calc(100svh - 10.5rem), 45rem);
+    --desktop-simulation-header-height: 5rem;
+    position: relative;
   }
 
   /* Fit the whole 2D scene inside typical notebook viewports instead of
@@ -43,5 +49,61 @@ div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="
     max-height: var(--desktop-simulation-height) !important;
     overflow-y: auto !important;
     overscroll-behavior: contain;
+  }
+
+  /* Desktop role selection: keep a single visual decision point. The actual
+   * React role buttons are moved over the real gate card, directly below its
+   * explanatory copy. No duplicate buttons or duplicate role events exist. */
+  div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > header [aria-label="Seleccionar rol"] {
+    position: absolute !important;
+    z-index: 45;
+    top: calc(var(--desktop-simulation-header-height) + (var(--desktop-simulation-height) / 2) + 2.85rem);
+    left: calc((100% - 27rem) / 2);
+    display: grid !important;
+    width: min(27rem, calc(100% - 31rem));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    translate: -50% 0;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > header [aria-label="Seleccionar rol"] button {
+    min-height: 3.1rem;
+    border-radius: 0.9rem !important;
+    border-color: rgb(221 214 254) !important;
+    background: white !important;
+    color: rgb(91 33 182) !important;
+    box-shadow: 0 7px 22px rgb(76 48 130 / 0.09);
+    font-size: 0.78rem !important;
+  }
+
+  div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > header [aria-label="Seleccionar rol"] button:hover {
+    background: rgb(245 243 255) !important;
+    border-color: rgb(167 139 250) !important;
+  }
+
+  /* Give the real React gate enough room for the role buttons positioned
+   * inside it, and replace the obsolete "parte superior" instruction. */
+  div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > div.grid > main > div.absolute.inset-0.z-30 > div {
+    min-height: 14rem;
+    padding: 1.5rem 1.5rem 5.6rem !important;
+  }
+
+  div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > div.grid > main > div.absolute.inset-0.z-30 p:last-child {
+    font-size: 0 !important;
+    line-height: 0 !important;
+  }
+
+  div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > div.grid > main > div.absolute.inset-0.z-30 p:last-child::after {
+    content: "Selecciona el rol con el que quieres realizar este caso.";
+    display: block;
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+    color: rgb(71 85 105);
   }
 }
