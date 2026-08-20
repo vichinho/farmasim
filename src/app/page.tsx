@@ -1,229 +1,244 @@
+import Image from "next/image";
 import Link from "next/link";
 
-import { FarmaVerseLogo } from "@/components/brand/farmaverse-logo";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Icon } from "@/components/ui/icon";
+import styles from "./home.module.css";
 
-const benefits = [
+const featureItems = [
   {
-    description:
-      "Escenarios breves para practicar decisiones en un ambiente seguro y demostrativo.",
-    icon: "play" as const,
-    title: "Simula con propósito",
+    description: "Simulaciones basadas en escenarios de práctica.",
+    icon: "book",
+    title: "Aprendizaje interactivo",
   },
   {
-    description:
-      "Cápsulas claras y concentradas para avanzar paso a paso antes de practicar.",
-    icon: "book" as const,
-    title: "Aprende a tu ritmo",
+    description: "Practica decisiones en un entorno demostrativo.",
+    icon: "shield",
+    title: "Entorno seguro",
   },
   {
-    description:
-      "Feedback y progreso visual para reconocer avances y próximos desafíos.",
-    icon: "chart" as const,
-    title: "Sigue tu avance",
+    description: "Observa tu avance y recibe feedback al finalizar.",
+    icon: "chart",
+    title: "Resultados medibles",
   },
-];
+  {
+    description: "Una experiencia guiada para avanzar paso a paso.",
+    icon: "users",
+    title: "Para distintos niveles",
+  },
+] as const;
 
-const steps = [
+const simulationCards = [
   {
-    description: "Elige una cápsula o un escenario ficticio de práctica.",
+    description:
+      "Practica cómo iniciar una atención, recopilar antecedentes y responder de forma ordenada.",
     number: "01",
-    title: "Explora",
+    title: "Atención y comunicación",
   },
   {
-    description: "Conversa con pacientes virtuales y toma decisiones.",
+    description:
+      "Recorre situaciones ficticias relacionadas con medicamentos y decisiones dentro de la farmacia.",
     number: "02",
-    title: "Practica",
+    title: "Dispensación guiada",
   },
   {
-    description: "Recibe feedback inmediato y observa tu progreso.",
+    description:
+      "Compara alternativas, recibe retroalimentación y entiende cómo tus decisiones cambian el escenario.",
     number: "03",
-    title: "Avanza",
+    title: "Toma de decisiones",
   },
 ];
 
-const primaryLinkClass =
-  "inline-flex min-h-12 items-center justify-center rounded-xl bg-[var(--brand)] px-5 text-base font-semibold text-white shadow-sm transition-colors hover:bg-[var(--brand-strong)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]";
+type FeatureIconName = (typeof featureItems)[number]["icon"];
 
-const secondaryLinkClass =
-  "inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--border)] bg-white px-5 text-base font-semibold text-[var(--foreground)] transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]";
+function FeatureIcon({ name }: { name: FeatureIconName }) {
+  const paths: Record<FeatureIconName, React.ReactNode> = {
+    book: (
+      <>
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 0 4 22.5m0-17v17" />
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20" />
+      </>
+    ),
+    chart: <path d="M4 20V10m5 10V4m5 16v-7m5 7V7" />,
+    shield: <path d="M12 3 5 6v5c0 4.5 2.8 8.6 7 10 4.2-1.4 7-5.5 7-10V6z" />,
+    users: (
+      <>
+        <path d="M16 21a6 6 0 0 0-12 0" />
+        <circle cx="10" cy="8" r="4" />
+        <path d="M18 10a3 3 0 1 0-1.2-5.7M19 21a5 5 0 0 0-3-4.6" />
+      </>
+    ),
+  };
+
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      focusable="false"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.8"
+      viewBox="0 0 24 24"
+    >
+      {paths[name]}
+    </svg>
+  );
+}
+
+function Brand() {
+  return (
+    <span className={styles.brand}>
+      <span aria-hidden="true" className={styles.brandMark}>
+        <span />
+      </span>
+      <span>
+        Farma<span className={styles.brandAccent}>Verse</span>
+      </span>
+    </span>
+  );
+}
 
 export default function Home() {
   return (
-    <main className="overflow-hidden">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
+    <main className={styles.page}>
+      <header className={styles.header}>
         <Link aria-label="FarmaVerse, ir al inicio" href="#inicio">
-          <FarmaVerseLogo className="w-44 sm:w-48" priority />
+          <Brand />
         </Link>
-        <Link
-          className="rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-[var(--brand-strong)] transition-colors hover:bg-emerald-100"
-          href="/login"
-        >
-          Ingresar
-        </Link>
-      </header>
 
-      <section className="relative mx-auto grid w-full max-w-6xl gap-10 px-4 pb-20 pt-12 sm:px-6 sm:pt-20 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:px-8 lg:pb-28" id="inicio">
-        <div className="relative z-10">
-          <Badge tone="warning">Capacitación interactiva</Badge>
-          <h1 className="mt-5 max-w-2xl text-4xl font-bold tracking-tight text-[var(--foreground)] sm:text-5xl lg:text-6xl">
-            Aprende. Practica. <span className="text-[var(--brand)]">Simula.</span>
-          </h1>
-          <p className="mt-6 max-w-xl text-lg leading-8 text-[var(--muted)]">
-            FarmaVerse transforma situaciones cotidianas en experiencias breves de
-            aprendizaje. Practica decisiones con escenarios ficticios antes de
-            enfrentarte a ellas en el trabajo.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link className={primaryLinkClass} href="/login">
-              Entrar a la demo
-            </Link>
-            <Link className={secondaryLinkClass} href="#como-funciona">
-              Cómo funciona
-            </Link>
-          </div>
-          <p className="mt-5 max-w-xl text-sm leading-6 text-[var(--muted)]">
-            Contenido demostrativo. No reemplaza protocolos institucionales,
-            normativa sanitaria ni supervisión profesional.
-          </p>
-        </div>
+        <nav aria-label="Navegación principal" className={styles.nav}>
+          <Link className={styles.navActive} href="#inicio">
+            Inicio
+          </Link>
+          <Link href="#simulaciones">Simulaciones</Link>
+          <Link href="#beneficios">Beneficios</Link>
+          <Link href="#como-funciona">Cómo funciona</Link>
+          <Link href="/privacidad">Privacidad</Link>
+        </nav>
 
-        <div className="relative mx-auto w-full max-w-lg lg:ml-auto">
-          <div className="absolute -inset-10 -z-10 rounded-full bg-emerald-100/70 blur-3xl" />
-          <Card className="relative overflow-hidden border-emerald-100 p-0 shadow-[0_24px_60px_rgb(19_33_60/0.12)]">
-            <div className="flex items-center justify-between bg-[var(--brand)] px-5 py-4 text-white">
-              <div className="flex items-center gap-3">
-                <span className="grid size-9 place-items-center rounded-full bg-white/15 text-sm font-bold">
-                  PV
-                </span>
-                <div>
-                  <p className="text-sm font-semibold">Paciente virtual</p>
-                  <p className="text-xs text-emerald-100">Escenario demostrativo</p>
-                </div>
-              </div>
-              <span className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold">
-                1 de 4
-              </span>
-            </div>
-            <div className="space-y-5 p-5 sm:p-7">
-              <p className="max-w-sm rounded-2xl rounded-tl-sm bg-[var(--surface-muted)] p-4 text-base leading-7 text-[var(--foreground)]">
-                “Hola, necesito ayuda con un medicamento.”
-              </p>
-              <p className="text-sm font-semibold text-[var(--foreground)]">
-                ¿Cómo comenzarías la atención?
-              </p>
-              <div className="space-y-3">
-                <div className="rounded-xl border-2 border-[var(--brand)] bg-emerald-50 px-4 py-3 text-sm font-semibold text-[var(--brand-strong)]">
-                  Saludar y solicitar más información
-                </div>
-                <div className="rounded-xl border border-[var(--border)] px-4 py-3 text-sm text-[var(--muted)]">
-                  Buscar un producto inmediatamente
-                </div>
-                <div className="rounded-xl border border-[var(--border)] px-4 py-3 text-sm text-[var(--muted)]">
-                  Ignorar la consulta
-                </div>
-              </div>
-              <div className="rounded-xl bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
-                Feedback inmediato y XP al finalizar
-              </div>
-            </div>
-          </Card>
-        </div>
-      </section>
-
-      <section className="border-y border-[var(--border)] bg-white" id="beneficios">
-        <div className="mx-auto w-full max-w-6xl px-4 py-20 sm:px-6 lg:px-8">
-          <div className="max-w-2xl">
-            <Badge tone="brand">Diseñado para avanzar</Badge>
-            <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
-              Una práctica que se entiende desde el primer momento
-            </h2>
-          </div>
-          <div className="mt-9 grid gap-4 md:grid-cols-3">
-            {benefits.map((benefit) => (
-              <Card key={benefit.title} className="min-h-60">
-                <div className="grid size-12 place-items-center rounded-2xl bg-emerald-50 text-[var(--brand-strong)]">
-                  <Icon className="size-6" name={benefit.icon} />
-                </div>
-                <h3 className="mt-5 text-xl font-bold tracking-tight text-[var(--foreground)]">
-                  {benefit.title}
-                </h3>
-                <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                  {benefit.description}
-                </p>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto w-full max-w-6xl px-4 py-20 sm:px-6 lg:px-8" id="como-funciona">
-        <div className="grid gap-10 lg:grid-cols-[0.7fr_1.3fr] lg:items-start">
-          <div>
-            <Badge tone="neutral">Simple y guiado</Badge>
-            <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
-              Una ruta clara para practicar
-            </h2>
-            <p className="mt-4 text-base leading-7 text-[var(--muted)]">
-              Cada experiencia está pensada para que sepas qué hacer, por qué lo
-              haces y cómo seguir avanzando.
-            </p>
-          </div>
-          <ol className="grid gap-4 sm:grid-cols-3">
-            {steps.map((step) => (
-              <li
-                className="rounded-3xl border border-[var(--border)] bg-white p-5"
-                key={step.number}
-              >
-                <p className="text-sm font-bold tracking-wider text-[var(--brand)]">
-                  {step.number}
-                </p>
-                <h3 className="mt-6 text-lg font-bold text-[var(--foreground)]">
-                  {step.title}
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                  {step.description}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      <section className="mx-auto w-full max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
-        <div className="rounded-3xl bg-[var(--foreground)] px-6 py-10 text-white sm:px-10 sm:py-12">
-          <Badge className="bg-white/15 text-white" tone="neutral">
-            Demo disponible
-          </Badge>
-          <h2 className="mt-4 max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">
-            La práctica empieza con una decisión.
-          </h2>
-          <p className="mt-4 max-w-xl text-base leading-7 text-slate-300">
-            Inicia sesión y recorre los casos ficticios de entrenamiento desde
-            cualquier teléfono o computador.
-          </p>
-          <Link
-            className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-5 text-base font-semibold text-[var(--foreground)] transition-colors hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            href="/login"
-          >
+        <div className={styles.headerActions}>
+          <Link className={styles.loginLink} href="/login">
             Iniciar sesión
           </Link>
+          <Link className={styles.primaryButton} href="/login">
+            Comenzar
+          </Link>
+        </div>
+      </header>
+
+      <section className={styles.hero} id="inicio">
+        <div className={styles.sceneWrap} aria-hidden="true">
+          <Image
+            alt=""
+            className={styles.sceneImage}
+            fill
+            priority
+            sizes="(max-width: 940px) 100vw, 64vw"
+            src="/images/farmasim/case001-scene.jpg"
+          />
+          <div className={styles.sceneWash} />
+        </div>
+
+        <div className={styles.heroGrid}>
+          <div className={styles.heroCopy}>
+            <p className={styles.eyebrow}>
+              <span className={styles.eyebrowDot} />
+              APRENDE. PRACTICA. TRANSFORMA.
+            </p>
+
+            <h1 className={styles.title}>
+              Simula el mundo farmacéutico.
+              <span className={styles.titleAccent}>Domina tu futuro.</span>
+            </h1>
+
+            <p className={styles.lead}>
+              FarmaVerse es una plataforma de simulación interactiva diseñada para
+              practicar habilidades y tomar decisiones mediante experiencias
+              ficticias inspiradas en situaciones del entorno farmacéutico.
+            </p>
+
+            <div className={styles.ctaRow}>
+              <Link className={styles.primaryButton} href="/login">
+                Comenzar ahora <span className={styles.arrow}>→</span>
+              </Link>
+              <Link className={styles.secondaryButton} href="#simulaciones">
+                Explorar simulaciones <span className={styles.playIcon} />
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.floatingCard}>
+          <p className={styles.cardKicker}>Vista demo · progreso del escenario</p>
+          <div className={styles.cardValueRow}>
+            <div>
+              <p className={styles.cardValue}>60%</p>
+              <p className={styles.cardMeta}>Paso 2 de 4</p>
+            </div>
+            <svg
+              aria-hidden="true"
+              className={styles.sparkline}
+              fill="none"
+              viewBox="0 0 112 40"
+            >
+              <defs>
+                <linearGradient id="spark" x1="0" x2="1">
+                  <stop offset="0" stopColor="#a792ff" />
+                  <stop offset="1" stopColor="#6d45f5" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M3 34c10-7 12-5 20-13 8-9 12 4 21-5 8-8 13 7 22-1 9-8 13-13 21-7 8 6 12-2 22-5"
+                stroke="url(#spark)"
+                strokeLinecap="round"
+                strokeWidth="2.2"
+              />
+            </svg>
+          </div>
+        </div>
+
+        <div className={styles.featureBar} id="beneficios">
+          {featureItems.map((item) => (
+            <article className={styles.featureItem} key={item.title}>
+              <div className={styles.featureIcon}>
+                <FeatureIcon name={item.icon} />
+              </div>
+              <div>
+                <h2 className={styles.featureTitle}>{item.title}</h2>
+                <p className={styles.featureText}>{item.description}</p>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 
-      <footer className="border-t border-[var(--border)] bg-white">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-7 text-sm text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <FarmaVerseLogo className="w-36" />
-          <div className="flex flex-col gap-2 sm:items-end">
-            <p>
-              Prototipo de capacitación y simulación con contenido completamente
-              demostrativo.
-            </p>
-            <Link className="font-semibold text-[var(--brand-strong)] hover:underline" href="/privacidad">
-              Privacidad y datos personales
-            </Link>
+      <section className={styles.simulations} id="simulaciones">
+        <p className={styles.sectionEyebrow}>EXPERIENCIAS QUE INSPIRAN</p>
+        <div className={styles.sectionHeadingRow}>
+          <h2 className={styles.sectionTitle}>Simulaciones destacadas</h2>
+          <p className={styles.sectionDescription} id="como-funciona">
+            Escenarios breves y guiados para practicar una decisión a la vez,
+            recibir feedback y continuar avanzando.
+          </p>
+        </div>
+
+        <div className={styles.simulationGrid}>
+          {simulationCards.map((card) => (
+            <article className={styles.simulationCard} key={card.number}>
+              <span className={styles.simulationNumber}>{card.number}</span>
+              <h3>{card.title}</h3>
+              <p>{card.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <footer className={styles.footer}>
+        <div className={styles.footerInner}>
+          <Brand />
+          <p>Prototipo de capacitación con contenido demostrativo.</p>
+          <div className={styles.footerLinks}>
+            <Link href="/privacidad">Privacidad</Link>
+            <Link href="/login">Ingresar</Link>
           </div>
         </div>
       </footer>
