@@ -99,13 +99,13 @@ export function AdminShell({ children, fullName }: AdminShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navigation = (
-    <div className="flex h-full flex-col bg-[#14111d] text-white">
+    <div className="flex h-full flex-col bg-[#073642] text-white">
       <div className="border-b border-white/10 px-5 py-5">
         <Link className="flex items-center gap-3" href="/admin" onClick={() => setMobileOpen(false)}>
-          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-violet-500 font-black shadow-[0_10px_30px_rgba(139,92,246,.28)]">F</span>
+          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#FF57BB] font-black text-[#321226] shadow-[0_10px_30px_rgba(255,87,187,.24)]">F</span>
           <span>
             <span className="block text-sm font-black tracking-tight">FarmaVerse</span>
-            <span className="block text-[11px] font-bold uppercase tracking-[.18em] text-violet-300">Administración</span>
+            <span className="block text-[11px] font-bold uppercase tracking-[.18em] text-[#6EFAFB]">Administración</span>
           </span>
         </Link>
       </div>
@@ -113,7 +113,7 @@ export function AdminShell({ children, fullName }: AdminShellProps) {
       <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Navegación de administración">
         {navigationGroups.map((group) => (
           <div className="mb-5" key={group.label}>
-            <p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[.18em] text-slate-500">{group.label}</p>
+            <p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[.18em] text-[#F7E8A4]/70">{group.label}</p>
             <div className="space-y-1">
               {group.items.map((item) => {
                 const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
@@ -122,16 +122,16 @@ export function AdminShell({ children, fullName }: AdminShellProps) {
                     className={cn(
                       "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold transition",
                       active
-                        ? "bg-violet-500/16 text-white ring-1 ring-inset ring-violet-400/25"
-                        : "text-slate-400 hover:bg-white/5 hover:text-white",
+                        ? "bg-[#6EFAFB] text-[#073642] shadow-[0_8px_24px_rgba(110,250,251,.13)]"
+                        : "text-slate-300 hover:bg-[#0091AD]/25 hover:text-white",
                     )}
                     href={item.href}
                     key={item.href}
                     onClick={() => setMobileOpen(false)}
                   >
-                    <Icon className={cn("h-[18px] w-[18px]", active && "text-violet-300")} name={item.icon} />
+                    <Icon className={cn("h-[18px] w-[18px]", active && "text-[#0091AD]")} name={item.icon} />
                     <span>{item.label}</span>
-                    {active ? <span className="ml-auto h-1.5 w-1.5 rounded-full bg-violet-300" /> : null}
+                    {active ? <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#FF57BB]" /> : null}
                   </Link>
                 );
               })}
@@ -141,15 +141,15 @@ export function AdminShell({ children, fullName }: AdminShellProps) {
       </nav>
 
       <div className="border-t border-white/10 p-3">
-        <div className="mb-2 flex items-center gap-3 rounded-xl bg-white/[.04] p-3">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10 text-xs font-black text-violet-200">{initials(fullName)}</span>
+        <div className="mb-2 flex items-center gap-3 rounded-xl bg-white/[.06] p-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#0091AD] text-xs font-black text-white">{initials(fullName)}</span>
           <div className="min-w-0">
             <p className="truncate text-xs font-black text-white">{fullName}</p>
-            <p className="text-[11px] font-semibold text-slate-500">Administrador global</p>
+            <p className="text-[11px] font-semibold text-[#F7E8A4]/70">Administrador global</p>
           </div>
         </div>
         <form action={logout}>
-          <button className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-bold text-slate-400 transition hover:bg-rose-500/10 hover:text-rose-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400" type="submit">
+          <button className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-bold text-slate-300 transition hover:bg-[#FF57BB]/12 hover:text-[#FFB5DF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6EFAFB]" type="submit">
             <Icon className="h-[18px] w-[18px]" name="logout" />
             Cerrar sesión
           </button>
@@ -159,23 +159,23 @@ export function AdminShell({ children, fullName }: AdminShellProps) {
   );
 
   return (
-    <div className="min-h-dvh bg-[#f7f7fa] text-slate-950">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-slate-900/10 lg:block">{navigation}</aside>
+    <div className="min-h-dvh bg-[#FFF4E4] text-slate-950">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-[#073642]/10 lg:block">{navigation}</aside>
 
-      <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl lg:hidden">
-        <button aria-expanded={mobileOpen} aria-label="Abrir menú de administración" className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm" onClick={() => setMobileOpen(true)} type="button">
+      <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between border-b border-[#0091AD]/15 bg-[#FFF4E4]/95 px-4 backdrop-blur-xl lg:hidden">
+        <button aria-expanded={mobileOpen} aria-label="Abrir menú de administración" className="grid h-11 w-11 place-items-center rounded-xl border border-[#0091AD]/20 bg-white text-[#00788F] shadow-sm" onClick={() => setMobileOpen(true)} type="button">
           <Icon name="menu" />
         </button>
         <div className="text-center">
           <p className="text-sm font-black">FarmaVerse Admin</p>
-          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-violet-600">Panel global</p>
+          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#00788F]">Panel global</p>
         </div>
-        <span className="grid h-10 w-10 place-items-center rounded-xl bg-violet-100 text-xs font-black text-violet-700">{initials(fullName)}</span>
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#F7E8A4] text-xs font-black text-[#073642]">{initials(fullName)}</span>
       </header>
 
       {mobileOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <button aria-label="Cerrar menú" className="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px]" onClick={() => setMobileOpen(false)} type="button" />
+          <button aria-label="Cerrar menú" className="absolute inset-0 bg-[#073642]/50 backdrop-blur-[2px]" onClick={() => setMobileOpen(false)} type="button" />
           <aside className="absolute inset-y-0 left-0 w-[min(19rem,88vw)] shadow-2xl">
             <button aria-label="Cerrar menú" className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-white" onClick={() => setMobileOpen(false)} type="button">
               <Icon name="close" />
