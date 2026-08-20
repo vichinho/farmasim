@@ -86,6 +86,7 @@ export async function saveSimulationAttempt(
     };
   }
 
+  let alertPersistenceFailed = false;
   if ((input.simulationAlerts?.length ?? 0) > 0) {
     const extended = await createExtendedClient();
     const alertResult = await extended.rpc("record_simulation_alerts", {
@@ -93,6 +94,7 @@ export async function saveSimulationAttempt(
       p_alerts: input.simulationAlerts ?? [],
     });
     if (alertResult.error) {
+      alertPersistenceFailed = true;
       console.error("Unable to save simulation alerts", alertResult.error.message);
     }
   }
@@ -102,8 +104,15 @@ export async function saveSimulationAttempt(
   revalidatePath("/simulaciones");
   revalidatePath("/supervision");
 
+  if (alertPersistenceFailed) {
+    return {
+      message: "El progreso quedó guardado, pero la trazabilidad de alertas quedó incompleta. Reintenta el guardado para completar el registro.",
+      status: "error",
+    };
+  }
+
   if (!data) {
-    return { message: "Este intento ya estaba guardado.", status: "duplicate" };
+    return { message: "Este intento ya estaba guardado y su trazabilidad está actualizada.", status: "duplicate" };
   }
 
   return { message: "Intento guardado y progreso actualizado.", status: "saved" };
