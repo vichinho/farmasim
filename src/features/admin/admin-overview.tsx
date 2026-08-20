@@ -92,16 +92,16 @@ export function AdminOverview({ metrics }: AdminOverviewProps) {
         </Card>
 
         <div className="space-y-4">
-          <Card className="relative overflow-hidden border-[#0091AD] bg-[#0091AD] p-5 text-white sm:p-6">
-            <span aria-hidden="true" className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#6EFAFB]/18" />
-            <span aria-hidden="true" className="absolute -bottom-10 right-14 h-24 w-24 rounded-full bg-[#FF57BB]/22" />
+          <Card className="relative overflow-hidden border-[#0091AD]/20 bg-[#FFF4E4] p-5 text-[#073642] shadow-[0_12px_34px_rgba(0,145,173,.08)] sm:p-6">
+            <span aria-hidden="true" className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#6EFAFB]/35" />
+            <span aria-hidden="true" className="absolute -bottom-10 right-14 h-24 w-24 rounded-full bg-[#FF57BB]/12" />
             <div className="relative">
-              <p className="text-[11px] font-black uppercase tracking-[.16em] text-[#C7FFFF]">Actividad de entrenamiento</p>
-              <p className="mt-4 text-4xl font-black">{metrics.attempts.toLocaleString("es-CL")}</p>
-              <p className="mt-1 text-sm font-semibold text-white/85">intentos de simulación registrados</p>
-              <div className="mt-5 border-t border-[#6EFAFB]/35 pt-4">
-                <p className="text-2xl font-black">{metrics.publishedCapsules.toLocaleString("es-CL")}</p>
-                <p className="mt-1 text-xs font-semibold text-[#C7FFFF]">cápsulas publicadas</p>
+              <p className="text-[11px] font-black uppercase tracking-[.16em] text-[#00788F]">Actividad de entrenamiento</p>
+              <p className="mt-4 text-4xl font-black text-[#0091AD]">{metrics.attempts.toLocaleString("es-CL")}</p>
+              <p className="mt-1 text-sm font-semibold text-slate-700">intentos de simulación registrados</p>
+              <div className="mt-5 border-t border-[#0091AD]/15 pt-4">
+                <p className="text-2xl font-black text-[#B42B7A]">{metrics.publishedCapsules.toLocaleString("es-CL")}</p>
+                <p className="mt-1 text-xs font-semibold text-slate-700">cápsulas publicadas</p>
               </div>
             </div>
           </Card>
