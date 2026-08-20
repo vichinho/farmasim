@@ -1,3 +1,4 @@
+import { expectedPrescriptionDisposition } from "./prescription-status";
 import type {
   MedicationPresentation,
   PrescriptionLine,
@@ -12,7 +13,7 @@ function presentationById(scenario: ScenarioDefinition, id: string) {
 }
 
 export function expectedPrescriptionLines(scenario: ScenarioDefinition) {
-  const expectedIds = new Set(scenario.expectedPrescriptionIds);
+  const expectedIds = new Set(scenario.prescriptionsRelevantToCurrentWithdrawal);
   return scenario.prescriptions
     .filter((record) => expectedIds.has(record.id))
     .flatMap((record) => record.lines);
@@ -96,15 +97,50 @@ export function evaluateDeliverySafety(
     });
   }
 
-  for (const prescriptionId of scenario.expectedPrescriptionIds) {
-    if (!session.verifiedPrescriptionIds.includes(prescriptionId)) {
+  let prescriptionGateFailed = false;
+  let correctlyHeldPrescription = false;
+  for (const prescriptionId of scenario.prescriptionsRelevantToCurrentWithdrawal) {
+    const prescription = scenario.prescriptions.find((item) => item.id === prescriptionId);
+    if (!prescription) continue;
+    const expectedDisposition = expectedPrescriptionDisposition(prescription);
+    const actualDisposition = session.prescriptionDispositionById[prescriptionId];
+
+    if (!actualDisposition || actualDisposition !== expectedDisposition) {
+      prescriptionGateFailed = true;
       discrepancies.push({
         id: `prescription:${prescriptionId}`,
         kind: "prescription",
-        expected: `${prescriptionId}:verified`,
-        actual: `${prescriptionId}:not-verified`,
+        expected: `${prescription.status}:${expectedDisposition}`,
+        actual: actualDisposition ?? "not-assessed",
       });
+      continue;
     }
+
+    if (expectedDisposition === "hold-for-review") {
+      correctlyHeldPrescription = true;
+    }
+  }
+
+  if (correctlyHeldPrescription) {
+    discrepancies.push({
+      id: "prescription-status:handoff-not-allowed",
+      kind: "prescription-status",
+      expected: "stop-and-review-with-qf",
+      actual: "delivery-attempted",
+    });
+  }
+
+  // Prescription state is an upstream safety gate. Do not cascade downstream
+  // handoff/preparation errors when the correct action is to stop the workflow.
+  if (prescriptionGateFailed || correctlyHeldPrescription) return discrepancies;
+
+  if (session.finalReidentifiedPatientId !== scenario.patient.id) {
+    discrepancies.push({
+      id: "final-patient:handoff",
+      kind: "final-patient",
+      expected: scenario.patient.id,
+      actual: session.finalReidentifiedPatientId ?? "not-reidentified",
+    });
   }
 
   const expected = expectedPrescriptionLines(scenario);
@@ -141,9 +177,7 @@ export function evaluateDeliverySafety(
       continue;
     }
 
-    discrepancies.push(
-      ...comparePresentation(line, expectedPresentation, item, actualPresentation),
-    );
+    discrepancies.push(...comparePresentation(line, expectedPresentation, item, actualPresentation));
   }
 
   const expectedLineIds = new Set(expected.map((line) => line.id));

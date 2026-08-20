@@ -3,6 +3,13 @@ import type { DispensingCriterionId } from "@/types/training-simulation";
 export type SimulationMode = "guided" | "practice" | "assessment";
 export type ActorRole = "attention" | "preparation" | "qf-support";
 export type ActorController = "participant" | "simulation" | "team";
+export type PlayerRole = "tens-1" | "tens-2";
+export type PrescriptionDisposition = "proceed" | "hold-for-review";
+export type InstructionSection =
+  | "purpose"
+  | "schedule-administration"
+  | "precautions"
+  | "qf-escalation";
 
 export type Actor = {
   id: string;
@@ -81,7 +88,11 @@ export type MedicationPresentation = {
   medicationName: string;
   strength: string;
   pharmaceuticalForm: string;
-  packageQuantity: number;
+  packageQuantity?: number;
+  careSetting?: "atencion-abierta" | "other";
+  sourceCode?: string;
+  sourceDescription?: string;
+  dispensingUnit?: string;
   education?: MedicationEducation;
 };
 
@@ -103,6 +114,25 @@ export type Drawer = {
   contents: string[];
 };
 
+export type StorageDeviationKind =
+  | "mixed-product"
+  | "mixed-strength"
+  | "mixed-form"
+  | "incorrect-label"
+  | "incomplete-label"
+  | "double-label"
+  | "deterioration"
+  | "out-of-stock";
+
+export type StorageDeviation = {
+  id: string;
+  drawerId: string;
+  kind: StorageDeviationKind;
+  expected: string;
+  actual: string;
+  medicationPresentationId?: string;
+};
+
 export type TrayItem = {
   id: string;
   prescriptionLineId?: string;
@@ -119,15 +149,15 @@ export type Tray = {
 
 export type DiscrepancyKind =
   | "patient"
+  | "final-patient"
   | "prescription"
+  | "prescription-status"
   | "medication"
   | "strength"
   | "pharmaceutical-form"
   | "quantity"
   | "omission"
-  | "additional-product"
-  | "drawer-label"
-  | "mixed-drawer";
+  | "additional-product";
 
 export type SafetyDiscrepancy = {
   id: string;
@@ -138,6 +168,8 @@ export type SafetyDiscrepancy = {
   trayItemId?: string;
 };
 
+export type InitialClinicalSystemState = "clean_search" | "previous_patient_open";
+
 export type ScenarioDefinition = {
   id: string;
   version: string;
@@ -146,11 +178,19 @@ export type ScenarioDefinition = {
   patient: PatientIdentity;
   similarPatients: PatientIdentity[];
   actors: Actor[];
+  activeDispensingFacilityId: EstablishmentId;
+  requiredPlayerRole?: PlayerRole;
+  reinforcementChallengeKey?: string;
+  reinforcementInstructionFocusSection?: InstructionSection;
+  suggestedPreparationQuantityByLineId?: Record<string, number>;
   prescriptions: PrescriptionRecord[];
+  visibleClinicalRecordIds: string[];
+  availablePrescriptionIds: string[];
+  prescriptionsRelevantToCurrentWithdrawal: string[];
   arsenal: MedicationPresentation[];
   drawers: Drawer[];
   initialTray: Tray;
-  expectedPrescriptionIds: string[];
+  initialClinicalSystemState: InitialClinicalSystemState;
   educationalSourceIds: string[];
 };
 
@@ -172,6 +212,7 @@ export type SimulationEventType =
   | "drawer.opened"
   | "drawer.contents_inspected"
   | "medication.inspected"
+  | "medication.compared_to_prescription"
   | "medication.taken"
   | "medication.returned"
   | "medication.added_to_tray"
@@ -181,6 +222,7 @@ export type SimulationEventType =
   | "tray.corrected"
   | "correction.requested"
   | "identity.rechecked"
+  | "instruction.section_given"
   | "instructions.given"
   | "qf_support.requested"
   | "delivery.attempted"
@@ -209,18 +251,28 @@ export type SimulationSession = {
   seed: number;
   mode: SimulationMode;
   activeActorId: string;
+  selectedPlayerRole: PlayerRole | null;
+  actorControllers: Record<string, ActorController>;
   focusedObjectId: string | null;
   focusReturnObjectId: string | null;
   typedRut: string;
   loadedPatientId: string | null;
+  finalReidentifiedPatientId: string | null;
   openedPrescriptionIds: string[];
   verifiedPrescriptionIds: string[];
+  prescriptionDispositionById: Record<string, PrescriptionDisposition>;
   inspectedMedicationIds: string[];
+  comparedPrescriptionLineIds: string[];
+  instructionEvidenceKeys: string[];
+  missingInstructionSections: InstructionSection[];
+  openedTabIds: string[];
+  scrolledRecordIds: string[];
   tray: Tray;
   eventLog: SimulationEvent[];
   discrepancies: SafetyDiscrepancy[];
+  storageDeviations: StorageDeviation[];
   criteria: Record<DispensingCriterionId, CriterionStatus>;
-  deliveryStatus: "not-attempted" | "blocked" | "completed";
+  deliveryStatus: "not-attempted" | "blocked" | "completed" | "safely-stopped";
   startedAt: string;
   updatedAt: string;
 };

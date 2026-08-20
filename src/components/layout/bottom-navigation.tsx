@@ -25,36 +25,36 @@ export function BottomNavigation({ activeHref }: BottomNavigationProps) {
   return (
     <nav
       aria-label="Navegación principal"
-      className="fixed inset-x-0 bottom-0 z-10 border-t border-[var(--border)] bg-white/95 px-2 py-2 backdrop-blur md:mx-auto md:max-w-xl md:rounded-t-3xl md:border-x"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--border)] bg-white/95 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur md:mx-auto md:max-w-xl md:rounded-t-3xl md:border-x"
     >
-      <ul className="mx-auto flex max-w-xl items-center justify-between">
+      <ul className="mx-auto grid max-w-xl grid-cols-5 items-stretch">
         {navigationItems.map((item) => {
           const isActive = item.href === activeHref;
 
           return (
-            <li key={item.label}>
+            <li className="min-w-0" key={item.label}>
               {item.href ? (
                 <Link
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "flex min-h-12 min-w-14 flex-col items-center justify-center gap-1 rounded-xl px-2 text-xs font-medium transition-colors",
+                    "flex min-h-12 w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[0.68rem] font-medium leading-tight transition-colors sm:px-2 sm:text-xs",
                     isActive
                       ? "bg-emerald-50 text-[var(--brand-strong)]"
                       : "text-[var(--muted)] hover:bg-slate-50",
                   )}
                   href={item.href}
                 >
-                  <Icon className="size-5" name={item.icon} />
-                  {item.label}
+                  <Icon className="size-5 shrink-0" name={item.icon} />
+                  <span className="max-w-full truncate">{item.label}</span>
                 </Link>
               ) : (
                 <span
                   aria-disabled="true"
-                  className="flex min-h-12 min-w-14 flex-col items-center justify-center gap-1 rounded-xl px-2 text-xs font-medium text-slate-400"
+                  className="flex min-h-12 w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[0.68rem] font-medium leading-tight text-slate-400 sm:px-2 sm:text-xs"
                   title="Próximamente"
                 >
-                  <Icon className="size-5" name={item.icon} />
-                  {item.label}
+                  <Icon className="size-5 shrink-0" name={item.icon} />
+                  <span className="max-w-full truncate">{item.label}</span>
                 </span>
               )}
             </li>

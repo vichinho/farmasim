@@ -25,7 +25,7 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("full_name, level, xp")
+      .select("full_name, level, role, xp")
       .eq("id", userId)
       .maybeSingle(),
     supabase
@@ -49,6 +49,11 @@ export default async function DashboardPage() {
       .maybeSingle(),
     supabase.from("scenarios").select("id, title"),
   ]);
+
+  if (profileResult.data?.role === "supervisor" || profileResult.data?.role === "admin") {
+    redirect("/supervision");
+  }
+
   const completedLevelNumbers = (completedLevelsResult.data ?? []).flatMap((attempt) =>
     typeof attempt.level_number === "number" ? [attempt.level_number] : [],
   );
