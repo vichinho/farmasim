@@ -50,7 +50,11 @@ export default async function DashboardPage() {
     supabase.from("scenarios").select("id, title"),
   ]);
 
-  if (profileResult.data?.role === "supervisor" || profileResult.data?.role === "admin") {
+  if (profileResult.data?.role === "admin") {
+    redirect("/admin");
+  }
+
+  if (profileResult.data?.role === "supervisor") {
     redirect("/supervision");
   }
 
