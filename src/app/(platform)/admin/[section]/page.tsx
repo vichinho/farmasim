@@ -58,8 +58,8 @@ const modules: Record<string, ModuleDefinition> = {
 
 export default async function AdminSectionPage({ params }: Props) {
   const { section } = await params;
-  const module = modules[section];
-  if (!module) notFound();
+  const moduleDefinition = modules[section];
+  if (!moduleDefinition) notFound();
 
-  return <AdminModulePage {...module} />;
+  return <AdminModulePage {...moduleDefinition} />;
 }
