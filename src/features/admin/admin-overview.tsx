@@ -32,11 +32,12 @@ const modules: ModuleCard[] = [
   { href: "/admin/auditoria", label: "Auditoría", description: "Consulta trazabilidad de acciones administrativas y eventos relevantes.", meta: "Gobernanza" },
 ];
 
-function MetricCard({ label, value, detail }: { label: string; value: number; detail: string }) {
+function MetricCard({ label, value, detail, accentClass }: { label: string; value: number; detail: string; accentClass: string }) {
   return (
-    <Card className="min-w-0 border-slate-200 bg-white p-4 sm:p-5">
+    <Card className="relative min-w-0 overflow-hidden border-[#0091AD]/15 bg-white p-4 sm:p-5">
+      <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 ${accentClass}`} />
       <p className="text-[11px] font-black uppercase tracking-[.14em] text-slate-400">{label}</p>
-      <p className="mt-3 text-3xl font-black tracking-tight text-slate-950">{value.toLocaleString("es-CL")}</p>
+      <p className="mt-3 text-3xl font-black tracking-tight text-[#073642]">{value.toLocaleString("es-CL")}</p>
       <p className="mt-1 text-xs font-semibold text-slate-500">{detail}</p>
     </Card>
   );
@@ -47,65 +48,69 @@ export function AdminOverview({ metrics }: AdminOverviewProps) {
     <div className="space-y-6 lg:space-y-8">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[.18em] text-violet-600">Administración global</p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Resumen de FarmaVerse</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">Una vista ejecutiva para controlar usuarios, establecimientos, capacitación y actividad sin mezclar funciones operativas de TENS o Supervisor/QF.</p>
+          <p className="text-xs font-black uppercase tracking-[.18em] text-[#00788F]">Administración global</p>
+          <h1 className="mt-2 text-3xl font-black tracking-tight text-[#073642] sm:text-4xl">Resumen de FarmaVerse</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">Una vista ejecutiva para controlar usuarios, establecimientos, capacitación y actividad sin mezclar funciones operativas de TENS o Supervisor/QF.</p>
         </div>
-        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#0091AD]/20 bg-[#6EFAFB]/35 px-3 py-2 text-xs font-black text-[#006D82]">
+          <span className="h-2 w-2 rounded-full bg-[#0091AD]" />
           Plataforma operativa
         </div>
       </section>
 
       <section className="grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="Indicadores principales">
-        <MetricCard detail={`${metrics.learners} TENS · ${metrics.supervisors} supervisores · ${metrics.admins} admins`} label="Usuarios" value={metrics.users} />
-        <MetricCard detail="Establecimientos activos" label="Red asistencial" value={metrics.establishments} />
-        <MetricCard detail="Casos registrados en catálogo" label="Escenarios" value={metrics.scenarios} />
-        <MetricCard detail="Alertas de simulación registradas" label="Alertas" value={metrics.alerts} />
+        <MetricCard accentClass="bg-[#0091AD]" detail={`${metrics.learners} TENS · ${metrics.supervisors} supervisores · ${metrics.admins} admins`} label="Usuarios" value={metrics.users} />
+        <MetricCard accentClass="bg-[#6EFAFB]" detail="Establecimientos activos" label="Red asistencial" value={metrics.establishments} />
+        <MetricCard accentClass="bg-[#F7E8A4]" detail="Casos registrados en catálogo" label="Escenarios" value={metrics.scenarios} />
+        <MetricCard accentClass="bg-[#FF57BB]" detail="Alertas de simulación registradas" label="Alertas" value={metrics.alerts} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(18rem,.75fr)]">
-        <Card className="border-slate-200 bg-white p-5 sm:p-6">
+        <Card className="border-[#0091AD]/15 bg-white p-5 sm:p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[.16em] text-violet-600">Módulos</p>
-              <h2 className="mt-1 text-xl font-black tracking-tight">Centro de administración</h2>
+              <p className="text-xs font-black uppercase tracking-[.16em] text-[#00788F]">Módulos</p>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-[#073642]">Centro de administración</h2>
             </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-500">6 áreas</span>
+            <span className="rounded-full bg-[#F7E8A4] px-3 py-1.5 text-xs font-black text-[#5E5318]">6 áreas</span>
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             {modules.map((module) => (
-              <Link className="group rounded-2xl border border-slate-200 bg-slate-50/70 p-4 transition hover:-translate-y-0.5 hover:border-violet-200 hover:bg-violet-50/60 hover:shadow-[0_12px_30px_rgba(76,48,130,.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500" href={module.href} key={module.href}>
+              <Link className="group rounded-2xl border border-[#0091AD]/12 bg-[#FFF4E4]/55 p-4 transition hover:-translate-y-0.5 hover:border-[#0091AD]/35 hover:bg-[#6EFAFB]/12 hover:shadow-[0_12px_30px_rgba(0,145,173,.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0091AD]" href={module.href} key={module.href}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">{module.meta}</p>
-                    <h3 className="mt-1 text-base font-black text-slate-900">{module.label}</h3>
+                    <p className="text-[10px] font-black uppercase tracking-[.14em] text-[#00788F]/65">{module.meta}</p>
+                    <h3 className="mt-1 text-base font-black text-[#073642]">{module.label}</h3>
                   </div>
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white text-sm font-black text-violet-600 shadow-sm transition group-hover:bg-violet-600 group-hover:text-white">→</span>
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-[#6EFAFB] text-sm font-black text-[#07566A] shadow-sm transition group-hover:bg-[#0091AD] group-hover:text-white">→</span>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-slate-500">{module.description}</p>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{module.description}</p>
               </Link>
             ))}
           </div>
         </Card>
 
         <div className="space-y-4">
-          <Card className="border-violet-200 bg-gradient-to-br from-violet-700 via-violet-700 to-indigo-800 p-5 text-white sm:p-6">
-            <p className="text-[11px] font-black uppercase tracking-[.16em] text-violet-200">Actividad de entrenamiento</p>
-            <p className="mt-4 text-4xl font-black">{metrics.attempts.toLocaleString("es-CL")}</p>
-            <p className="mt-1 text-sm font-semibold text-violet-100">intentos de simulación registrados</p>
-            <div className="mt-5 border-t border-white/15 pt-4">
-              <p className="text-2xl font-black">{metrics.publishedCapsules.toLocaleString("es-CL")}</p>
-              <p className="mt-1 text-xs font-semibold text-violet-200">cápsulas publicadas</p>
+          <Card className="relative overflow-hidden border-[#0091AD] bg-[#0091AD] p-5 text-white sm:p-6">
+            <span aria-hidden="true" className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#6EFAFB]/18" />
+            <span aria-hidden="true" className="absolute -bottom-10 right-14 h-24 w-24 rounded-full bg-[#FF57BB]/22" />
+            <div className="relative">
+              <p className="text-[11px] font-black uppercase tracking-[.16em] text-[#C7FFFF]">Actividad de entrenamiento</p>
+              <p className="mt-4 text-4xl font-black">{metrics.attempts.toLocaleString("es-CL")}</p>
+              <p className="mt-1 text-sm font-semibold text-white/85">intentos de simulación registrados</p>
+              <div className="mt-5 border-t border-[#6EFAFB]/35 pt-4">
+                <p className="text-2xl font-black">{metrics.publishedCapsules.toLocaleString("es-CL")}</p>
+                <p className="mt-1 text-xs font-semibold text-[#C7FFFF]">cápsulas publicadas</p>
+              </div>
             </div>
           </Card>
 
-          <Card className="border-slate-200 bg-white p-5 sm:p-6">
-            <p className="text-xs font-black uppercase tracking-[.16em] text-slate-400">Próximo bloque</p>
-            <h2 className="mt-2 text-lg font-black">Banco de escenarios</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">El módulo Escenarios queda preparado como destino administrativo para la incorporación progresiva del banco de 48 casos.</p>
-            <Link className="mt-4 inline-flex min-h-10 items-center text-sm font-black text-violet-700" href="/admin/escenarios">Ir a Escenarios <span className="ml-2">→</span></Link>
+          <Card className="border-[#FF57BB]/20 bg-white p-5 sm:p-6">
+            <p className="text-xs font-black uppercase tracking-[.16em] text-[#B42B7A]">Próximo bloque</p>
+            <h2 className="mt-2 text-lg font-black text-[#073642]">Banco de escenarios</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">El módulo Escenarios queda preparado como destino administrativo para la incorporación progresiva del banco de 48 casos.</p>
+            <Link className="mt-4 inline-flex min-h-10 items-center rounded-xl bg-[#FF57BB] px-4 text-sm font-black text-[#2A1021] transition hover:-translate-y-0.5 hover:shadow-[0_8px_22px_rgba(255,87,187,.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF57BB] focus-visible:ring-offset-2" href="/admin/escenarios">Ir a Escenarios <span className="ml-2">→</span></Link>
           </Card>
         </div>
       </section>
