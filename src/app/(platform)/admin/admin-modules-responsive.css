@@ -1,0 +1,65 @@
+/* Admin module polish and responsive safeguards.
+ * Scoped to /admin through AdminLayout so TENS/Supervisor UI is unaffected.
+ */
+
+.admin-module-root {
+  min-width: 0;
+}
+
+.admin-module-root input,
+.admin-module-root select,
+.admin-module-root textarea,
+.admin-module-root form,
+.admin-module-root form > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Status chips: keep uppercase labels optically centered and stable. */
+.admin-module-root span[class*="rounded-full"][class*="text-[10px]"][class*="uppercase"] {
+  display: inline-flex;
+  min-height: 2rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@media (max-width: 639px) {
+  /* Long establishment/scenario/module names must never squeeze status chips. */
+  .admin-module-root .flex.justify-between.gap-3 {
+    flex-wrap: wrap;
+  }
+
+  /* Mobile admin actions are easier to scan and tap as full-width controls. */
+  .admin-module-root form button[type="submit"] {
+    width: 100%;
+  }
+
+  .admin-module-root form select,
+  .admin-module-root form input:not([type="checkbox"]):not([type="hidden"]),
+  .admin-module-root form textarea {
+    width: 100%;
+  }
+
+  /* Capsule status controls use flex instead of grid, force a clean stack. */
+  .admin-module-root form.flex.flex-wrap > select,
+  .admin-module-root form.flex.flex-wrap > button {
+    flex: 1 1 100%;
+  }
+
+  /* Keep compact analytics cards readable on narrow devices. */
+  .admin-module-root .grid.grid-cols-2 > * {
+    min-width: 0;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  /* Tablet: prevent auto-sized action columns from consuming content width. */
+  .admin-module-root form button[type="submit"] {
+    white-space: nowrap;
+  }
+}
