@@ -41,6 +41,7 @@ type Props = {
 type Send = (type: SimulationCommand["type"], data?: SimulationCommand["data"], actorId?: string) => void;
 type PersistenceState = { message: string; status: "idle" | "saving" | "saved" | "error" };
 type Hotspot = { id: string; label: string; x: string; y: string; event: SimulationCommand["type"] };
+type PressureInterruptionId = "clinical-system" | "product-selection" | "final-check";
 
 const hotspots: Hotspot[] = [
   { id: "patient", label: "Paciente", x: "8%", y: "60%", event: "patient.focused" },
@@ -60,6 +61,38 @@ const establishmentNames: Record<string, string> = {
   penco: "Penco",
   lirquen: "Lirquén",
 };
+
+const pressureInterruptions: Record<PressureInterruptionId, { eyebrow: string; title: string; description: string }> = {
+  "clinical-system": {
+    eyebrow: "Interrupción 1 · Consulta breve",
+    title: "Te solicitan orientación en ventanilla",
+    description: "La consulta ya fue derivada al equipo disponible. Retoma el caso desde el punto exacto en que estabas.",
+  },
+  "product-selection": {
+    eyebrow: "Interrupción 2 · Reposición",
+    title: "Llega un aviso desde almacenamiento",
+    description: "El aviso no modifica este caso. Reconoce la interrupción y vuelve a verificar antes de continuar.",
+  },
+  "final-check": {
+    eyebrow: "Interrupción 3 · Cambio de turno",
+    title: "Recibes una actualización operativa",
+    description: "La actualización quedó registrada. Recupera el hilo y completa la revisión final sin omitir barreras.",
+  },
+};
+
+function formatElapsedTime(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+function pressureInterruptionFor(session: SimulationSession): PressureInterruptionId | null {
+  const focus = session.focusedObjectId;
+  if (focus === "computer") return "clinical-system";
+  if (focus === "storage" || focus?.startsWith("drawer:") || focus?.startsWith("medication:")) return "product-selection";
+  if (focus === "tray" && session.eventLog.some((event) => event.type === "tray.inspected")) return "final-check";
+  return null;
+}
 
 function simulationMode(mode: TrainingMode): SimulationMode {
   if (mode.guidance === "guided") return "guided";
@@ -120,6 +153,9 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
   const [session, setSession] = useState<SimulationSession>(() => createSimulationSession(baseScenario));
   const [persistence, setPersistence] = useState<PersistenceState>({ message: "", status: "idle" });
   const [resetConfirmationVisible, setResetConfirmationVisible] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [activeInterruption, setActiveInterruption] = useState<PressureInterruptionId | null>(null);
+  const [seenInterruptions, setSeenInterruptions] = useState<PressureInterruptionId[]>([]);
   const [, startPersistenceTransition] = useTransition();
 
   useEffect(() => {
@@ -127,6 +163,9 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
     setSession(createSimulationSession(baseScenario));
     setPersistence({ message: "", status: "idle" });
     setResetConfirmationVisible(false);
+    setElapsedSeconds(0);
+    setActiveInterruption(null);
+    setSeenInterruptions([]);
   }, [baseScenario]);
 
   const runCommands = useCallback((commands: SimulationCommand[]) => {
@@ -161,6 +200,27 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
   const missionSteps = getMissionSteps(scenario, session);
   const completedStepCount = missionSteps.filter((step) => step.status === "completed").length;
   const activeStep = missionSteps.find((step) => step.status === "current" || step.status === "attention");
+  const pressureTargetSeconds = mode.pressureTargetSeconds ?? 180;
+  const pressureTargetExceeded = elapsedSeconds > pressureTargetSeconds;
+  const currentPressureInterruption = pressureInterruptionFor(session);
+
+  useEffect(() => {
+    if (levelNumber !== 3 || !session.selectedPlayerRole || terminal) return;
+    const intervalId = window.setInterval(() => setElapsedSeconds((current) => current + 1), 1000);
+    return () => window.clearInterval(intervalId);
+  }, [levelNumber, session.selectedPlayerRole, terminal]);
+
+  useEffect(() => {
+    if (
+      levelNumber !== 3
+      || activeInterruption
+      || !currentPressureInterruption
+      || !mode.interruptionStageIds.includes(currentPressureInterruption)
+      || seenInterruptions.includes(currentPressureInterruption)
+    ) return;
+    setActiveInterruption(currentPressureInterruption);
+    setSeenInterruptions((current) => [...current, currentPressureInterruption]);
+  }, [activeInterruption, currentPressureInterruption, levelNumber, mode.interruptionStageIds, seenInterruptions]);
 
   const persistAttempt = useCallback(async () => {
     if (session.deliveryStatus !== "completed" && session.deliveryStatus !== "safely-stopped") return;
@@ -309,6 +369,9 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
     setSession(createSimulationSession(nextScenario));
     setPersistence({ message: "", status: "idle" });
     setResetConfirmationVisible(false);
+    setElapsedSeconds(0);
+    setActiveInterruption(null);
+    setSeenInterruptions([]);
   }
 
   function resetSimulation() {
@@ -316,6 +379,9 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
     setSession(createSimulationSession(baseScenario));
     setPersistence({ message: "", status: "idle" });
     setResetConfirmationVisible(false);
+    setElapsedSeconds(0);
+    setActiveInterruption(null);
+    setSeenInterruptions([]);
   }
 
   return (
@@ -331,9 +397,19 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
               ? "Selecciona un rol para comenzar"
               : terminal
                 ? "Caso finalizado"
-                : `Paso ${Math.min(completedStepCount + 1, missionSteps.length)} de ${missionSteps.length}`}
+                : levelNumber === 3
+                  ? "Turno con presión · cronómetro informativo"
+                  : levelNumber === 4
+                    ? "Consolidación autónoma"
+                    : `Paso ${Math.min(completedStepCount + 1, missionSteps.length)} de ${missionSteps.length}`}
           </p>
-          {session.selectedPlayerRole && activeStep ? <p className="truncate text-xs font-semibold text-slate-800">{activeStep.label}</p> : null}
+          {session.selectedPlayerRole && levelNumber === 3 ? (
+            <p className={cn("truncate text-xs font-semibold tabular-nums", pressureTargetExceeded ? "text-amber-700" : "text-slate-800")}>{formatElapsedTime(elapsedSeconds)} / {formatElapsedTime(pressureTargetSeconds)}</p>
+          ) : session.selectedPlayerRole && levelNumber === 4 ? (
+            <p className="truncate text-xs font-semibold text-slate-800">Sin pistas de secuencia</p>
+          ) : session.selectedPlayerRole && activeStep ? (
+            <p className="truncate text-xs font-semibold text-slate-800">{activeStep.label}</p>
+          ) : null}
         </div>
         {resetConfirmationVisible ? (
           <div className="flex items-center gap-1">
@@ -381,7 +457,7 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
           })}
         </div>
         <span className="rounded-full bg-violet-50 px-4 py-2 text-xs font-black text-violet-700">
-          {scenario.mode === "guided" ? "Guiado" : scenario.mode === "practice" ? "Práctica" : "Evaluación"}
+          {levelNumber === 3 ? "Presión" : levelNumber === 4 ? "Autónomo" : scenario.mode === "guided" ? "Guiado" : scenario.mode === "practice" ? "Práctica" : "Evaluación"}
         </span>
       </header>
 
@@ -391,6 +467,23 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
             <Image alt="Farmacia ambulatoria 2D interactiva" className="object-cover" fill priority sizes="(min-width: 1280px) 70vw, 100vw" src="/images/farmasim/case001-scene.jpg" />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-white/5" />
           </div>
+
+          {session.selectedPlayerRole && levelNumber === 3 ? (
+            <div className="absolute left-4 top-4 z-20 rounded-2xl border border-white/25 bg-slate-950/75 px-4 py-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5">
+              <p className="text-[.65rem] font-bold uppercase tracking-[.14em] text-emerald-300">Turno con presión</p>
+              <div className="mt-1 flex items-center gap-3">
+                <p className="text-xl font-bold tabular-nums">{formatElapsedTime(elapsedSeconds)}</p>
+                <span className={cn("rounded-full px-2 py-1 text-[.62rem] font-bold", pressureTargetExceeded ? "bg-amber-300 text-amber-950" : "bg-white/15 text-white")}>{seenInterruptions.length} / {mode.interruptionStageIds.length} interrupciones</span>
+              </div>
+              <p className="mt-1 text-[.68rem] text-white/70">El tiempo no bloquea ni penaliza el caso.</p>
+            </div>
+          ) : session.selectedPlayerRole && levelNumber === 4 ? (
+            <div className="absolute left-4 top-4 z-20 rounded-2xl border border-white/25 bg-slate-950/75 px-4 py-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5">
+              <p className="text-[.65rem] font-bold uppercase tracking-[.14em] text-emerald-300">Consolidación</p>
+              <p className="mt-1 text-sm font-bold">Decisión autónoma</p>
+              <p className="mt-1 text-[.68rem] text-white/70">Sin cronómetro ni pistas de secuencia.</p>
+            </div>
+          ) : null}
 
           {!session.selectedPlayerRole ? (
             <div className="absolute inset-0 z-30 grid place-items-center bg-slate-950/55 p-6 backdrop-blur-[2px]">
@@ -440,6 +533,21 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
               <span className={cn("mt-2 block rounded-xl bg-white/95 px-3 py-1.5 text-xs font-black text-violet-800 shadow transition", scenario.mode === "guided" ? "opacity-100" : "translate-y-1 opacity-0 group-hover:translate-y-0 group-hover:opacity-100")}>{hotspot.label}</span>
             </button>
           )) : null}
+
+          {activeInterruption ? (
+            <div className="absolute inset-0 z-40 grid place-items-center bg-slate-950/60 p-4 backdrop-blur-[3px]" role="dialog" aria-modal="true" aria-labelledby="pressure-interruption-title">
+              <div className="w-full max-w-sm rounded-3xl border border-white/25 bg-white p-5 shadow-2xl sm:p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="grid size-10 place-items-center rounded-full bg-amber-100 text-lg text-amber-800" aria-hidden="true">!</span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-[.65rem] font-bold text-slate-600">Pausa informativa</span>
+                </div>
+                <p className="mt-5 text-[.68rem] font-bold uppercase tracking-[.14em] text-amber-700">{pressureInterruptions[activeInterruption].eyebrow}</p>
+                <h2 className="mt-2 text-xl font-bold text-slate-950" id="pressure-interruption-title">{pressureInterruptions[activeInterruption].title}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{pressureInterruptions[activeInterruption].description}</p>
+                <button className="mt-5 min-h-12 w-full rounded-xl bg-[var(--brand)] px-4 text-sm font-bold text-white hover:bg-[var(--brand-strong)]" onClick={() => setActiveInterruption(null)} type="button">Retomar desde donde estaba</button>
+              </div>
+            </div>
+          ) : null}
         </main>
 
         <aside className="space-y-4 bg-[#fcfcfe] p-4 sm:p-5 xl:max-h-[720px] xl:overflow-y-auto xl:pb-6">
@@ -464,7 +572,7 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
               />
             )}
           </section>
-          <LearnerSidebar scenario={scenario} session={session} />
+          <LearnerSidebar levelNumber={levelNumber} mode={mode} scenario={scenario} session={session} />
           {process.env.NEXT_PUBLIC_SIMULATION_AUDIT === "true" ? <TechnicalAudit session={session} /> : null}
         </aside>
       </div>
@@ -847,8 +955,29 @@ function Results({ onReinforcement, onRetry, persistence, session }: { onReinfor
   );
 }
 
-function LearnerSidebar({ scenario, session }: { scenario: ScenarioDefinition; session: SimulationSession }) {
-  if (scenario.mode === "assessment") return <div className="rounded-2xl border border-violet-100 bg-white p-5"><p className="text-xs font-black uppercase tracking-wider text-violet-600">Evaluación en curso</p><h2 className="mt-2 font-black text-slate-900">Resuelve el caso de forma autónoma</h2><p className="mt-2 text-sm leading-6 text-slate-600">No se muestran secuencias, pistas ni causas de error durante el caso.</p></div>;
+function LearnerSidebar({ levelNumber, mode, scenario, session }: { levelNumber: number; mode: TrainingMode; scenario: ScenarioDefinition; session: SimulationSession }) {
+  if (scenario.mode === "assessment" && levelNumber === 3) return (
+    <div className="rounded-2xl border border-amber-200 bg-white p-5 shadow-[0_12px_35px_rgb(19_33_60/.06)]">
+      <p className="text-xs font-black uppercase tracking-wider text-amber-700">Turno con presión</p>
+      <h2 className="mt-2 font-black text-slate-900">Retoma, verifica y continúa</h2>
+      <p className="mt-2 text-sm leading-6 text-slate-600">Recibirás {mode.interruptionStageIds.length} interrupciones operativas. Ninguna cambia los datos del caso ni revela si una decisión fue correcta.</p>
+      <div className="mt-4 rounded-xl bg-amber-50 p-3">
+        <p className="text-xs font-bold text-amber-900">Regla del ejercicio</p>
+        <p className="mt-1 text-xs leading-5 text-amber-900">Después de cada pausa, recupera el contexto y vuelve a comprobar antes de avanzar.</p>
+      </div>
+    </div>
+  );
+
+  if (scenario.mode === "assessment") return (
+    <div className="rounded-2xl border border-violet-100 bg-white p-5 shadow-[0_12px_35px_rgb(19_33_60/.06)]">
+      <p className="text-xs font-black uppercase tracking-wider text-violet-600">Consolidación autónoma</p>
+      <h2 className="mt-2 font-black text-slate-900">Resuelve el caso completo</h2>
+      <p className="mt-2 text-sm leading-6 text-slate-600">No se muestran secuencias, pistas, causas de error ni presión de tiempo durante el recorrido.</p>
+      <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+        {["Identifica", "Compara", "Decide"].map((label, index) => <div className="rounded-xl bg-violet-50 px-2 py-3" key={label}><span className="mx-auto grid size-7 place-items-center rounded-full bg-white text-xs font-black text-violet-700">{index + 1}</span><p className="mt-2 text-[.68rem] font-bold text-slate-700">{label}</p></div>)}
+      </div>
+    </div>
+  );
 
   const steps = getMissionSteps(scenario, session);
   if (scenario.mode === "practice") return <div className="rounded-2xl border border-violet-100 bg-white p-5"><p className="text-xs font-black uppercase tracking-wider text-violet-600">Objetivo</p><h2 className="mt-2 font-black text-slate-900">{steps[0]?.label}</h2><p className="mt-2 text-sm leading-6 text-slate-600">{steps[0]?.description}</p></div>;
