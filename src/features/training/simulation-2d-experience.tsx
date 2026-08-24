@@ -31,6 +31,8 @@ import {
 } from "@/features/simulation-engine";
 import { saveSimulationAttempt } from "@/features/progress/actions";
 import { preparedItemForAdvancedLevel } from "@/features/training/advanced-level-preparation";
+import { DuaGuide, DuaResultCard } from "@/features/training/dua-guide";
+import { duaHintAvailabilityLabel, duaHintForCase } from "@/features/training/dua-guidance";
 import { cn } from "@/lib/utils";
 import type { AttemptCriterionResult, TrainingCase, TrainingMode } from "@/types/training-simulation";
 
@@ -186,7 +188,10 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [activeInterruption, setActiveInterruption] = useState<PressureInterruptionId | null>(null);
   const [seenInterruptions, setSeenInterruptions] = useState<PressureInterruptionId[]>([]);
+  const [duaIntroVisible, setDuaIntroVisible] = useState(false);
+  const [duaHintUsed, setDuaHintUsed] = useState(false);
   const [, startPersistenceTransition] = useTransition();
+  const duaHint = duaHintForCase(trainingCase.id);
 
   useEffect(() => {
     setScenario(baseScenario);
@@ -196,6 +201,8 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
     setElapsedSeconds(0);
     setActiveInterruption(null);
     setSeenInterruptions([]);
+    setDuaIntroVisible(false);
+    setDuaHintUsed(false);
   }, [baseScenario]);
 
   const runCommands = useCallback((commands: SimulationCommand[]) => {
@@ -342,6 +349,7 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
     }
 
     runCommands(commands);
+    setDuaIntroVisible(true);
   }
 
   function searchPatient() {
@@ -403,6 +411,8 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
     setElapsedSeconds(0);
     setActiveInterruption(null);
     setSeenInterruptions([]);
+    setDuaIntroVisible(true);
+    setDuaHintUsed(false);
   }
 
   function resetSimulation() {
@@ -413,6 +423,8 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
     setElapsedSeconds(0);
     setActiveInterruption(null);
     setSeenInterruptions([]);
+    setDuaIntroVisible(false);
+    setDuaHintUsed(false);
   }
 
   return (
@@ -443,7 +455,7 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
           ) : session.selectedPlayerRole && levelNumber === 4 ? (
             <p className="truncate text-xs font-semibold text-slate-800">Sin pistas de secuencia</p>
           ) : session.selectedPlayerRole && levelNumber === 7 ? (
-            <p className="truncate text-xs font-semibold text-slate-800">Sin ayudas ni retroalimentación anticipada</p>
+            <p className="truncate text-xs font-semibold text-slate-800">{duaHintAvailabilityLabel(duaHintUsed)} · sin retroalimentación anticipada</p>
           ) : session.selectedPlayerRole && activeStep ? (
             <p className="truncate text-xs font-semibold text-slate-800">{activeStep.label}</p>
           ) : null}
@@ -604,7 +616,7 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
         <aside className="space-y-4 bg-[#fcfcfe] p-4 sm:p-5 xl:max-h-[720px] xl:overflow-y-auto xl:pb-6">
           <section className="rounded-2xl border border-violet-100 bg-white p-4 shadow-[0_12px_35px_rgba(76,48,130,.08)] sm:p-5" aria-live="polite">
             {terminal ? (
-              <Results levelNumber={levelNumber} onReinforcement={startReinforcement} onRetry={persistAttempt} persistence={persistence} session={session} />
+              <Results hintUsed={duaHintUsed} levelNumber={levelNumber} onReinforcement={startReinforcement} onRetry={persistAttempt} persistence={persistence} session={session} />
             ) : session.deliveryStatus === "blocked" && scenario.mode !== "assessment" ? (
               <SafetyStop session={session} send={send} />
             ) : session.deliveryStatus === "blocked" ? (
@@ -627,6 +639,16 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
           {process.env.NEXT_PUBLIC_SIMULATION_AUDIT === "true" ? <TechnicalAudit session={session} /> : null}
         </aside>
       </div>
+      {duaIntroVisible || (session.selectedPlayerRole && !terminal) ? (
+        <DuaGuide
+          hint={duaHint}
+          hintUsed={duaHintUsed}
+          introOpen={duaIntroVisible}
+          onCloseIntro={() => setDuaIntroVisible(false)}
+          onUseHint={() => setDuaHintUsed(true)}
+          visible={Boolean(session.selectedPlayerRole) && !terminal}
+        />
+      ) : null}
     </div>
   );
 }
@@ -980,7 +1002,7 @@ function AssessmentBlocked({ send }: { send: Send }) {
   return <Panel eyebrow="EVALUACIÓN" title="Continúa revisando el caso"><p className="text-sm leading-6 text-slate-600">La simulación registró tu intento. No se mostrarán pistas sobre la causa durante la evaluación.</p><Action onClick={() => send("scene.returned")}>Continuar revisando</Action></Panel>;
 }
 
-function Results({ levelNumber, onReinforcement, onRetry, persistence, session }: { levelNumber: number; onReinforcement: () => void; onRetry: () => void; persistence: PersistenceState; session: SimulationSession }) {
+function Results({ hintUsed, levelNumber, onReinforcement, onRetry, persistence, session }: { hintUsed: boolean; levelNumber: number; onReinforcement: () => void; onRetry: () => void; persistence: PersistenceState; session: SimulationSession }) {
   const failed = Object.entries(session.criteria).filter(([, status]) => status !== "met" && status !== "intercepted");
   const instructionReminder = session.missingInstructionSections.length
     ? `NO OLVIDAR: faltó comunicar ${session.missingInstructionSections.map((section) => instructionSectionLabels[section].toLowerCase()).join(", ")}.`
@@ -996,6 +1018,7 @@ function Results({ levelNumber, onReinforcement, onRetry, persistence, session }
           : null;
   return (
     <Panel eyebrow={levelNumber === 6 ? "RESULTADO · CONTROL MÚLTIPLE" : levelNumber === 7 ? "RESULTADO · CIERRE EXPERTO" : "RESULTADO"} title={session.deliveryStatus === "safely-stopped" ? "Caso detenido de forma segura" : "Entrega completada"}>
+      <DuaResultCard hintUsed={hintUsed} />
       {levelNumber >= 6 ? <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm leading-6 text-emerald-900">{levelNumber === 7 ? "La auditoría final ya puede mostrar el desempeño completo del caso experto." : "La evaluación cruzó identidad, prescripciones, presentación y cantidad antes del cierre."}</p> : null}
       {session.deliveryStatus === "safely-stopped" ? <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">La dispensación se detuvo antes de la entrega y se solicitó revisión al QF.</p> : null}
       <div className="space-y-2">{Object.entries(session.criteria).map(([id, status], index) => <div className="flex items-start justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5" key={id}><span className="text-xs font-semibold leading-5">{dispensingCriteria.find((criterion) => criterion.id === id)?.title ?? `Criterio ${index + 1}`}</span><span className={cn("shrink-0 rounded-md px-2 py-1 text-xs font-black", status === "met" ? "bg-emerald-100 text-emerald-700" : status === "intercepted" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700")}>{status === "met" ? "Cumplido" : status === "intercepted" ? "Interceptado" : "Reforzar"}</span></div>)}</div>
@@ -1038,8 +1061,8 @@ function LearnerSidebar({ levelNumber, mode, scenario, session }: { levelNumber:
         <p className="text-xs font-black uppercase tracking-wider text-emerald-300">Evaluación final</p>
         <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[.62rem] font-bold text-white/80">{scenario.visibleClinicalRecordIds.length} registros</span>
       </div>
-      <h2 className="mt-3 font-black">Cierre experto sin asistencia</h2>
-      <p className="mt-2 text-sm leading-6 text-white/70">No se muestran secuencias, pistas ni causas de bloqueo. La retroalimentación completa aparece únicamente al finalizar.</p>
+      <h2 className="mt-3 font-black">Cierre experto con asistencia limitada</h2>
+      <p className="mt-2 text-sm leading-6 text-white/70">Dua ofrece una única orientación general. No se muestran secuencias ni causas de bloqueo, y la retroalimentación completa aparece al finalizar.</p>
       <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
         <p className="text-xs font-bold text-white">Decisiones auditadas</p>
         <p className="mt-1 text-xs leading-5 text-white/60">Identidad, estado de prescripciones, preparación, reidentificación e indicaciones.</p>
@@ -1051,7 +1074,7 @@ function LearnerSidebar({ levelNumber, mode, scenario, session }: { levelNumber:
     <div className="rounded-2xl border border-violet-100 bg-white p-5 shadow-[0_12px_35px_rgb(19_33_60/.06)]">
       <p className="text-xs font-black uppercase tracking-wider text-violet-600">Consolidación autónoma</p>
       <h2 className="mt-2 font-black text-slate-900">Resuelve el caso completo</h2>
-      <p className="mt-2 text-sm leading-6 text-slate-600">No se muestran secuencias, pistas, causas de error ni presión de tiempo durante el recorrido.</p>
+      <p className="mt-2 text-sm leading-6 text-slate-600">Dua ofrece una única orientación general. No se muestran secuencias, causas de error ni presión de tiempo durante el recorrido.</p>
       <div className="mt-4 grid grid-cols-3 gap-2 text-center">
         {["Identifica", "Compara", "Decide"].map((label, index) => <div className="rounded-xl bg-violet-50 px-2 py-3" key={label}><span className="mx-auto grid size-7 place-items-center rounded-full bg-white text-xs font-black text-violet-700">{index + 1}</span><p className="mt-2 text-[.68rem] font-bold text-slate-700">{label}</p></div>)}
       </div>
