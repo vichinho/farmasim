@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { getTrainingCaseBySlug, getTrainingModeByLevelId, trainingCases } from "@/data/training";
 import { loadTrainingLevels } from "@/features/training/load-training-levels";
 import { Simulation2DExperience } from "@/features/training/simulation-2d-experience";
+import { StorageReviewExperience } from "@/features/training/storage-review-experience";
 
 export function generateStaticParams() {
   return trainingCases.map((trainingCase) => ({ slug: trainingCase.id }));
@@ -46,7 +47,11 @@ export default async function TrainingCasePage({ params, searchParams }: PagePro
           <p>{trainingCase.description}</p>
         </header>
 
-        <Simulation2DExperience levelNumber={trainingLevel.number} mode={trainingMode} trainingCase={trainingCase} />
+        {trainingLevel.number === 5 ? (
+          <StorageReviewExperience levelNumber={trainingLevel.number} trainingCase={trainingCase} />
+        ) : (
+          <Simulation2DExperience levelNumber={trainingLevel.number} mode={trainingMode} trainingCase={trainingCase} />
+        )}
     </PageContainer>
   );
 }
