@@ -1,0 +1,68 @@
+/* Shared visual language for the simulation catalog, public cases and QA pilots. */
+.simulation-theme {
+  --simulation-primary: var(--brand);
+  --simulation-primary-strong: var(--brand-strong);
+  --simulation-primary-soft: #e9f7f1;
+  --simulation-primary-muted: #cfeadd;
+  --simulation-primary-border: #b6ddca;
+  --simulation-ink: var(--foreground);
+  --simulation-muted: var(--muted);
+  --simulation-panel: #fbfdfc;
+  --simulation-shadow: 0 22px 70px rgb(19 33 60 / 0.11);
+}
+
+/* The current renderer still uses its original violet utility names. Keeping
+ * the mapping here gives every simulation surface one source of truth while
+ * the interaction components are progressively extracted in later phases. */
+.simulation-theme .text-violet-600 { color: var(--simulation-primary); }
+.simulation-theme .text-violet-700,
+.simulation-theme .text-violet-800 { color: var(--simulation-primary-strong); }
+.simulation-theme .bg-violet-50 { background-color: var(--simulation-primary-soft); }
+.simulation-theme .bg-violet-600,
+.simulation-theme .bg-violet-700 { background-color: var(--simulation-primary); }
+.simulation-theme .border-violet-100 { border-color: var(--simulation-primary-muted); }
+.simulation-theme .border-violet-200 { border-color: var(--simulation-primary-border); }
+.simulation-theme .border-violet-600,
+.simulation-theme .border-violet-700 { border-color: var(--simulation-primary); }
+.simulation-theme .ring-violet-300 { --tw-ring-color: rgb(8 127 91 / 0.32); }
+
+.simulation-theme .hover\:bg-violet-50:hover { background-color: var(--simulation-primary-soft); }
+.simulation-theme .hover\:bg-violet-800:hover { background-color: var(--simulation-primary-strong); }
+
+.simulation-theme .font-black {
+  font-weight: 700;
+}
+
+.simulation-theme button,
+.simulation-theme a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.simulation-theme button:focus-visible,
+.simulation-theme a:focus-visible,
+.simulation-theme input:focus-visible,
+.simulation-theme select:focus-visible {
+  outline-color: var(--simulation-primary);
+}
+
+.simulation-frame {
+  border-color: var(--simulation-primary-muted) !important;
+  box-shadow: var(--simulation-shadow) !important;
+}
+
+.simulation-frame > header {
+  border-color: var(--simulation-primary-muted) !important;
+  background: linear-gradient(135deg, #fff 0%, #f5fbf8 100%);
+}
+
+.simulation-frame > div.grid > aside {
+  background: var(--simulation-panel) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .simulation-theme *,
+  .simulation-theme *::before,
+  .simulation-theme *::after {
+    scroll-behavior: auto !important;
+  }
+}

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { PageContainer } from "@/components/layout/page-container";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -59,8 +58,7 @@ export default async function PilotQaRunnerPage({ params }: PageProps<"/simulaci
   const next = currentIndex < pilotScenarioMatrix.length - 1 ? pilotScenarioMatrix[currentIndex + 1] : undefined;
 
   return (
-    <>
-      <PageContainer className="max-w-[1600px] space-y-4 pb-28">
+    <PageContainer className="simulation-theme max-w-[1600px] space-y-4 pb-8 sm:pb-10">
         <header className="rounded-2xl border border-violet-100 bg-white p-4 shadow-[0_10px_35px_rgba(76,48,130,.07)] sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -80,7 +78,7 @@ export default async function PilotQaRunnerPage({ params }: PageProps<"/simulaci
           </div>
         </header>
 
-        <Simulation2DExperience levelNumber={1} mode={qaModeFor(pilot)} trainingCase={runtimeCase} />
+        <Simulation2DExperience exitHref="/simulaciones/pilotos" levelNumber={1} mode={qaModeFor(pilot)} trainingCase={runtimeCase} />
 
         <nav className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-violet-100 bg-white p-4">
           {previous ? (
@@ -90,8 +88,6 @@ export default async function PilotQaRunnerPage({ params }: PageProps<"/simulaci
             <Link className="text-sm font-black text-violet-700" href={`/simulaciones/pilotos/${next.id}`}>{next.title} →</Link>
           ) : <Link className="text-sm font-black text-violet-700" href="/simulaciones/pilotos">Volver al índice</Link>}
         </nav>
-      </PageContainer>
-      <BottomNavigation activeHref="/simulaciones" />
-    </>
+    </PageContainer>
   );
 }

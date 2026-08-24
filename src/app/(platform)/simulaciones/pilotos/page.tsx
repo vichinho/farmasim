@@ -32,7 +32,7 @@ const roleLabel = {
 export default function PilotQaIndexPage() {
   return (
     <>
-      <PageContainer className="max-w-6xl space-y-6 pb-28">
+      <PageContainer className="simulation-theme max-w-6xl space-y-6 pb-28">
         <header className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone="brand">QA interno</Badge>
