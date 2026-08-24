@@ -14,7 +14,7 @@ export function AppHeader({
     <header className="flex min-w-0 flex-1 items-start justify-between gap-3">
       <div className="min-w-0">
         <div className="flex min-w-0 items-center gap-2">
-          <FarmaVerseIcon className="size-9 shrink-0 shadow-sm" />
+          <FarmaVerseIcon className="size-9 shrink-0" />
           <p className="truncate text-sm font-bold tracking-tight text-[var(--foreground)]">
             {eyebrow}
           </p>

@@ -14,7 +14,7 @@ export function FarmaVerseIcon({ className, priority = false }: BrandAssetProps)
       aria-hidden="true"
       className={cn("size-10", className)}
       height={48}
-      priority={priority}
+      loading={priority ? "eager" : "lazy"}
       src="/brand/farmaverse-icon.svg"
       unoptimized
       width={48}
@@ -27,8 +27,9 @@ export function FarmaVerseLogo({ className, priority = false }: BrandAssetProps)
     <Image
       alt="FarmaVerse"
       className={cn("h-auto w-48", className)}
+      fetchPriority={priority ? "high" : "auto"}
       height={256}
-      priority={priority}
+      loading="eager"
       src="/brand/farmaverse-logo.svg"
       unoptimized
       width={920}
