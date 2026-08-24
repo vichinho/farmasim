@@ -7,6 +7,8 @@ import { useMemo, useState } from "react";
 import { FarmaVerseLogo } from "@/components/brand/farmaverse-logo";
 import { generateScenarioDefinition, type Drawer, type ScenarioDefinition } from "@/features/simulation-engine";
 import { saveSimulationAttempt } from "@/features/progress/actions";
+import { DuaGuide, DuaResultCard } from "@/features/training/dua-guide";
+import { duaHintForCase } from "@/features/training/dua-guidance";
 import { cn } from "@/lib/utils";
 import type { TrainingCase } from "@/types/training-simulation";
 
@@ -62,6 +64,9 @@ export function StorageReviewExperience({ levelNumber, trainingCase }: { levelNu
   const [attemptId, setAttemptId] = useState(() => crypto.randomUUID());
   const [startedAt, setStartedAt] = useState(() => new Date().toISOString());
   const [persistence, setPersistence] = useState<PersistenceState>({ message: "", status: "idle" });
+  const [duaIntroVisible, setDuaIntroVisible] = useState(false);
+  const [duaHintUsed, setDuaHintUsed] = useState(false);
+  const duaHint = duaHintForCase(trainingCase.id);
   const selectedDrawer = scenario.drawers.find((drawer) => drawer.id === selectedDrawerId);
   const selectedEntry = selectedDrawer ? review[selectedDrawer.id] : undefined;
   const completedCount = Object.values(review).filter((entry) => entry.completed).length;
@@ -88,6 +93,7 @@ export function StorageReviewExperience({ levelNumber, trainingCase }: { levelNu
   function startReview() {
     setStage("review");
     setSelectedDrawerId(scenario.drawers[0]?.id ?? null);
+    setDuaIntroVisible(true);
   }
 
   function completeDrawer(drawer: Drawer) {
@@ -105,6 +111,8 @@ export function StorageReviewExperience({ levelNumber, trainingCase }: { levelNu
     setAttemptId(crypto.randomUUID());
     setStartedAt(new Date().toISOString());
     setPersistence({ message: "", status: "idle" });
+    setDuaIntroVisible(false);
+    setDuaHintUsed(false);
   }
 
   async function saveReview() {
@@ -193,7 +201,7 @@ export function StorageReviewExperience({ levelNumber, trainingCase }: { levelNu
           {stage === "intro" ? (
             <StorageIntro drawerCount={scenario.drawers.length} onStart={startReview} />
           ) : stage === "result" ? (
-            <StorageResult persistence={persistence} review={review} scenario={scenario} onSave={saveReview} />
+            <StorageResult hintUsed={duaHintUsed} persistence={persistence} review={review} scenario={scenario} onSave={saveReview} />
           ) : selectedDrawer && selectedEntry ? (
             <DrawerReview
               drawer={selectedDrawer}
@@ -209,6 +217,16 @@ export function StorageReviewExperience({ levelNumber, trainingCase }: { levelNu
           ) : null}
         </aside>
       </div>
+      {duaIntroVisible || stage === "review" ? (
+        <DuaGuide
+          hint={duaHint}
+          hintUsed={duaHintUsed}
+          introOpen={duaIntroVisible}
+          onCloseIntro={() => setDuaIntroVisible(false)}
+          onUseHint={() => setDuaHintUsed(true)}
+          visible={stage === "review"}
+        />
+      ) : null}
     </div>
   );
 }
@@ -255,12 +273,13 @@ function ReviewCheck({ checked, label, onClick, warning = false }: { checked: bo
   return <button aria-pressed={checked} className={cn("flex min-h-12 w-full items-center gap-3 rounded-xl border p-3 text-left text-sm font-semibold transition", checked ? warning ? "border-amber-300 bg-amber-50 text-amber-900" : "border-emerald-300 bg-emerald-50 text-emerald-900" : "border-slate-200 bg-white text-slate-700 hover:border-emerald-300")} onClick={onClick} type="button"><span className={cn("grid size-7 shrink-0 place-items-center rounded-full border text-xs font-bold", checked ? warning ? "border-amber-500 bg-amber-500 text-white" : "border-emerald-600 bg-emerald-600 text-white" : "border-slate-300 text-slate-400")}>{checked ? "✓" : ""}</span>{label}</button>;
 }
 
-function StorageResult({ onSave, persistence, review, scenario }: { onSave: () => void; persistence: PersistenceState; review: Record<string, ReviewEntry>; scenario: ScenarioDefinition }) {
+function StorageResult({ hintUsed, onSave, persistence, review, scenario }: { hintUsed: boolean; onSave: () => void; persistence: PersistenceState; review: Record<string, ReviewEntry>; scenario: ScenarioDefinition }) {
   return (
     <section>
       <p className="text-[.7rem] font-bold uppercase tracking-[.14em] text-emerald-700">Resultado</p>
       <h2 className="mt-2 text-2xl font-bold text-slate-950">Revisión completada</h2>
       <p className="mt-2 text-sm leading-6 text-slate-600">Registraste código, nombre, estado y observación para todas las gavetas del escenario.</p>
+      <div className="mt-5"><DuaResultCard hintUsed={hintUsed} /></div>
       <div className="mt-5 space-y-3">{scenario.drawers.map((drawer) => <div className="rounded-xl border border-emerald-100 bg-white p-3" key={drawer.id}><div className="flex items-center justify-between gap-2"><p className="text-sm font-bold">{drawer.expectedLabel}</p><span className="text-emerald-700">✓</span></div><p className="mt-1 text-xs leading-5 text-slate-500">{review[drawer.id]?.observation}</p></div>)}</div>
       <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3"><p className="text-xs font-bold uppercase tracking-[.1em] text-amber-900">No olvidar</p><p className="mt-1 text-xs leading-5 text-amber-900">Registra las observaciones visibles. Ante una condición no prevista, detén la actividad y deriva al QF.</p></div>
       {persistence.status === "saved" ? <p className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800" role="status">{persistence.message}</p> : <button className="mt-5 min-h-12 w-full rounded-xl bg-[var(--brand)] px-4 text-sm font-bold text-white disabled:opacity-50" disabled={persistence.status === "saving"} onClick={onSave} type="button">{persistence.status === "saving" ? "Guardando…" : persistence.status === "error" ? "Reintentar guardado" : "Finalizar y guardar progreso"}</button>}
