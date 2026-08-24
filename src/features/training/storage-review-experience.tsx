@@ -70,7 +70,18 @@ export function StorageReviewExperience({ levelNumber, trainingCase }: { levelNu
   function updateEntry(drawerId: string, patch: Partial<ReviewEntry>) {
     setReview((current) => ({
       ...current,
-      [drawerId]: { ...current[drawerId], ...patch },
+      [drawerId]: {
+        ...current[drawerId],
+        ...patch,
+        ...(
+          "codeChecked" in patch
+          || "nameChecked" in patch
+          || "observation" in patch
+          || "stateChecked" in patch
+            ? { completed: false }
+            : {}
+        ),
+      },
     }));
   }
 
@@ -99,18 +110,22 @@ export function StorageReviewExperience({ levelNumber, trainingCase }: { levelNu
   async function saveReview() {
     if (!allCompleted || persistence.status === "saving") return;
     setPersistence({ message: "Guardando la revisión…", status: "saving" });
-    const result = await saveSimulationAttempt({
-      attemptId,
-      correctAnswers: scenario.drawers.length * 4,
-      incorrectAnswers: 0,
-      levelNumber,
-      scenarioSlug: trainingCase.id,
-      startedAt,
-    });
-    setPersistence({
-      message: result.status === "error" ? result.message : "Revisión guardada en tu progreso.",
-      status: result.status === "error" ? "error" : "saved",
-    });
+    try {
+      const result = await saveSimulationAttempt({
+        attemptId,
+        correctAnswers: scenario.drawers.length * 4,
+        incorrectAnswers: 0,
+        levelNumber,
+        scenarioSlug: trainingCase.id,
+        startedAt,
+      });
+      setPersistence({
+        message: result.status === "error" ? result.message : "Revisión guardada en tu progreso.",
+        status: result.status === "error" ? "error" : "saved",
+      });
+    } catch {
+      setPersistence({ message: "No pudimos guardar la revisión. Revisa tu conexión y vuelve a intentarlo.", status: "error" });
+    }
   }
 
   return (

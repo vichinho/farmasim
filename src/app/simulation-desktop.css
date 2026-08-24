@@ -38,7 +38,7 @@ div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="
 
   /* Fit the whole 2D scene inside typical notebook viewports instead of
    * forcing a fixed 720px canvas that spills below the fold. */
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] {
     height: var(--desktop-simulation-height) !important;
     min-height: var(--desktop-simulation-height) !important;
   }
@@ -59,7 +59,7 @@ div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="
 
   /* Give the real React gate enough room for the role buttons positioned
    * inside it, and replace the obsolete "parte superior" instruction. */
-  div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > div.grid > main > div.absolute.inset-0.z-30 > div {
+  div:has(> header [aria-label="Seleccionar rol"]):not(:has(> header [aria-label="Seleccionar rol"] [aria-pressed="true"])) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > div.absolute.inset-0.z-30 > div {
     width: min(28rem, calc(100% - 3rem));
     min-height: 0;
     padding: 1.5rem 2rem !important;

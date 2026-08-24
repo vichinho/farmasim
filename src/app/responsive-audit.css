@@ -72,7 +72,7 @@
   }
 
   /* The scene remains a real image canvas on mobile, like desktop. */
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] {
     position: relative !important;
     display: block !important;
     width: 100%;
@@ -83,7 +83,7 @@
     background: rgb(226 232 240) !important;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div:first-child {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > div:first-child {
     position: absolute !important;
     inset: 0 !important;
     width: 100% !important;
@@ -92,48 +92,48 @@
     overflow: hidden;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div:first-child img {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > div:first-child img {
     object-position: 40% center !important;
   }
 
   /* Compact real role gate; room at the bottom is reserved for role buttons. */
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div.absolute.inset-0.z-30 {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > div.absolute.inset-0.z-30 {
     position: absolute !important;
     inset: 0 !important;
     padding: 0.5rem !important;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div.absolute.inset-0.z-30 > div {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > div.absolute.inset-0.z-30 > div {
     width: min(100%, 21rem);
     min-height: 0;
     padding: 0.9rem !important;
     border-radius: 1.25rem !important;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div.absolute.inset-0.z-30 h2 {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > div.absolute.inset-0.z-30 h2 {
     margin-top: 0.3rem !important;
     font-size: 1.1rem !important;
     line-height: 1.2 !important;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div.absolute.inset-0.z-30 .simulation-role-actions {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > div.absolute.inset-0.z-30 .simulation-role-actions {
     margin-top: 1rem;
     gap: 0.5rem;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div.absolute.inset-0.z-30 .simulation-role-actions button {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > div.absolute.inset-0.z-30 .simulation-role-actions button {
     min-width: 0;
     min-height: 3.25rem;
     padding: 0.5rem 0.6rem;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > div.absolute.inset-0.z-30 .simulation-role-actions button span:first-child {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > div.absolute.inset-0.z-30 .simulation-role-actions button span:first-child {
     white-space: nowrap;
     font-size: 0.68rem;
   }
 
   /* Hotspots stay on the scene. Visual dot is small, hit area is 44x44px. */
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "] {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > button[aria-label^="Interactuar con "] {
     position: absolute !important;
     z-index: 25;
     width: 2.75rem;
@@ -156,32 +156,32 @@
   }
 
   /* Mobile coordinates tuned to the portrait crop of the current scene. */
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label="Interactuar con Paciente"] {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > button[aria-label="Interactuar con Paciente"] {
     left: 14% !important;
     top: 59% !important;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label="Interactuar con Computador"] {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > button[aria-label="Interactuar con Computador"] {
     left: 43% !important;
     top: 68% !important;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label="Interactuar con Almacenamiento"] {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > button[aria-label="Interactuar con Almacenamiento"] {
     left: 70% !important;
     top: 18% !important;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label="Interactuar con TENS 2"] {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > button[aria-label="Interactuar con TENS 2"] {
     left: 59% !important;
     top: 42% !important;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label="Interactuar con Bandeja"] {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > button[aria-label="Interactuar con Bandeja"] {
     left: 78% !important;
     top: 73% !important;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "] > span:first-child {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > button[aria-label^="Interactuar con "] > span:first-child {
     display: block !important;
     width: 0.9rem !important;
     height: 0.9rem !important;
@@ -193,8 +193,8 @@
     opacity: 1 !important;
   }
 
-  /* Label appears only when the user taps/focuses the hotspot. */
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "] > span:last-child {
+  /* Touch layouts keep labels visible because hover is unavailable. */
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > button[aria-label^="Interactuar con "] > span:last-child {
     position: absolute !important;
     left: 50%;
     top: calc(50% + 1rem);
@@ -209,7 +209,7 @@
     border-radius: 0.65rem;
     background: rgb(255 255 255 / 0.97) !important;
     box-shadow: 0 5px 16px rgb(15 23 42 / 0.16) !important;
-    opacity: 0 !important;
+    opacity: 1 !important;
     pointer-events: none;
     white-space: nowrap;
     text-align: center;
@@ -220,17 +220,7 @@
     transition: opacity 120ms ease, translate 120ms ease;
   }
 
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "]:focus > span:last-child,
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "]:active > span:last-child {
-    opacity: 1 !important;
-    translate: -50% 0.18rem !important;
-  }
-
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main[data-mode="guided"] > button[aria-label^="Interactuar con "] > span:last-child {
-    opacity: 1 !important;
-  }
-
-  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > main > button[aria-label^="Interactuar con "]:focus-visible {
+  div:has(> header [aria-label="Seleccionar rol"]) > div.grid > section[aria-label="Escena interactiva de la farmacia"] > button[aria-label^="Interactuar con "]:focus-visible {
     outline: 2px solid var(--simulation-primary-border);
     outline-offset: 1px;
   }
