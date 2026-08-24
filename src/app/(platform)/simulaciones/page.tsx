@@ -15,7 +15,7 @@ export default async function SimulationsPage() {
 
   return (
     <>
-      <PageContainer className="space-y-7">
+      <PageContainer className="simulation-theme space-y-7 pb-28">
         <header className="max-w-2xl">
           <p className="text-sm font-bold tracking-[0.14em] text-[var(--brand-strong)]">
             SIMULACIONES

@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 
+import { FarmaVerseLogo } from "@/components/brand/farmaverse-logo";
+import { dispensingCriteria } from "@/data/training/dispensing-criteria";
 import {
   createSimulationSession,
   describeSimulationEvent,
@@ -28,13 +30,20 @@ import {
   type SimulationSession,
 } from "@/features/simulation-engine";
 import { saveSimulationAttempt } from "@/features/progress/actions";
+import { preparedItemForAdvancedLevel } from "@/features/training/advanced-level-preparation";
 import { cn } from "@/lib/utils";
 import type { AttemptCriterionResult, TrainingCase, TrainingMode } from "@/types/training-simulation";
 
-type Props = { levelNumber: number; mode: TrainingMode; trainingCase: TrainingCase };
+type Props = {
+  exitHref?: string;
+  levelNumber: number;
+  mode: TrainingMode;
+  trainingCase: TrainingCase;
+};
 type Send = (type: SimulationCommand["type"], data?: SimulationCommand["data"], actorId?: string) => void;
 type PersistenceState = { message: string; status: "idle" | "saving" | "saved" | "error" };
 type Hotspot = { id: string; label: string; x: string; y: string; event: SimulationCommand["type"] };
+type PressureInterruptionId = "clinical-system" | "product-selection" | "final-check";
 
 const hotspots: Hotspot[] = [
   { id: "patient", label: "Paciente", x: "8%", y: "60%", event: "patient.focused" },
@@ -54,6 +63,38 @@ const establishmentNames: Record<string, string> = {
   penco: "Penco",
   lirquen: "Lirquén",
 };
+
+const pressureInterruptions: Record<PressureInterruptionId, { eyebrow: string; title: string; description: string }> = {
+  "clinical-system": {
+    eyebrow: "Interrupción 1 · Consulta breve",
+    title: "Te solicitan orientación en ventanilla",
+    description: "La consulta ya fue derivada al equipo disponible. Retoma el caso desde el punto exacto en que estabas.",
+  },
+  "product-selection": {
+    eyebrow: "Interrupción 2 · Reposición",
+    title: "Llega un aviso desde almacenamiento",
+    description: "El aviso no modifica este caso. Reconoce la interrupción y vuelve a verificar antes de continuar.",
+  },
+  "final-check": {
+    eyebrow: "Interrupción 3 · Cambio de turno",
+    title: "Recibes una actualización operativa",
+    description: "La actualización quedó registrada. Recupera el hilo y completa la revisión final sin omitir barreras.",
+  },
+};
+
+function formatElapsedTime(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+function pressureInterruptionFor(session: SimulationSession): PressureInterruptionId | null {
+  const focus = session.focusedObjectId;
+  if (focus === "computer") return "clinical-system";
+  if (focus === "storage" || focus?.startsWith("drawer:") || focus?.startsWith("medication:")) return "product-selection";
+  if (focus === "tray" && session.eventLog.some((event) => event.type === "tray.inspected")) return "final-check";
+  return null;
+}
 
 function simulationMode(mode: TrainingMode): SimulationMode {
   if (mode.guidance === "guided") return "guided";
@@ -86,21 +127,75 @@ function roleLabel(role: PlayerRole) {
   return role === "tens-1" ? "TENS 1 · Atención" : "TENS 2 · Preparación";
 }
 
-export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Props) {
+function storageConditionLabel(condition: ScenarioDefinition["drawers"][number]["physicalCondition"]) {
+  if (condition === "damaged-label") return "Rótulo deteriorado";
+  if (condition === "double-label") return "Doble rotulación";
+  if (condition === "missing-strength") return "Concentración ausente";
+  return "Condición normal";
+}
+
+function storageStockLabel(stock: ScenarioDefinition["drawers"][number]["stockState"]) {
+  if (stock === "low") return "Stock bajo";
+  if (stock === "out-of-stock") return "Sin stock";
+  return "Stock disponible";
+}
+
+function discrepancyMessage(discrepancy: SimulationSession["discrepancies"][number]) {
+  if (discrepancy.kind === "patient") return "La identidad cargada no coincide con la persona del caso.";
+  if (discrepancy.kind === "final-patient") return "La reidentificación final no coincide.";
+  if (discrepancy.kind === "prescription" || discrepancy.kind === "prescription-status") return "El estado de la prescripción requiere revisión antes de continuar.";
+  if (discrepancy.kind === "omission") return "Falta un producto esperado en la bandeja.";
+  if (discrepancy.kind === "additional-product") return "La bandeja contiene un producto no asociado a la solicitud.";
+  const labels = {
+    medication: "Medicamento",
+    strength: "Concentración",
+    "pharmaceutical-form": "Forma farmacéutica",
+    quantity: "Cantidad",
+  } as const;
+  return `${labels[discrepancy.kind]}: esperado ${discrepancy.expected}; observado ${discrepancy.actual}.`;
+}
+
+function patientWorkflowState(scenario: ScenarioDefinition, session: SimulationSession) {
+  const documentReviewed = session.eventLog.some((event) => event.type === "document.opened");
+  const prescriptionsReviewed = session.loadedPatientId === scenario.patient.id
+    && session.criteria["criterion-3-identify-all-prescriptions"] === "met"
+    && ["met", "intercepted"].includes(session.criteria["criterion-4-confirm-prescription-issued"]);
+  const relevantLines = scenario.prescriptions
+    .filter((record) => scenario.prescriptionsRelevantToCurrentWithdrawal.includes(record.id))
+    .flatMap((record) => record.lines);
+  const preparationReviewed = session.eventLog.some((event) => event.type === "tray.inspected")
+    && relevantLines.every((line) => session.comparedPrescriptionLineIds.includes(line.id));
+  const handoffReady = documentReviewed && prescriptionsReviewed && preparationReviewed;
+  const deliveryReady = handoffReady
+    && Boolean(session.finalReidentifiedPatientId)
+    && session.missingInstructionSections.length === 0;
+
+  return { deliveryReady, documentReviewed, handoffReady, preparationReviewed, prescriptionsReviewed };
+}
+
+export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber, mode, trainingCase }: Props) {
   const resolvedSimulationMode = simulationMode(mode);
-  const baseScenario = useMemo(
-    () => generateScenarioDefinition({ id: trainingCase.id, mode: resolvedSimulationMode }),
-    [resolvedSimulationMode, trainingCase.id],
-  );
+  const baseScenario = useMemo(() => {
+    const generated = generateScenarioDefinition({ id: trainingCase.id, mode: resolvedSimulationMode });
+    return levelNumber >= 6 ? { ...generated, requiredPlayerRole: "tens-1" as const } : generated;
+  }, [levelNumber, resolvedSimulationMode, trainingCase.id]);
   const [scenario, setScenario] = useState(baseScenario);
   const [session, setSession] = useState<SimulationSession>(() => createSimulationSession(baseScenario));
   const [persistence, setPersistence] = useState<PersistenceState>({ message: "", status: "idle" });
+  const [resetConfirmationVisible, setResetConfirmationVisible] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [activeInterruption, setActiveInterruption] = useState<PressureInterruptionId | null>(null);
+  const [seenInterruptions, setSeenInterruptions] = useState<PressureInterruptionId[]>([]);
   const [, startPersistenceTransition] = useTransition();
 
   useEffect(() => {
     setScenario(baseScenario);
     setSession(createSimulationSession(baseScenario));
     setPersistence({ message: "", status: "idle" });
+    setResetConfirmationVisible(false);
+    setElapsedSeconds(0);
+    setActiveInterruption(null);
+    setSeenInterruptions([]);
   }, [baseScenario]);
 
   const runCommands = useCallback((commands: SimulationCommand[]) => {
@@ -132,6 +227,30 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
     ? getPresentation(scenario, session.focusedObjectId.slice(11))
     : undefined;
   const terminal = session.deliveryStatus === "completed" || session.deliveryStatus === "safely-stopped";
+  const missionSteps = getMissionSteps(scenario, session);
+  const completedStepCount = missionSteps.filter((step) => step.status === "completed").length;
+  const activeStep = missionSteps.find((step) => step.status === "current" || step.status === "attention");
+  const pressureTargetSeconds = mode.pressureTargetSeconds ?? 180;
+  const pressureTargetExceeded = elapsedSeconds > pressureTargetSeconds;
+  const currentPressureInterruption = pressureInterruptionFor(session);
+
+  useEffect(() => {
+    if (levelNumber !== 3 || !session.selectedPlayerRole || terminal) return;
+    const intervalId = window.setInterval(() => setElapsedSeconds((current) => current + 1), 1000);
+    return () => window.clearInterval(intervalId);
+  }, [levelNumber, session.selectedPlayerRole, terminal]);
+
+  useEffect(() => {
+    if (
+      levelNumber !== 3
+      || activeInterruption
+      || !currentPressureInterruption
+      || !mode.interruptionStageIds.includes(currentPressureInterruption)
+      || seenInterruptions.includes(currentPressureInterruption)
+    ) return;
+    setActiveInterruption(currentPressureInterruption);
+    setSeenInterruptions((current) => [...current, currentPressureInterruption]);
+  }, [activeInterruption, currentPressureInterruption, levelNumber, mode.interruptionStageIds, seenInterruptions]);
 
   const persistAttempt = useCallback(async () => {
     if (session.deliveryStatus !== "completed" && session.deliveryStatus !== "safely-stopped") return;
@@ -176,17 +295,18 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
     ];
 
     if (role === "tens-1") {
-      for (const line of expectedPrescriptionLines(scenario)) {
+      for (const [index, line] of expectedPrescriptionLines(scenario).entries()) {
+        const prepared = preparedItemForAdvancedLevel(scenario, line, index, levelNumber);
         commands.push(
-          { type: "medication.taken", actorId: "tens-2", data: { medicationPresentationId: line.medicationPresentationId } },
+          { type: "medication.taken", actorId: "tens-2", data: { medicationPresentationId: prepared.medicationPresentationId } },
           {
             type: "medication.added_to_tray",
             actorId: "tens-2",
             data: {
               trayItemId: `simulation:${line.id}`,
               prescriptionLineId: line.id,
-              medicationPresentationId: line.medicationPresentationId,
-              quantity: line.quantity,
+              medicationPresentationId: prepared.medicationPresentationId,
+              quantity: prepared.quantity,
             },
           },
         );
@@ -279,14 +399,73 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
     setScenario(nextScenario);
     setSession(createSimulationSession(nextScenario));
     setPersistence({ message: "", status: "idle" });
+    setResetConfirmationVisible(false);
+    setElapsedSeconds(0);
+    setActiveInterruption(null);
+    setSeenInterruptions([]);
+  }
+
+  function resetSimulation() {
+    setScenario(baseScenario);
+    setSession(createSimulationSession(baseScenario));
+    setPersistence({ message: "", status: "idle" });
+    setResetConfirmationVisible(false);
+    setElapsedSeconds(0);
+    setActiveInterruption(null);
+    setSeenInterruptions([]);
   }
 
   return (
-    <div className="overflow-hidden rounded-[1.6rem] border border-violet-100 bg-white shadow-[0_22px_70px_rgba(76,48,130,.13)]">
+    <div className="simulation-frame overflow-hidden rounded-[1.6rem] border border-violet-100 bg-white shadow-[0_22px_70px_rgba(76,48,130,.13)]">
+      <nav aria-label="Controles de la simulación" className="simulation-toolbar flex min-h-12 flex-wrap items-center justify-between gap-2 border-b border-emerald-100 bg-white px-3 py-2 sm:px-5">
+        <Link className="inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-semibold text-[var(--brand-strong)] hover:bg-emerald-50" href={exitHref}>
+          <span aria-hidden="true" className="mr-1.5">←</span>
+          Salir<span className="hidden sm:inline"> del caso</span>
+        </Link>
+        <div className="min-w-0 flex-1 text-center" aria-live={levelNumber === 3 ? undefined : "polite"}>
+          <p className="truncate text-[.68rem] font-semibold uppercase tracking-[.08em] text-slate-500">
+            {!session.selectedPlayerRole
+              ? "Selecciona un rol para comenzar"
+              : terminal
+                ? "Caso finalizado"
+                : levelNumber === 3
+                  ? "Turno con presión · cronómetro informativo"
+                  : levelNumber === 4
+                    ? "Consolidación autónoma"
+                    : levelNumber === 6
+                      ? "Control de discrepancias múltiples"
+                      : levelNumber === 7
+                        ? "Cierre experto"
+                        : `Paso ${Math.min(completedStepCount + 1, missionSteps.length)} de ${missionSteps.length}`}
+          </p>
+          {session.selectedPlayerRole && levelNumber === 3 ? (
+            <p className={cn("truncate text-xs font-semibold tabular-nums", pressureTargetExceeded ? "text-amber-700" : "text-slate-800")}>{formatElapsedTime(elapsedSeconds)} / {formatElapsedTime(pressureTargetSeconds)}</p>
+          ) : session.selectedPlayerRole && levelNumber === 4 ? (
+            <p className="truncate text-xs font-semibold text-slate-800">Sin pistas de secuencia</p>
+          ) : session.selectedPlayerRole && levelNumber === 7 ? (
+            <p className="truncate text-xs font-semibold text-slate-800">Sin ayudas ni retroalimentación anticipada</p>
+          ) : session.selectedPlayerRole && activeStep ? (
+            <p className="truncate text-xs font-semibold text-slate-800">{activeStep.label}</p>
+          ) : null}
+        </div>
+        {resetConfirmationVisible ? (
+          <div className="flex items-center gap-1">
+            <button className="min-h-9 rounded-lg px-2 text-xs font-semibold text-slate-500 hover:bg-slate-100" onClick={() => setResetConfirmationVisible(false)} type="button">Cancelar</button>
+            <button className="min-h-9 rounded-lg bg-rose-700 px-3 text-xs font-semibold text-white hover:bg-rose-800" onClick={resetSimulation} type="button">Confirmar</button>
+          </div>
+        ) : (
+          <button className="inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-semibold text-slate-600 hover:bg-slate-100" onClick={() => setResetConfirmationVisible(true)} type="button">
+            Reiniciar
+          </button>
+        )}
+      </nav>
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-violet-100 px-5 py-4">
-        <div>
-          <p className="text-xl font-black text-violet-800">FarmaVerse · Simulación 2D</p>
-          <p className="text-xs font-semibold text-slate-500">{trainingCase.title}</p>
+        <div className="flex min-w-0 items-center gap-3">
+          <FarmaVerseLogo className="w-28 shrink-0 sm:w-32" />
+          <div className="min-w-0 border-l border-emerald-200 pl-3">
+            <p className="text-sm font-bold text-[var(--foreground)]">Simulación clínica</p>
+            <p className="truncate text-xs font-medium text-slate-500">{trainingCase.title}</p>
+          </div>
         </div>
         <div className="flex gap-2" aria-label="Seleccionar rol">
           {(["tens-1", "tens-2"] as const).map((role) => {
@@ -315,31 +494,79 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
           })}
         </div>
         <span className="rounded-full bg-violet-50 px-4 py-2 text-xs font-black text-violet-700">
-          {scenario.mode === "guided" ? "Guiado" : scenario.mode === "practice" ? "Práctica" : "Evaluación"}
+          {levelNumber === 3 ? "Presión" : levelNumber === 4 ? "Autónomo" : levelNumber === 6 ? "Múltiple" : levelNumber === 7 ? "Experto" : scenario.mode === "guided" ? "Guiado" : scenario.mode === "practice" ? "Práctica" : "Evaluación"}
         </span>
       </header>
 
       <div className="grid xl:grid-cols-[minmax(0,1fr)_27rem]">
-        <main className="relative min-h-[28rem] overflow-hidden bg-slate-200 sm:min-h-[36rem] xl:min-h-[720px]">
+        <section aria-label="Escena interactiva de la farmacia" className="relative min-h-[28rem] overflow-hidden bg-slate-200 sm:min-h-[36rem] xl:min-h-[720px]" data-mode={scenario.mode}>
           <div className={cn("absolute inset-0 transition-transform duration-700", session.focusedObjectId && "scale-110")} style={{ transformOrigin: focusOrigin(session.focusedObjectId) }}>
             <Image alt="Farmacia ambulatoria 2D interactiva" className="object-cover" fill priority sizes="(min-width: 1280px) 70vw, 100vw" src="/images/farmasim/case001-scene.jpg" />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-white/5" />
           </div>
 
+          {session.selectedPlayerRole && levelNumber === 3 ? (
+            <div className="absolute left-4 top-4 z-30 max-w-44 rounded-2xl border border-white/25 bg-slate-950/75 p-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5 sm:max-w-none sm:px-4">
+              <p className="text-[.65rem] font-bold uppercase tracking-[.14em] text-emerald-300">Turno con presión</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2 sm:gap-3">
+                <p className="text-xl font-bold tabular-nums">{formatElapsedTime(elapsedSeconds)}</p>
+                <span aria-label={`${seenInterruptions.length} de ${mode.interruptionStageIds.length} interrupciones`} className={cn("rounded-full px-2 py-1 text-[.62rem] font-bold", pressureTargetExceeded ? "bg-amber-300 text-amber-950" : "bg-white/15 text-white")}>{seenInterruptions.length}/{mode.interruptionStageIds.length}<span className="hidden sm:inline"> interrupciones</span></span>
+              </div>
+              <p className="mt-1 hidden text-[.68rem] text-white/70 sm:block">El tiempo no bloquea ni penaliza el caso.</p>
+            </div>
+          ) : session.selectedPlayerRole && levelNumber === 4 ? (
+            <div className="absolute left-4 top-4 z-30 max-w-44 rounded-2xl border border-white/25 bg-slate-950/75 p-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5 sm:max-w-none sm:px-4">
+              <p className="text-[.65rem] font-bold uppercase tracking-[.14em] text-emerald-300">Consolidación</p>
+              <p className="mt-1 text-sm font-bold">Decisión autónoma</p>
+              <p className="mt-1 hidden text-[.68rem] text-white/70 sm:block">Sin cronómetro ni pistas de secuencia.</p>
+            </div>
+          ) : session.selectedPlayerRole && levelNumber === 6 ? (
+            <div className="absolute left-4 top-4 z-30 max-w-44 rounded-2xl border border-white/25 bg-slate-950/75 p-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5 sm:max-w-none sm:px-4">
+              <p className="text-[.65rem] font-bold uppercase tracking-[.14em] text-emerald-300">Control múltiple</p>
+              <p className="mt-1 text-sm font-bold">Verificación cruzada</p>
+              <p className="mt-1 hidden max-w-56 text-[.68rem] leading-5 text-white/70 sm:block">Los hallazgos se revelan sólo al activar la barrera correspondiente.</p>
+            </div>
+          ) : session.selectedPlayerRole && levelNumber === 7 ? (
+            <div className="absolute left-4 top-4 z-30 max-w-44 rounded-2xl border border-white/25 bg-slate-950/80 p-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5 sm:max-w-none sm:px-4">
+              <p className="text-[.65rem] font-bold uppercase tracking-[.14em] text-emerald-300">Cierre experto</p>
+              <p className="mt-1 text-sm font-bold">Autonomía total</p>
+              <p className="mt-1 hidden max-w-56 text-[.68rem] leading-5 text-white/70 sm:block">Las decisiones se auditan al finalizar.</p>
+            </div>
+          ) : null}
+
           {!session.selectedPlayerRole ? (
-            <div className="absolute inset-0 z-30 grid place-items-center bg-slate-950/55 p-6 backdrop-blur-[2px]">
-              <div className="max-w-md rounded-3xl border border-white/30 bg-white/95 p-6 text-center shadow-2xl">
+            <div className="absolute inset-0 z-30 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-[2px] sm:p-6">
+              <div aria-describedby="simulation-role-gate-description" aria-labelledby="simulation-role-gate-title" aria-modal="true" className="simulation-role-gate w-full max-w-md rounded-3xl border border-white/30 bg-white/95 p-5 text-center shadow-2xl sm:p-6" role="dialog">
                 <p className="text-xs font-black uppercase tracking-[.18em] text-violet-600">
-                  {scenario.requiredPlayerRole ? "Refuerzo dirigido" : "Antes de comenzar"}
+                  {scenario.requiredPlayerRole && levelNumber >= 6 ? "Caso avanzado" : scenario.requiredPlayerRole ? "Refuerzo dirigido" : "Antes de comenzar"}
                 </p>
-                <h2 className="mt-2 text-2xl font-black text-slate-950">
-                  {scenario.requiredPlayerRole ? `Continúa como ${roleLabel(scenario.requiredPlayerRole)}` : "Elige tu rol"}
+                <h2 className="mt-2 text-2xl font-black text-slate-950" id="simulation-role-gate-title">
+                  {scenario.requiredPlayerRole && levelNumber >= 6 ? "Realiza la revisión final" : scenario.requiredPlayerRole ? `Continúa como ${roleLabel(scenario.requiredPlayerRole)}` : "Elige tu rol"}
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {scenario.requiredPlayerRole
+                <p className="mt-2 text-sm leading-6 text-slate-600" id="simulation-role-gate-description">
+                  {scenario.requiredPlayerRole && levelNumber >= 6
+                    ? "Participarás como TENS 1. La preparación viene desde TENS 2 y debes verificarla antes de cualquier entrega."
+                    : scenario.requiredPlayerRole
                     ? "Este refuerzo entrena una competencia asociada a ese rol. El otro rol queda a cargo de la simulación."
-                    : "Selecciona TENS 1 · Atención o TENS 2 · Preparación en la parte superior. La escena permanecerá bloqueada hasta elegir."}
+                    : "Selecciona el rol con el que quieres realizar este caso."}
                 </p>
+                <div className="simulation-role-actions mt-5 grid grid-cols-2 gap-2.5 text-left">
+                  {(["tens-1", "tens-2"] as const).map((role) => {
+                    const unavailable = Boolean(scenario.requiredPlayerRole && scenario.requiredPlayerRole !== role);
+                    return (
+                      <button
+                        className="min-h-14 rounded-xl border border-violet-200 bg-white px-3 py-2 text-violet-700 shadow-[0_7px_20px_rgb(19_33_60/.10)] transition hover:-translate-y-0.5 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        disabled={unavailable}
+                        key={role}
+                        onClick={() => selectRole(role)}
+                        type="button"
+                      >
+                        <span className="block text-xs font-bold">{roleLabel(role)}</span>
+                        <span className="mt-0.5 block text-[.65rem] font-medium text-slate-500">{role === "tens-1" ? "Atención y entrega" : "Preparación"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           ) : null}
@@ -354,15 +581,30 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
               type="button"
             >
               <span className={cn("mx-auto block size-4 rounded-full border-[3px] border-white bg-violet-600 shadow-lg transition group-hover:scale-125", scenario.mode === "assessment" && "opacity-45 group-hover:opacity-100")} />
-              <span className={cn("mt-2 block rounded-xl bg-white/95 px-3 py-1.5 text-xs font-black text-violet-800 shadow transition", scenario.mode === "guided" ? "opacity-100" : "translate-y-1 opacity-0 group-hover:translate-y-0 group-hover:opacity-100")}>{hotspot.label}</span>
+              <span className={cn("mt-2 block rounded-xl bg-white/95 px-3 py-1.5 text-xs font-black text-violet-800 shadow transition", scenario.mode === "guided" ? "opacity-100" : "opacity-100 lg:translate-y-1 lg:opacity-0 lg:group-hover:translate-y-0 lg:group-hover:opacity-100 lg:group-focus-visible:translate-y-0 lg:group-focus-visible:opacity-100")}>{hotspot.label}</span>
             </button>
           )) : null}
-        </main>
 
-        <aside className="space-y-4 bg-[#fcfcfe] p-4 sm:p-5 xl:max-h-[720px] xl:overflow-y-auto xl:pb-28">
+          {activeInterruption ? (
+            <div className="absolute inset-0 z-40 grid place-items-center bg-slate-950/60 p-4 backdrop-blur-[3px]" role="dialog" aria-modal="true" aria-labelledby="pressure-interruption-title">
+              <div className="w-full max-w-sm rounded-3xl border border-white/25 bg-white p-5 shadow-2xl sm:p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="grid size-10 place-items-center rounded-full bg-amber-100 text-lg text-amber-800" aria-hidden="true">!</span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-[.65rem] font-bold text-slate-600">Pausa informativa</span>
+                </div>
+                <p className="mt-5 text-[.68rem] font-bold uppercase tracking-[.14em] text-amber-700">{pressureInterruptions[activeInterruption].eyebrow}</p>
+                <h2 className="mt-2 text-xl font-bold text-slate-950" id="pressure-interruption-title">{pressureInterruptions[activeInterruption].title}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{pressureInterruptions[activeInterruption].description}</p>
+                <button className="mt-5 min-h-12 w-full rounded-xl bg-[var(--brand)] px-4 text-sm font-bold text-white hover:bg-[var(--brand-strong)]" onClick={() => setActiveInterruption(null)} type="button">Retomar desde donde estaba</button>
+              </div>
+            </div>
+          ) : null}
+        </section>
+
+        <aside className="space-y-4 bg-[#fcfcfe] p-4 sm:p-5 xl:max-h-[720px] xl:overflow-y-auto xl:pb-6">
           <section className="rounded-2xl border border-violet-100 bg-white p-4 shadow-[0_12px_35px_rgba(76,48,130,.08)] sm:p-5" aria-live="polite">
             {terminal ? (
-              <Results onReinforcement={startReinforcement} onRetry={persistAttempt} persistence={persistence} session={session} />
+              <Results levelNumber={levelNumber} onReinforcement={startReinforcement} onRetry={persistAttempt} persistence={persistence} session={session} />
             ) : session.deliveryStatus === "blocked" && scenario.mode !== "assessment" ? (
               <SafetyStop session={session} send={send} />
             ) : session.deliveryStatus === "blocked" ? (
@@ -381,7 +623,7 @@ export function Simulation2DExperience({ levelNumber, mode, trainingCase }: Prop
               />
             )}
           </section>
-          <LearnerSidebar scenario={scenario} session={session} />
+          <LearnerSidebar levelNumber={levelNumber} mode={mode} scenario={scenario} session={session} />
           {process.env.NEXT_PUBLIC_SIMULATION_AUDIT === "true" ? <TechnicalAudit session={session} /> : null}
         </aside>
       </div>
@@ -398,7 +640,54 @@ function FocusView({ finishPreparationAsTens2, scenario, searchPatient, send, se
 }) {
   const focus = session.focusedObjectId;
   if (!focus) return <Panel eyebrow="ESCENA GENERAL" title="Explora la farmacia"><p className="text-sm leading-6 text-slate-600">Selecciona un objeto de la escena para continuar.</p></Panel>;
-  if (focus === "patient") return <Panel eyebrow="ATENCIÓN" title="Paciente"><p className="rounded-xl bg-violet-50 p-3 text-sm">“Buenos días, vengo a retirar mis medicamentos.”</p><Action onClick={() => { send("document.requested"); send("document.opened"); }}>Solicitar documento</Action><FinalIdentityCheck scenario={scenario} send={send} session={session} /><PatientCounseling scenario={scenario} send={send} session={session} /><button className="mt-3 min-h-12 w-full rounded-xl bg-violet-700 px-4 font-black text-white" onClick={() => send("delivery.attempted")} type="button">ENTREGAR</button><Back send={send} /></Panel>;
+  if (focus === "patient") {
+    const workflow = patientWorkflowState(scenario, session);
+    return (
+      <Panel eyebrow="ATENCIÓN" title="Paciente">
+        <p className="rounded-xl bg-violet-50 p-3 text-sm">“Buenos días, vengo a retirar mis medicamentos.”</p>
+
+        {!workflow.documentReviewed ? (
+          <Action onClick={() => { send("document.requested"); send("document.opened"); }}>Solicitar y revisar documento</Action>
+        ) : null}
+
+        {workflow.documentReviewed && !workflow.prescriptionsReviewed ? (
+          <NextStepPrompt
+            actionLabel="Ir al computador"
+            description="La identidad inicial está registrada. Busca al paciente y revisa las prescripciones disponibles."
+            onAction={() => send("computer.focused")}
+            title="Continúa con la revisión clínica"
+          />
+        ) : null}
+
+        {workflow.prescriptionsReviewed && !workflow.preparationReviewed ? (
+          <NextStepPrompt
+            actionLabel={session.selectedPlayerRole === "tens-2" ? "Volver a preparación" : "Revisar la bandeja"}
+            description={session.selectedPlayerRole === "tens-2"
+              ? "Completa la preparación y envía la bandeja al puesto de atención."
+              : "La revisión clínica está completa. Inspecciona cada producto antes de la entrega."}
+            onAction={() => send(session.selectedPlayerRole === "tens-2" ? "preparation.focused" : "tray.inspected")}
+            title="Verifica la preparación"
+          />
+        ) : null}
+
+        {workflow.handoffReady ? (
+          <div className="mt-4 border-t border-emerald-100 pt-4">
+            <p className="text-xs font-bold uppercase tracking-[.12em] text-[var(--brand-strong)]">Cierre de la atención</p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">La identidad, las prescripciones y la preparación ya fueron revisadas. Completa la entrega con el paciente.</p>
+            <FinalIdentityCheck scenario={scenario} send={send} session={session} />
+            <PatientCounseling scenario={scenario} send={send} session={session} />
+          </div>
+        ) : null}
+
+        {workflow.deliveryReady ? (
+          <button className="mt-4 min-h-12 w-full rounded-xl bg-violet-700 px-4 font-bold text-white transition-colors hover:bg-violet-800" onClick={() => send("delivery.attempted")} type="button">Confirmar entrega</button>
+        ) : workflow.handoffReady ? (
+          <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-900">Completa la reidentificación y todas las indicaciones para habilitar la entrega.</p>
+        ) : null}
+        <Back send={send} />
+      </Panel>
+    );
+  }
   if (focus === "document") return <Panel eyebrow="DOCUMENTO FICTICIO" title="Identificación"><div className="rounded-xl bg-violet-50 p-4"><p className="font-black">{fullName(scenario)}</p><p className="text-sm">RUT {scenario.patient.rut}</p><p className="text-sm">Edad {scenario.patient.age} años</p></div><Back send={send} /></Panel>;
   if (focus === "computer") return <Computer scenario={scenario} searchPatient={searchPatient} send={send} session={session} />;
   if (focus === "storage") return <Storage scenario={scenario} send={send} />;
@@ -421,7 +710,7 @@ function FinalIdentityCheck({ scenario, send, session }: { scenario: ScenarioDef
 
   return (
     <div className="mt-4 rounded-2xl border border-violet-100 bg-white p-3">
-      <p className="text-xs font-black uppercase tracking-wider text-violet-700">Reidentificación antes del handoff</p>
+      <p className="text-xs font-black uppercase tracking-wider text-violet-700">Reidentificación antes de la entrega</p>
       <p className="mt-1 text-xs leading-5 text-slate-500">Vuelve a ingresar el RUT del paciente que recibirá la preparación.</p>
       <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
         <input
@@ -596,7 +885,7 @@ function Computer({ scenario, searchPatient, send, session }: { scenario: Scenar
 }
 
 function Storage({ scenario, send }: { scenario: ScenarioDefinition; send: Send }) {
-  return <Panel eyebrow="ALMACENAMIENTO" title="Selecciona una gaveta"><div className="space-y-2">{scenario.drawers.map((drawer) => <div className="rounded-xl border border-slate-200 p-3" key={drawer.id}><p className="font-black">{drawer.displayedLabel}</p><p className="text-xs text-slate-500">{drawer.physicalCondition} · {drawer.stockState}</p><div className="mt-2 flex gap-4"><button className="text-xs font-black text-violet-700" onClick={() => send("drawer.label_inspected", { drawerId: drawer.id })} type="button">Leer rótulo</button><button className="text-xs font-black text-violet-700" onClick={() => { send("drawer.opened", { drawerId: drawer.id }); send("drawer.contents_inspected", { drawerId: drawer.id }); }} type="button">Abrir gaveta</button></div></div>)}</div><Back send={send} /></Panel>;
+  return <Panel eyebrow="ALMACENAMIENTO" title="Selecciona una gaveta"><div className="space-y-2">{scenario.drawers.map((drawer) => <div className="rounded-xl border border-slate-200 p-3" key={drawer.id}><p className="font-black">{drawer.displayedLabel}</p><p className="text-xs text-slate-500">{storageConditionLabel(drawer.physicalCondition)} · {storageStockLabel(drawer.stockState)}</p><div className="mt-2 flex flex-wrap gap-2"><button className="min-h-10 rounded-lg px-3 text-xs font-black text-violet-700 hover:bg-violet-50" onClick={() => send("drawer.label_inspected", { drawerId: drawer.id })} type="button">Leer rótulo</button><button className="min-h-10 rounded-lg px-3 text-xs font-black text-violet-700 hover:bg-violet-50" onClick={() => { send("drawer.opened", { drawerId: drawer.id }); send("drawer.contents_inspected", { drawerId: drawer.id }); }} type="button">Abrir gaveta</button></div></div>)}</div><Back send={send} /></Panel>;
 }
 
 function DrawerView({ drawer, scenario, send }: { drawer: ScenarioDefinition["drawers"][number]; scenario: ScenarioDefinition; send: Send }) {
@@ -684,14 +973,14 @@ function SafetyStop({ send, session }: { send: Send; session: SimulationSession 
       ? { label: "Volver al computador", type: "computer.focused" as const }
       : { label: "Volver a revisar la bandeja", type: "tray.inspected" as const };
 
-  return <Panel eyebrow="DETENTE · NO ENTREGAR" title="Barrera de seguridad activada"><div className="space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-3">{session.discrepancies.map((item) => <p className="text-sm" key={item.id}><strong>{item.kind}</strong>: esperado {item.expected}; actual {item.actual}.</p>)}</div><Action onClick={() => send(recovery.type)}>{recovery.label}</Action></Panel>;
+  return <Panel eyebrow="DETENTE · NO ENTREGAR" title="Barrera de seguridad activada"><div className="space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-3">{session.discrepancies.map((item) => <p className="text-sm leading-6" key={item.id}>{discrepancyMessage(item)}</p>)}</div><Action onClick={() => send(recovery.type)}>{recovery.label}</Action></Panel>;
 }
 
 function AssessmentBlocked({ send }: { send: Send }) {
   return <Panel eyebrow="EVALUACIÓN" title="Continúa revisando el caso"><p className="text-sm leading-6 text-slate-600">La simulación registró tu intento. No se mostrarán pistas sobre la causa durante la evaluación.</p><Action onClick={() => send("scene.returned")}>Continuar revisando</Action></Panel>;
 }
 
-function Results({ onReinforcement, onRetry, persistence, session }: { onReinforcement: () => void; onRetry: () => void; persistence: PersistenceState; session: SimulationSession }) {
+function Results({ levelNumber, onReinforcement, onRetry, persistence, session }: { levelNumber: number; onReinforcement: () => void; onRetry: () => void; persistence: PersistenceState; session: SimulationSession }) {
   const failed = Object.entries(session.criteria).filter(([, status]) => status !== "met" && status !== "intercepted");
   const instructionReminder = session.missingInstructionSections.length
     ? `NO OLVIDAR: faltó comunicar ${session.missingInstructionSections.map((section) => instructionSectionLabels[section].toLowerCase()).join(", ")}.`
@@ -706,9 +995,10 @@ function Results({ onReinforcement, onRetry, persistence, session }: { onReinfor
           ? instructionReminder
           : null;
   return (
-    <Panel eyebrow="RESULTADO" title={session.deliveryStatus === "safely-stopped" ? "Caso detenido de forma segura" : "Entrega completada"}>
-      {session.deliveryStatus === "safely-stopped" ? <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">La dispensación se detuvo antes del handoff y se solicitó revisión al QF.</p> : null}
-      <div className="space-y-2">{Object.entries(session.criteria).map(([id, status], index) => <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2" key={id}><span className="text-xs font-semibold">Criterio {index + 1}</span><span className={cn("rounded-md px-2 py-1 text-xs font-black", status === "met" ? "bg-emerald-100 text-emerald-700" : status === "intercepted" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700")}>{status === "met" ? "Cumplido" : status === "intercepted" ? "Interceptado" : "Reforzar"}</span></div>)}</div>
+    <Panel eyebrow={levelNumber === 6 ? "RESULTADO · CONTROL MÚLTIPLE" : levelNumber === 7 ? "RESULTADO · CIERRE EXPERTO" : "RESULTADO"} title={session.deliveryStatus === "safely-stopped" ? "Caso detenido de forma segura" : "Entrega completada"}>
+      {levelNumber >= 6 ? <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm leading-6 text-emerald-900">{levelNumber === 7 ? "La auditoría final ya puede mostrar el desempeño completo del caso experto." : "La evaluación cruzó identidad, prescripciones, presentación y cantidad antes del cierre."}</p> : null}
+      {session.deliveryStatus === "safely-stopped" ? <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">La dispensación se detuvo antes de la entrega y se solicitó revisión al QF.</p> : null}
+      <div className="space-y-2">{Object.entries(session.criteria).map(([id, status], index) => <div className="flex items-start justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5" key={id}><span className="text-xs font-semibold leading-5">{dispensingCriteria.find((criterion) => criterion.id === id)?.title ?? `Criterio ${index + 1}`}</span><span className={cn("shrink-0 rounded-md px-2 py-1 text-xs font-black", status === "met" ? "bg-emerald-100 text-emerald-700" : status === "intercepted" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700")}>{status === "met" ? "Cumplido" : status === "intercepted" ? "Interceptado" : "Reforzar"}</span></div>)}</div>
       {reminder ? <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-black text-amber-900">{reminder}</div> : null}
       {failed.length ? <Link className="mt-3 block rounded-xl border border-violet-200 px-4 py-3 text-sm font-black text-violet-700 hover:bg-violet-50" href="/capsulas">Revisar cápsulas educativas asignadas</Link> : null}
       {failed.length ? <Action onClick={onReinforcement}>Iniciar refuerzo con un escenario diferente</Action> : null}
@@ -717,8 +1007,56 @@ function Results({ onReinforcement, onRetry, persistence, session }: { onReinfor
   );
 }
 
-function LearnerSidebar({ scenario, session }: { scenario: ScenarioDefinition; session: SimulationSession }) {
-  if (scenario.mode === "assessment") return <div className="rounded-2xl border border-violet-100 bg-white p-5"><p className="text-xs font-black uppercase tracking-wider text-violet-600">Evaluación en curso</p><h2 className="mt-2 font-black text-slate-900">Resuelve el caso de forma autónoma</h2><p className="mt-2 text-sm leading-6 text-slate-600">No se muestran secuencias, pistas ni causas de error durante el caso.</p></div>;
+function LearnerSidebar({ levelNumber, mode, scenario, session }: { levelNumber: number; mode: TrainingMode; scenario: ScenarioDefinition; session: SimulationSession }) {
+  if (scenario.mode === "assessment" && levelNumber === 3) return (
+    <div className="rounded-2xl border border-amber-200 bg-white p-5 shadow-[0_12px_35px_rgb(19_33_60/.06)]">
+      <p className="text-xs font-black uppercase tracking-wider text-amber-700">Turno con presión</p>
+      <h2 className="mt-2 font-black text-slate-900">Retoma, verifica y continúa</h2>
+      <p className="mt-2 text-sm leading-6 text-slate-600">Recibirás {mode.interruptionStageIds.length} interrupciones operativas. Ninguna cambia los datos del caso ni revela si una decisión fue correcta.</p>
+      <div className="mt-4 rounded-xl bg-amber-50 p-3">
+        <p className="text-xs font-bold text-amber-900">Regla del ejercicio</p>
+        <p className="mt-1 text-xs leading-5 text-amber-900">Después de cada pausa, recupera el contexto y vuelve a comprobar antes de avanzar.</p>
+      </div>
+    </div>
+  );
+
+  if (levelNumber === 6) return (
+    <div className="rounded-2xl border border-amber-200 bg-white p-5 shadow-[0_12px_35px_rgb(19_33_60/.06)]">
+      <p className="text-xs font-black uppercase tracking-wider text-amber-700">Control de discrepancias múltiples</p>
+      <h2 className="mt-2 font-black text-slate-900">Cruza todas las variables</h2>
+      <p className="mt-2 text-sm leading-6 text-slate-600">Más de una variable puede diferir. El caso no confirma cuántos hallazgos existen antes de que realices la comparación.</p>
+      <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+        {["Producto", "Presentación", "Cantidad"].map((label) => <div className="rounded-xl bg-amber-50 px-2 py-3" key={label}><span className="mx-auto block size-2 rounded-full bg-amber-500" /><p className="mt-2 text-[.68rem] font-bold text-amber-950">{label}</p></div>)}
+      </div>
+      <p className="mt-4 text-xs leading-5 text-slate-500">Si detectas una diferencia, activa la barrera y solicita la corrección antes del cierre.</p>
+    </div>
+  );
+
+  if (scenario.mode === "assessment" && levelNumber === 7) return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-950 p-5 text-white shadow-[0_12px_35px_rgb(19_33_60/.12)]">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-black uppercase tracking-wider text-emerald-300">Evaluación final</p>
+        <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[.62rem] font-bold text-white/80">{scenario.visibleClinicalRecordIds.length} registros</span>
+      </div>
+      <h2 className="mt-3 font-black">Cierre experto sin asistencia</h2>
+      <p className="mt-2 text-sm leading-6 text-white/70">No se muestran secuencias, pistas ni causas de bloqueo. La retroalimentación completa aparece únicamente al finalizar.</p>
+      <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
+        <p className="text-xs font-bold text-white">Decisiones auditadas</p>
+        <p className="mt-1 text-xs leading-5 text-white/60">Identidad, estado de prescripciones, preparación, reidentificación e indicaciones.</p>
+      </div>
+    </div>
+  );
+
+  if (scenario.mode === "assessment") return (
+    <div className="rounded-2xl border border-violet-100 bg-white p-5 shadow-[0_12px_35px_rgb(19_33_60/.06)]">
+      <p className="text-xs font-black uppercase tracking-wider text-violet-600">Consolidación autónoma</p>
+      <h2 className="mt-2 font-black text-slate-900">Resuelve el caso completo</h2>
+      <p className="mt-2 text-sm leading-6 text-slate-600">No se muestran secuencias, pistas, causas de error ni presión de tiempo durante el recorrido.</p>
+      <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+        {["Identifica", "Compara", "Decide"].map((label, index) => <div className="rounded-xl bg-violet-50 px-2 py-3" key={label}><span className="mx-auto grid size-7 place-items-center rounded-full bg-white text-xs font-black text-violet-700">{index + 1}</span><p className="mt-2 text-[.68rem] font-bold text-slate-700">{label}</p></div>)}
+      </div>
+    </div>
+  );
 
   const steps = getMissionSteps(scenario, session);
   if (scenario.mode === "practice") return <div className="rounded-2xl border border-violet-100 bg-white p-5"><p className="text-xs font-black uppercase tracking-wider text-violet-600">Objetivo</p><h2 className="mt-2 font-black text-slate-900">{steps[0]?.label}</h2><p className="mt-2 text-sm leading-6 text-slate-600">{steps[0]?.description}</p></div>;
@@ -732,6 +1070,7 @@ function TechnicalAudit({ session }: { session: SimulationSession }) {
   return <details className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-slate-600"><summary className="cursor-pointer text-xs font-black uppercase tracking-wider">Auditoría técnica</summary><p className="mt-2 text-xs">Desviaciones de almacenamiento: {session.storageDeviations.length}</p><p className="mt-1 text-xs">Reidentificación final: {session.finalReidentifiedPatientId ?? "pendiente"}</p><p className="mt-1 text-xs">Secciones de indicaciones pendientes: {session.missingInstructionSections.length ? session.missingInstructionSections.join(", ") : "ninguna"}</p>{session.storageDeviations.map((item) => <p className="mt-1 text-xs" key={item.id}>{item.drawerId} · {item.kind}</p>)}{recent.length ? <ol className="mt-3 space-y-2">{recent.map((event) => <li className="rounded-lg bg-slate-50 px-3 py-2 text-xs" key={event.id}><p className="font-bold">{event.sequence}. {describeSimulationEvent(event)}</p><code className="text-[.65rem] text-slate-400">{event.type} · {event.actorId}</code></li>)}</ol> : null}</details>;
 }
 
-function Panel({ eyebrow, title, children }: { eyebrow: string; title: string; children: React.ReactNode }) { return <div><p className="text-[.65rem] font-black uppercase tracking-[.16em] text-violet-600">{eyebrow}</p><h1 className="mt-1 text-xl font-black">{title}</h1><div className="mt-4">{children}</div></div>; }
+function Panel({ eyebrow, title, children }: { eyebrow: string; title: string; children: React.ReactNode }) { return <div><p className="text-[.7rem] font-bold uppercase tracking-[.14em] text-violet-600">{eyebrow}</p><h2 className="mt-1 text-xl font-bold">{title}</h2><div className="mt-4">{children}</div></div>; }
+function NextStepPrompt({ actionLabel, description, onAction, title }: { actionLabel: string; description: string; onAction: () => void; title: string }) { return <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3"><p className="text-sm font-bold text-slate-900">{title}</p><p className="mt-1 text-xs leading-5 text-slate-600">{description}</p><button className="mt-3 min-h-10 rounded-lg bg-[var(--brand)] px-3 text-xs font-semibold text-white hover:bg-[var(--brand-strong)]" onClick={onAction} type="button">{actionLabel} →</button></div>; }
 function Action({ children, onClick }: { children: React.ReactNode; onClick: () => void }) { return <button className="mt-3 min-h-11 w-full rounded-xl border border-violet-200 px-4 text-left text-sm font-black text-violet-700 hover:bg-violet-50" onClick={onClick} type="button">{children}</button>; }
 function Back({ send }: { send: Send }) { return <button className="mt-4 w-full py-2 text-sm font-black text-slate-500" onClick={() => send("scene.returned")} type="button">← Volver a la escena</button>; }

@@ -3,6 +3,7 @@ import "./globals.css";
 import "./responsive-audit.css";
 import "./simulation-desktop.css";
 import "./simulation-motion.css";
+import "./simulation-theme.css";
 
 const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
 const siteUrl =

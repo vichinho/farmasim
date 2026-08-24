@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { PageContainer } from "@/components/layout/page-container";
 import { Badge } from "@/components/ui/badge";
 import { getTrainingCaseBySlug, getTrainingModeByLevelId, trainingCases } from "@/data/training";
 import { loadTrainingLevels } from "@/features/training/load-training-levels";
 import { Simulation2DExperience } from "@/features/training/simulation-2d-experience";
+import { StorageReviewExperience } from "@/features/training/storage-review-experience";
 
 export function generateStaticParams() {
   return trainingCases.map((trainingCase) => ({ slug: trainingCase.id }));
@@ -38,8 +38,7 @@ export default async function TrainingCasePage({ params, searchParams }: PagePro
 
   const trainingMode = getTrainingModeByLevelId(trainingLevel.id);
   return (
-    <>
-      <PageContainer className="max-w-[1600px] space-y-4 pb-28">
+    <PageContainer className="simulation-theme max-w-[1600px] space-y-4 pb-6 sm:pb-10">
         <header className="sr-only">
           <Link href="/simulaciones">Volver a niveles</Link>
           <Badge tone="brand">Nivel {trainingLevel.number} · {trainingLevel.title}</Badge>
@@ -48,9 +47,11 @@ export default async function TrainingCasePage({ params, searchParams }: PagePro
           <p>{trainingCase.description}</p>
         </header>
 
-        <Simulation2DExperience levelNumber={trainingLevel.number} mode={trainingMode} trainingCase={trainingCase} />
-      </PageContainer>
-      <BottomNavigation activeHref="/simulaciones" />
-    </>
+        {trainingLevel.number === 5 ? (
+          <StorageReviewExperience levelNumber={trainingLevel.number} trainingCase={trainingCase} />
+        ) : (
+          <Simulation2DExperience levelNumber={trainingLevel.number} mode={trainingMode} trainingCase={trainingCase} />
+        )}
+    </PageContainer>
   );
 }
