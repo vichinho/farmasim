@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 
 import { FarmaVerseLogo } from "@/components/brand/farmaverse-logo";
+import { dispensingCriteria } from "@/data/training/dispensing-criteria";
 import {
   createSimulationSession,
   describeSimulationEvent,
@@ -124,6 +125,34 @@ function focusOrigin(focus: string | null) {
 
 function roleLabel(role: PlayerRole) {
   return role === "tens-1" ? "TENS 1 · Atención" : "TENS 2 · Preparación";
+}
+
+function storageConditionLabel(condition: ScenarioDefinition["drawers"][number]["physicalCondition"]) {
+  if (condition === "damaged-label") return "Rótulo deteriorado";
+  if (condition === "double-label") return "Doble rotulación";
+  if (condition === "missing-strength") return "Concentración ausente";
+  return "Condición normal";
+}
+
+function storageStockLabel(stock: ScenarioDefinition["drawers"][number]["stockState"]) {
+  if (stock === "low") return "Stock bajo";
+  if (stock === "out-of-stock") return "Sin stock";
+  return "Stock disponible";
+}
+
+function discrepancyMessage(discrepancy: SimulationSession["discrepancies"][number]) {
+  if (discrepancy.kind === "patient") return "La identidad cargada no coincide con la persona del caso.";
+  if (discrepancy.kind === "final-patient") return "La reidentificación final no coincide.";
+  if (discrepancy.kind === "prescription" || discrepancy.kind === "prescription-status") return "El estado de la prescripción requiere revisión antes de continuar.";
+  if (discrepancy.kind === "omission") return "Falta un producto esperado en la bandeja.";
+  if (discrepancy.kind === "additional-product") return "La bandeja contiene un producto no asociado a la solicitud.";
+  const labels = {
+    medication: "Medicamento",
+    strength: "Concentración",
+    "pharmaceutical-form": "Forma farmacéutica",
+    quantity: "Cantidad",
+  } as const;
+  return `${labels[discrepancy.kind]}: esperado ${discrepancy.expected}; observado ${discrepancy.actual}.`;
 }
 
 function patientWorkflowState(scenario: ScenarioDefinition, session: SimulationSession) {
@@ -393,7 +422,7 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
           <span aria-hidden="true" className="mr-1.5">←</span>
           Salir<span className="hidden sm:inline"> del caso</span>
         </Link>
-        <div className="min-w-0 flex-1 text-center" aria-live="polite">
+        <div className="min-w-0 flex-1 text-center" aria-live={levelNumber === 3 ? undefined : "polite"}>
           <p className="truncate text-[.68rem] font-semibold uppercase tracking-[.08em] text-slate-500">
             {!session.selectedPlayerRole
               ? "Selecciona un rol para comenzar"
@@ -414,7 +443,7 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
           ) : session.selectedPlayerRole && levelNumber === 4 ? (
             <p className="truncate text-xs font-semibold text-slate-800">Sin pistas de secuencia</p>
           ) : session.selectedPlayerRole && levelNumber === 7 ? (
-            <p className="truncate text-xs font-semibold text-slate-800">Sin ayudas ni feedback anticipado</p>
+            <p className="truncate text-xs font-semibold text-slate-800">Sin ayudas ni retroalimentación anticipada</p>
           ) : session.selectedPlayerRole && activeStep ? (
             <p className="truncate text-xs font-semibold text-slate-800">{activeStep.label}</p>
           ) : null}
@@ -470,51 +499,51 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
       </header>
 
       <div className="grid xl:grid-cols-[minmax(0,1fr)_27rem]">
-        <main className="relative min-h-[28rem] overflow-hidden bg-slate-200 sm:min-h-[36rem] xl:min-h-[720px]" data-mode={scenario.mode}>
+        <section aria-label="Escena interactiva de la farmacia" className="relative min-h-[28rem] overflow-hidden bg-slate-200 sm:min-h-[36rem] xl:min-h-[720px]" data-mode={scenario.mode}>
           <div className={cn("absolute inset-0 transition-transform duration-700", session.focusedObjectId && "scale-110")} style={{ transformOrigin: focusOrigin(session.focusedObjectId) }}>
             <Image alt="Farmacia ambulatoria 2D interactiva" className="object-cover" fill priority sizes="(min-width: 1280px) 70vw, 100vw" src="/images/farmasim/case001-scene.jpg" />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-white/5" />
           </div>
 
           {session.selectedPlayerRole && levelNumber === 3 ? (
-            <div className="absolute left-4 top-4 z-20 rounded-2xl border border-white/25 bg-slate-950/75 px-4 py-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5">
+            <div className="absolute left-4 top-4 z-30 max-w-44 rounded-2xl border border-white/25 bg-slate-950/75 p-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5 sm:max-w-none sm:px-4">
               <p className="text-[.65rem] font-bold uppercase tracking-[.14em] text-emerald-300">Turno con presión</p>
-              <div className="mt-1 flex items-center gap-3">
+              <div className="mt-1 flex flex-wrap items-center gap-2 sm:gap-3">
                 <p className="text-xl font-bold tabular-nums">{formatElapsedTime(elapsedSeconds)}</p>
-                <span className={cn("rounded-full px-2 py-1 text-[.62rem] font-bold", pressureTargetExceeded ? "bg-amber-300 text-amber-950" : "bg-white/15 text-white")}>{seenInterruptions.length} / {mode.interruptionStageIds.length} interrupciones</span>
+                <span aria-label={`${seenInterruptions.length} de ${mode.interruptionStageIds.length} interrupciones`} className={cn("rounded-full px-2 py-1 text-[.62rem] font-bold", pressureTargetExceeded ? "bg-amber-300 text-amber-950" : "bg-white/15 text-white")}>{seenInterruptions.length}/{mode.interruptionStageIds.length}<span className="hidden sm:inline"> interrupciones</span></span>
               </div>
-              <p className="mt-1 text-[.68rem] text-white/70">El tiempo no bloquea ni penaliza el caso.</p>
+              <p className="mt-1 hidden text-[.68rem] text-white/70 sm:block">El tiempo no bloquea ni penaliza el caso.</p>
             </div>
           ) : session.selectedPlayerRole && levelNumber === 4 ? (
-            <div className="absolute left-4 top-4 z-20 rounded-2xl border border-white/25 bg-slate-950/75 px-4 py-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5">
+            <div className="absolute left-4 top-4 z-30 max-w-44 rounded-2xl border border-white/25 bg-slate-950/75 p-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5 sm:max-w-none sm:px-4">
               <p className="text-[.65rem] font-bold uppercase tracking-[.14em] text-emerald-300">Consolidación</p>
               <p className="mt-1 text-sm font-bold">Decisión autónoma</p>
-              <p className="mt-1 text-[.68rem] text-white/70">Sin cronómetro ni pistas de secuencia.</p>
+              <p className="mt-1 hidden text-[.68rem] text-white/70 sm:block">Sin cronómetro ni pistas de secuencia.</p>
             </div>
           ) : session.selectedPlayerRole && levelNumber === 6 ? (
-            <div className="absolute left-4 top-4 z-20 rounded-2xl border border-white/25 bg-slate-950/75 px-4 py-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5">
+            <div className="absolute left-4 top-4 z-30 max-w-44 rounded-2xl border border-white/25 bg-slate-950/75 p-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5 sm:max-w-none sm:px-4">
               <p className="text-[.65rem] font-bold uppercase tracking-[.14em] text-emerald-300">Control múltiple</p>
               <p className="mt-1 text-sm font-bold">Verificación cruzada</p>
-              <p className="mt-1 max-w-56 text-[.68rem] leading-5 text-white/70">Los hallazgos se revelan sólo al activar la barrera correspondiente.</p>
+              <p className="mt-1 hidden max-w-56 text-[.68rem] leading-5 text-white/70 sm:block">Los hallazgos se revelan sólo al activar la barrera correspondiente.</p>
             </div>
           ) : session.selectedPlayerRole && levelNumber === 7 ? (
-            <div className="absolute left-4 top-4 z-20 rounded-2xl border border-white/25 bg-slate-950/80 px-4 py-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5">
+            <div className="absolute left-4 top-4 z-30 max-w-44 rounded-2xl border border-white/25 bg-slate-950/80 p-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5 sm:max-w-none sm:px-4">
               <p className="text-[.65rem] font-bold uppercase tracking-[.14em] text-emerald-300">Cierre experto</p>
               <p className="mt-1 text-sm font-bold">Autonomía total</p>
-              <p className="mt-1 max-w-56 text-[.68rem] leading-5 text-white/70">Las decisiones se auditan al finalizar.</p>
+              <p className="mt-1 hidden max-w-56 text-[.68rem] leading-5 text-white/70 sm:block">Las decisiones se auditan al finalizar.</p>
             </div>
           ) : null}
 
           {!session.selectedPlayerRole ? (
-            <div className="absolute inset-0 z-30 grid place-items-center bg-slate-950/55 p-6 backdrop-blur-[2px]">
-              <div className="simulation-role-gate w-full max-w-md rounded-3xl border border-white/30 bg-white/95 p-6 text-center shadow-2xl">
+            <div className="absolute inset-0 z-30 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-[2px] sm:p-6">
+              <div aria-describedby="simulation-role-gate-description" aria-labelledby="simulation-role-gate-title" aria-modal="true" className="simulation-role-gate w-full max-w-md rounded-3xl border border-white/30 bg-white/95 p-5 text-center shadow-2xl sm:p-6" role="dialog">
                 <p className="text-xs font-black uppercase tracking-[.18em] text-violet-600">
                   {scenario.requiredPlayerRole && levelNumber >= 6 ? "Caso avanzado" : scenario.requiredPlayerRole ? "Refuerzo dirigido" : "Antes de comenzar"}
                 </p>
-                <h2 className="mt-2 text-2xl font-black text-slate-950">
+                <h2 className="mt-2 text-2xl font-black text-slate-950" id="simulation-role-gate-title">
                   {scenario.requiredPlayerRole && levelNumber >= 6 ? "Realiza la revisión final" : scenario.requiredPlayerRole ? `Continúa como ${roleLabel(scenario.requiredPlayerRole)}` : "Elige tu rol"}
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
+                <p className="mt-2 text-sm leading-6 text-slate-600" id="simulation-role-gate-description">
                   {scenario.requiredPlayerRole && levelNumber >= 6
                     ? "Participarás como TENS 1. La preparación viene desde TENS 2 y debes verificarla antes de cualquier entrega."
                     : scenario.requiredPlayerRole
@@ -552,7 +581,7 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
               type="button"
             >
               <span className={cn("mx-auto block size-4 rounded-full border-[3px] border-white bg-violet-600 shadow-lg transition group-hover:scale-125", scenario.mode === "assessment" && "opacity-45 group-hover:opacity-100")} />
-              <span className={cn("mt-2 block rounded-xl bg-white/95 px-3 py-1.5 text-xs font-black text-violet-800 shadow transition", scenario.mode === "guided" ? "opacity-100" : "translate-y-1 opacity-0 group-hover:translate-y-0 group-hover:opacity-100")}>{hotspot.label}</span>
+              <span className={cn("mt-2 block rounded-xl bg-white/95 px-3 py-1.5 text-xs font-black text-violet-800 shadow transition", scenario.mode === "guided" ? "opacity-100" : "opacity-100 lg:translate-y-1 lg:opacity-0 lg:group-hover:translate-y-0 lg:group-hover:opacity-100 lg:group-focus-visible:translate-y-0 lg:group-focus-visible:opacity-100")}>{hotspot.label}</span>
             </button>
           )) : null}
 
@@ -570,7 +599,7 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
               </div>
             </div>
           ) : null}
-        </main>
+        </section>
 
         <aside className="space-y-4 bg-[#fcfcfe] p-4 sm:p-5 xl:max-h-[720px] xl:overflow-y-auto xl:pb-6">
           <section className="rounded-2xl border border-violet-100 bg-white p-4 shadow-[0_12px_35px_rgba(76,48,130,.08)] sm:p-5" aria-live="polite">
@@ -635,7 +664,7 @@ function FocusView({ finishPreparationAsTens2, scenario, searchPatient, send, se
             actionLabel={session.selectedPlayerRole === "tens-2" ? "Volver a preparación" : "Revisar la bandeja"}
             description={session.selectedPlayerRole === "tens-2"
               ? "Completa la preparación y envía la bandeja al puesto de atención."
-              : "La revisión clínica está completa. Inspecciona cada producto antes del handoff."}
+              : "La revisión clínica está completa. Inspecciona cada producto antes de la entrega."}
             onAction={() => send(session.selectedPlayerRole === "tens-2" ? "preparation.focused" : "tray.inspected")}
             title="Verifica la preparación"
           />
@@ -644,7 +673,7 @@ function FocusView({ finishPreparationAsTens2, scenario, searchPatient, send, se
         {workflow.handoffReady ? (
           <div className="mt-4 border-t border-emerald-100 pt-4">
             <p className="text-xs font-bold uppercase tracking-[.12em] text-[var(--brand-strong)]">Cierre de la atención</p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">La identidad, las prescripciones y la preparación ya fueron revisadas. Completa el handoff con el paciente.</p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">La identidad, las prescripciones y la preparación ya fueron revisadas. Completa la entrega con el paciente.</p>
             <FinalIdentityCheck scenario={scenario} send={send} session={session} />
             <PatientCounseling scenario={scenario} send={send} session={session} />
           </div>
@@ -681,7 +710,7 @@ function FinalIdentityCheck({ scenario, send, session }: { scenario: ScenarioDef
 
   return (
     <div className="mt-4 rounded-2xl border border-violet-100 bg-white p-3">
-      <p className="text-xs font-black uppercase tracking-wider text-violet-700">Reidentificación antes del handoff</p>
+      <p className="text-xs font-black uppercase tracking-wider text-violet-700">Reidentificación antes de la entrega</p>
       <p className="mt-1 text-xs leading-5 text-slate-500">Vuelve a ingresar el RUT del paciente que recibirá la preparación.</p>
       <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
         <input
@@ -856,7 +885,7 @@ function Computer({ scenario, searchPatient, send, session }: { scenario: Scenar
 }
 
 function Storage({ scenario, send }: { scenario: ScenarioDefinition; send: Send }) {
-  return <Panel eyebrow="ALMACENAMIENTO" title="Selecciona una gaveta"><div className="space-y-2">{scenario.drawers.map((drawer) => <div className="rounded-xl border border-slate-200 p-3" key={drawer.id}><p className="font-black">{drawer.displayedLabel}</p><p className="text-xs text-slate-500">{drawer.physicalCondition} · {drawer.stockState}</p><div className="mt-2 flex gap-4"><button className="text-xs font-black text-violet-700" onClick={() => send("drawer.label_inspected", { drawerId: drawer.id })} type="button">Leer rótulo</button><button className="text-xs font-black text-violet-700" onClick={() => { send("drawer.opened", { drawerId: drawer.id }); send("drawer.contents_inspected", { drawerId: drawer.id }); }} type="button">Abrir gaveta</button></div></div>)}</div><Back send={send} /></Panel>;
+  return <Panel eyebrow="ALMACENAMIENTO" title="Selecciona una gaveta"><div className="space-y-2">{scenario.drawers.map((drawer) => <div className="rounded-xl border border-slate-200 p-3" key={drawer.id}><p className="font-black">{drawer.displayedLabel}</p><p className="text-xs text-slate-500">{storageConditionLabel(drawer.physicalCondition)} · {storageStockLabel(drawer.stockState)}</p><div className="mt-2 flex flex-wrap gap-2"><button className="min-h-10 rounded-lg px-3 text-xs font-black text-violet-700 hover:bg-violet-50" onClick={() => send("drawer.label_inspected", { drawerId: drawer.id })} type="button">Leer rótulo</button><button className="min-h-10 rounded-lg px-3 text-xs font-black text-violet-700 hover:bg-violet-50" onClick={() => { send("drawer.opened", { drawerId: drawer.id }); send("drawer.contents_inspected", { drawerId: drawer.id }); }} type="button">Abrir gaveta</button></div></div>)}</div><Back send={send} /></Panel>;
 }
 
 function DrawerView({ drawer, scenario, send }: { drawer: ScenarioDefinition["drawers"][number]; scenario: ScenarioDefinition; send: Send }) {
@@ -944,7 +973,7 @@ function SafetyStop({ send, session }: { send: Send; session: SimulationSession 
       ? { label: "Volver al computador", type: "computer.focused" as const }
       : { label: "Volver a revisar la bandeja", type: "tray.inspected" as const };
 
-  return <Panel eyebrow="DETENTE · NO ENTREGAR" title="Barrera de seguridad activada"><div className="space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-3">{session.discrepancies.map((item) => <p className="text-sm" key={item.id}><strong>{item.kind}</strong>: esperado {item.expected}; actual {item.actual}.</p>)}</div><Action onClick={() => send(recovery.type)}>{recovery.label}</Action></Panel>;
+  return <Panel eyebrow="DETENTE · NO ENTREGAR" title="Barrera de seguridad activada"><div className="space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-3">{session.discrepancies.map((item) => <p className="text-sm leading-6" key={item.id}>{discrepancyMessage(item)}</p>)}</div><Action onClick={() => send(recovery.type)}>{recovery.label}</Action></Panel>;
 }
 
 function AssessmentBlocked({ send }: { send: Send }) {
@@ -968,8 +997,8 @@ function Results({ levelNumber, onReinforcement, onRetry, persistence, session }
   return (
     <Panel eyebrow={levelNumber === 6 ? "RESULTADO · CONTROL MÚLTIPLE" : levelNumber === 7 ? "RESULTADO · CIERRE EXPERTO" : "RESULTADO"} title={session.deliveryStatus === "safely-stopped" ? "Caso detenido de forma segura" : "Entrega completada"}>
       {levelNumber >= 6 ? <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm leading-6 text-emerald-900">{levelNumber === 7 ? "La auditoría final ya puede mostrar el desempeño completo del caso experto." : "La evaluación cruzó identidad, prescripciones, presentación y cantidad antes del cierre."}</p> : null}
-      {session.deliveryStatus === "safely-stopped" ? <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">La dispensación se detuvo antes del handoff y se solicitó revisión al QF.</p> : null}
-      <div className="space-y-2">{Object.entries(session.criteria).map(([id, status], index) => <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2" key={id}><span className="text-xs font-semibold">Criterio {index + 1}</span><span className={cn("rounded-md px-2 py-1 text-xs font-black", status === "met" ? "bg-emerald-100 text-emerald-700" : status === "intercepted" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700")}>{status === "met" ? "Cumplido" : status === "intercepted" ? "Interceptado" : "Reforzar"}</span></div>)}</div>
+      {session.deliveryStatus === "safely-stopped" ? <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">La dispensación se detuvo antes de la entrega y se solicitó revisión al QF.</p> : null}
+      <div className="space-y-2">{Object.entries(session.criteria).map(([id, status], index) => <div className="flex items-start justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2.5" key={id}><span className="text-xs font-semibold leading-5">{dispensingCriteria.find((criterion) => criterion.id === id)?.title ?? `Criterio ${index + 1}`}</span><span className={cn("shrink-0 rounded-md px-2 py-1 text-xs font-black", status === "met" ? "bg-emerald-100 text-emerald-700" : status === "intercepted" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700")}>{status === "met" ? "Cumplido" : status === "intercepted" ? "Interceptado" : "Reforzar"}</span></div>)}</div>
       {reminder ? <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-black text-amber-900">{reminder}</div> : null}
       {failed.length ? <Link className="mt-3 block rounded-xl border border-violet-200 px-4 py-3 text-sm font-black text-violet-700 hover:bg-violet-50" href="/capsulas">Revisar cápsulas educativas asignadas</Link> : null}
       {failed.length ? <Action onClick={onReinforcement}>Iniciar refuerzo con un escenario diferente</Action> : null}
@@ -1010,7 +1039,7 @@ function LearnerSidebar({ levelNumber, mode, scenario, session }: { levelNumber:
         <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[.62rem] font-bold text-white/80">{scenario.visibleClinicalRecordIds.length} registros</span>
       </div>
       <h2 className="mt-3 font-black">Cierre experto sin asistencia</h2>
-      <p className="mt-2 text-sm leading-6 text-white/70">No se muestran secuencias, pistas ni causas de bloqueo. El feedback completo aparece únicamente al finalizar.</p>
+      <p className="mt-2 text-sm leading-6 text-white/70">No se muestran secuencias, pistas ni causas de bloqueo. La retroalimentación completa aparece únicamente al finalizar.</p>
       <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
         <p className="text-xs font-bold text-white">Decisiones auditadas</p>
         <p className="mt-1 text-xs leading-5 text-white/60">Identidad, estado de prescripciones, preparación, reidentificación e indicaciones.</p>

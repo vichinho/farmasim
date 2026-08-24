@@ -136,7 +136,7 @@ export function StorageReviewExperience({ levelNumber, trainingCase }: { levelNu
       </header>
 
       <div className="grid lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,.85fr)]">
-        <main className="relative min-h-[24rem] overflow-hidden bg-slate-900 sm:min-h-[32rem] lg:min-h-[38rem]">
+        <section aria-label="Área ficticia de almacenamiento" className="relative min-h-[24rem] overflow-hidden bg-slate-900 sm:min-h-[32rem] lg:min-h-[38rem]">
           <Image alt="Área ficticia de almacenamiento farmacéutico" className="object-cover object-center opacity-85" fill priority sizes="(min-width: 1024px) 60vw, 100vw" src="/images/farmasim/storage-review-scene.png" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-900/20 to-emerald-950/25" />
           <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4 sm:p-5">
@@ -153,6 +153,7 @@ export function StorageReviewExperience({ levelNumber, trainingCase }: { levelNu
               const active = selectedDrawerId === drawer.id;
               return (
                 <button
+                  aria-pressed={active}
                   className={cn(
                     "rounded-2xl border p-3 text-left shadow-lg backdrop-blur transition",
                     active ? "border-emerald-300 bg-emerald-50 text-slate-950" : "border-white/30 bg-white/92 text-slate-800 hover:bg-white",
@@ -165,13 +166,13 @@ export function StorageReviewExperience({ levelNumber, trainingCase }: { levelNu
                     <span className="text-[.68rem] font-bold uppercase tracking-[.1em] text-emerald-700">Gaveta {String.fromCharCode(65 + index)}</span>
                     <span className={cn("grid size-6 place-items-center rounded-full text-xs font-bold", entry.completed ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500")}>{entry.completed ? "✓" : index + 1}</span>
                   </span>
-                  <span className="mt-1 block truncate text-sm font-bold">{drawer.expectedLabel}</span>
+                  <span className="mt-1 block break-words text-sm font-bold sm:truncate">{drawer.expectedLabel}</span>
                   <span className="mt-1 block text-xs text-slate-500">{conditionLabel(drawer.physicalCondition)} · {stockLabel(drawer.stockState)}</span>
                 </button>
               );
             })}
           </div>
-        </main>
+        </section>
 
         <aside className="bg-[var(--simulation-panel)] p-4 sm:p-5">
           {stage === "intro" ? (

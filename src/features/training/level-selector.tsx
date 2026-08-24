@@ -30,7 +30,7 @@ export function LevelSelector({ levels }: { levels: TrainingLevel[] }) {
         </h2>
         <span className="text-sm font-medium text-[var(--muted)]">
           {availableLevelCount} de {levels.length}{" "}
-          {availableLevelCount === 1 ? "disponible" : "disponibles"}
+          {availableLevelCount === 1 ? "habilitado" : "habilitados"}
         </span>
       </div>
 
