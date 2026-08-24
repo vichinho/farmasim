@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { duaHintAvailabilityLabel, duaHintForCase } from "@/features/training/dua-guidance";
+import { DUA_HINT_LIMIT, duaHintAvailabilityLabel, duaHintsForCase } from "@/features/training/dua-guidance";
 
 describe("Dua guidance", () => {
-  it("provides one stable hint for every training case", () => {
+  it("provides three progressive hints for every training case", () => {
     const caseIds = [
       "case-001-ambulatory-dispensing",
       "case-002-concentration-reinforcement",
@@ -14,12 +14,16 @@ describe("Dua guidance", () => {
       "case-007-expert-mode",
     ];
 
-    expect(new Set(caseIds.map(duaHintForCase))).toHaveLength(caseIds.length);
-    expect(caseIds.map(duaHintForCase).every((hint) => hint.length > 40)).toBe(true);
+    const hints = caseIds.map(duaHintsForCase);
+    expect(hints.every((caseHintSet) => caseHintSet.length === DUA_HINT_LIMIT)).toBe(true);
+    expect(hints.flat().every((hint) => hint.length > 40)).toBe(true);
+    expect(new Set(hints.flat())).toHaveLength(caseIds.length * DUA_HINT_LIMIT);
   });
 
-  it("reports whether the single hint was consumed", () => {
-    expect(duaHintAvailabilityLabel(false)).toBe("1 pista disponible");
-    expect(duaHintAvailabilityLabel(true)).toBe("Pista utilizada");
+  it("reports the remaining hint allowance", () => {
+    expect(duaHintAvailabilityLabel(0)).toBe("3 pistas disponibles");
+    expect(duaHintAvailabilityLabel(1)).toBe("2 pistas disponibles");
+    expect(duaHintAvailabilityLabel(2)).toBe("1 pista disponible");
+    expect(duaHintAvailabilityLabel(3)).toBe("3 pistas utilizadas");
   });
 });
