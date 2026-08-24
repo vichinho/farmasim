@@ -29,6 +29,7 @@ import {
   type SimulationSession,
 } from "@/features/simulation-engine";
 import { saveSimulationAttempt } from "@/features/progress/actions";
+import { preparedItemForAdvancedLevel } from "@/features/training/advanced-level-preparation";
 import { cn } from "@/lib/utils";
 import type { AttemptCriterionResult, TrainingCase, TrainingMode } from "@/types/training-simulation";
 
@@ -145,10 +146,10 @@ function patientWorkflowState(scenario: ScenarioDefinition, session: SimulationS
 
 export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber, mode, trainingCase }: Props) {
   const resolvedSimulationMode = simulationMode(mode);
-  const baseScenario = useMemo(
-    () => generateScenarioDefinition({ id: trainingCase.id, mode: resolvedSimulationMode }),
-    [resolvedSimulationMode, trainingCase.id],
-  );
+  const baseScenario = useMemo(() => {
+    const generated = generateScenarioDefinition({ id: trainingCase.id, mode: resolvedSimulationMode });
+    return levelNumber >= 6 ? { ...generated, requiredPlayerRole: "tens-1" as const } : generated;
+  }, [levelNumber, resolvedSimulationMode, trainingCase.id]);
   const [scenario, setScenario] = useState(baseScenario);
   const [session, setSession] = useState<SimulationSession>(() => createSimulationSession(baseScenario));
   const [persistence, setPersistence] = useState<PersistenceState>({ message: "", status: "idle" });
@@ -265,17 +266,18 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
     ];
 
     if (role === "tens-1") {
-      for (const line of expectedPrescriptionLines(scenario)) {
+      for (const [index, line] of expectedPrescriptionLines(scenario).entries()) {
+        const prepared = preparedItemForAdvancedLevel(scenario, line, index, levelNumber);
         commands.push(
-          { type: "medication.taken", actorId: "tens-2", data: { medicationPresentationId: line.medicationPresentationId } },
+          { type: "medication.taken", actorId: "tens-2", data: { medicationPresentationId: prepared.medicationPresentationId } },
           {
             type: "medication.added_to_tray",
             actorId: "tens-2",
             data: {
               trayItemId: `simulation:${line.id}`,
               prescriptionLineId: line.id,
-              medicationPresentationId: line.medicationPresentationId,
-              quantity: line.quantity,
+              medicationPresentationId: prepared.medicationPresentationId,
+              quantity: prepared.quantity,
             },
           },
         );
@@ -401,12 +403,18 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
                   ? "Turno con presión · cronómetro informativo"
                   : levelNumber === 4
                     ? "Consolidación autónoma"
-                    : `Paso ${Math.min(completedStepCount + 1, missionSteps.length)} de ${missionSteps.length}`}
+                    : levelNumber === 6
+                      ? "Control de discrepancias múltiples"
+                      : levelNumber === 7
+                        ? "Cierre experto"
+                        : `Paso ${Math.min(completedStepCount + 1, missionSteps.length)} de ${missionSteps.length}`}
           </p>
           {session.selectedPlayerRole && levelNumber === 3 ? (
             <p className={cn("truncate text-xs font-semibold tabular-nums", pressureTargetExceeded ? "text-amber-700" : "text-slate-800")}>{formatElapsedTime(elapsedSeconds)} / {formatElapsedTime(pressureTargetSeconds)}</p>
           ) : session.selectedPlayerRole && levelNumber === 4 ? (
             <p className="truncate text-xs font-semibold text-slate-800">Sin pistas de secuencia</p>
+          ) : session.selectedPlayerRole && levelNumber === 7 ? (
+            <p className="truncate text-xs font-semibold text-slate-800">Sin ayudas ni feedback anticipado</p>
           ) : session.selectedPlayerRole && activeStep ? (
             <p className="truncate text-xs font-semibold text-slate-800">{activeStep.label}</p>
           ) : null}
@@ -457,7 +465,7 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
           })}
         </div>
         <span className="rounded-full bg-violet-50 px-4 py-2 text-xs font-black text-violet-700">
-          {levelNumber === 3 ? "Presión" : levelNumber === 4 ? "Autónomo" : scenario.mode === "guided" ? "Guiado" : scenario.mode === "practice" ? "Práctica" : "Evaluación"}
+          {levelNumber === 3 ? "Presión" : levelNumber === 4 ? "Autónomo" : levelNumber === 6 ? "Múltiple" : levelNumber === 7 ? "Experto" : scenario.mode === "guided" ? "Guiado" : scenario.mode === "practice" ? "Práctica" : "Evaluación"}
         </span>
       </header>
 
@@ -483,19 +491,33 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
               <p className="mt-1 text-sm font-bold">Decisión autónoma</p>
               <p className="mt-1 text-[.68rem] text-white/70">Sin cronómetro ni pistas de secuencia.</p>
             </div>
+          ) : session.selectedPlayerRole && levelNumber === 6 ? (
+            <div className="absolute left-4 top-4 z-20 rounded-2xl border border-white/25 bg-slate-950/75 px-4 py-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5">
+              <p className="text-[.65rem] font-bold uppercase tracking-[.14em] text-emerald-300">Control múltiple</p>
+              <p className="mt-1 text-sm font-bold">Verificación cruzada</p>
+              <p className="mt-1 max-w-56 text-[.68rem] leading-5 text-white/70">Los hallazgos se revelan sólo al activar la barrera correspondiente.</p>
+            </div>
+          ) : session.selectedPlayerRole && levelNumber === 7 ? (
+            <div className="absolute left-4 top-4 z-20 rounded-2xl border border-white/25 bg-slate-950/80 px-4 py-3 text-white shadow-xl backdrop-blur sm:left-5 sm:top-5">
+              <p className="text-[.65rem] font-bold uppercase tracking-[.14em] text-emerald-300">Cierre experto</p>
+              <p className="mt-1 text-sm font-bold">Autonomía total</p>
+              <p className="mt-1 max-w-56 text-[.68rem] leading-5 text-white/70">Las decisiones se auditan al finalizar.</p>
+            </div>
           ) : null}
 
           {!session.selectedPlayerRole ? (
             <div className="absolute inset-0 z-30 grid place-items-center bg-slate-950/55 p-6 backdrop-blur-[2px]">
               <div className="simulation-role-gate w-full max-w-md rounded-3xl border border-white/30 bg-white/95 p-6 text-center shadow-2xl">
                 <p className="text-xs font-black uppercase tracking-[.18em] text-violet-600">
-                  {scenario.requiredPlayerRole ? "Refuerzo dirigido" : "Antes de comenzar"}
+                  {scenario.requiredPlayerRole && levelNumber >= 6 ? "Caso avanzado" : scenario.requiredPlayerRole ? "Refuerzo dirigido" : "Antes de comenzar"}
                 </p>
                 <h2 className="mt-2 text-2xl font-black text-slate-950">
-                  {scenario.requiredPlayerRole ? `Continúa como ${roleLabel(scenario.requiredPlayerRole)}` : "Elige tu rol"}
+                  {scenario.requiredPlayerRole && levelNumber >= 6 ? "Realiza la revisión final" : scenario.requiredPlayerRole ? `Continúa como ${roleLabel(scenario.requiredPlayerRole)}` : "Elige tu rol"}
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {scenario.requiredPlayerRole
+                  {scenario.requiredPlayerRole && levelNumber >= 6
+                    ? "Participarás como TENS 1. La preparación viene desde TENS 2 y debes verificarla antes de cualquier entrega."
+                    : scenario.requiredPlayerRole
                     ? "Este refuerzo entrena una competencia asociada a ese rol. El otro rol queda a cargo de la simulación."
                     : "Selecciona el rol con el que quieres realizar este caso."}
                 </p>
@@ -553,7 +575,7 @@ export function Simulation2DExperience({ exitHref = "/simulaciones", levelNumber
         <aside className="space-y-4 bg-[#fcfcfe] p-4 sm:p-5 xl:max-h-[720px] xl:overflow-y-auto xl:pb-6">
           <section className="rounded-2xl border border-violet-100 bg-white p-4 shadow-[0_12px_35px_rgba(76,48,130,.08)] sm:p-5" aria-live="polite">
             {terminal ? (
-              <Results onReinforcement={startReinforcement} onRetry={persistAttempt} persistence={persistence} session={session} />
+              <Results levelNumber={levelNumber} onReinforcement={startReinforcement} onRetry={persistAttempt} persistence={persistence} session={session} />
             ) : session.deliveryStatus === "blocked" && scenario.mode !== "assessment" ? (
               <SafetyStop session={session} send={send} />
             ) : session.deliveryStatus === "blocked" ? (
@@ -929,7 +951,7 @@ function AssessmentBlocked({ send }: { send: Send }) {
   return <Panel eyebrow="EVALUACIÓN" title="Continúa revisando el caso"><p className="text-sm leading-6 text-slate-600">La simulación registró tu intento. No se mostrarán pistas sobre la causa durante la evaluación.</p><Action onClick={() => send("scene.returned")}>Continuar revisando</Action></Panel>;
 }
 
-function Results({ onReinforcement, onRetry, persistence, session }: { onReinforcement: () => void; onRetry: () => void; persistence: PersistenceState; session: SimulationSession }) {
+function Results({ levelNumber, onReinforcement, onRetry, persistence, session }: { levelNumber: number; onReinforcement: () => void; onRetry: () => void; persistence: PersistenceState; session: SimulationSession }) {
   const failed = Object.entries(session.criteria).filter(([, status]) => status !== "met" && status !== "intercepted");
   const instructionReminder = session.missingInstructionSections.length
     ? `NO OLVIDAR: faltó comunicar ${session.missingInstructionSections.map((section) => instructionSectionLabels[section].toLowerCase()).join(", ")}.`
@@ -944,7 +966,8 @@ function Results({ onReinforcement, onRetry, persistence, session }: { onReinfor
           ? instructionReminder
           : null;
   return (
-    <Panel eyebrow="RESULTADO" title={session.deliveryStatus === "safely-stopped" ? "Caso detenido de forma segura" : "Entrega completada"}>
+    <Panel eyebrow={levelNumber === 6 ? "RESULTADO · CONTROL MÚLTIPLE" : levelNumber === 7 ? "RESULTADO · CIERRE EXPERTO" : "RESULTADO"} title={session.deliveryStatus === "safely-stopped" ? "Caso detenido de forma segura" : "Entrega completada"}>
+      {levelNumber >= 6 ? <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm leading-6 text-emerald-900">{levelNumber === 7 ? "La auditoría final ya puede mostrar el desempeño completo del caso experto." : "La evaluación cruzó identidad, prescripciones, presentación y cantidad antes del cierre."}</p> : null}
       {session.deliveryStatus === "safely-stopped" ? <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">La dispensación se detuvo antes del handoff y se solicitó revisión al QF.</p> : null}
       <div className="space-y-2">{Object.entries(session.criteria).map(([id, status], index) => <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2" key={id}><span className="text-xs font-semibold">Criterio {index + 1}</span><span className={cn("rounded-md px-2 py-1 text-xs font-black", status === "met" ? "bg-emerald-100 text-emerald-700" : status === "intercepted" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700")}>{status === "met" ? "Cumplido" : status === "intercepted" ? "Interceptado" : "Reforzar"}</span></div>)}</div>
       {reminder ? <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-black text-amber-900">{reminder}</div> : null}
@@ -964,6 +987,33 @@ function LearnerSidebar({ levelNumber, mode, scenario, session }: { levelNumber:
       <div className="mt-4 rounded-xl bg-amber-50 p-3">
         <p className="text-xs font-bold text-amber-900">Regla del ejercicio</p>
         <p className="mt-1 text-xs leading-5 text-amber-900">Después de cada pausa, recupera el contexto y vuelve a comprobar antes de avanzar.</p>
+      </div>
+    </div>
+  );
+
+  if (levelNumber === 6) return (
+    <div className="rounded-2xl border border-amber-200 bg-white p-5 shadow-[0_12px_35px_rgb(19_33_60/.06)]">
+      <p className="text-xs font-black uppercase tracking-wider text-amber-700">Control de discrepancias múltiples</p>
+      <h2 className="mt-2 font-black text-slate-900">Cruza todas las variables</h2>
+      <p className="mt-2 text-sm leading-6 text-slate-600">Más de una variable puede diferir. El caso no confirma cuántos hallazgos existen antes de que realices la comparación.</p>
+      <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+        {["Producto", "Presentación", "Cantidad"].map((label) => <div className="rounded-xl bg-amber-50 px-2 py-3" key={label}><span className="mx-auto block size-2 rounded-full bg-amber-500" /><p className="mt-2 text-[.68rem] font-bold text-amber-950">{label}</p></div>)}
+      </div>
+      <p className="mt-4 text-xs leading-5 text-slate-500">Si detectas una diferencia, activa la barrera y solicita la corrección antes del cierre.</p>
+    </div>
+  );
+
+  if (scenario.mode === "assessment" && levelNumber === 7) return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-950 p-5 text-white shadow-[0_12px_35px_rgb(19_33_60/.12)]">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-black uppercase tracking-wider text-emerald-300">Evaluación final</p>
+        <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[.62rem] font-bold text-white/80">{scenario.visibleClinicalRecordIds.length} registros</span>
+      </div>
+      <h2 className="mt-3 font-black">Cierre experto sin asistencia</h2>
+      <p className="mt-2 text-sm leading-6 text-white/70">No se muestran secuencias, pistas ni causas de bloqueo. El feedback completo aparece únicamente al finalizar.</p>
+      <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
+        <p className="text-xs font-bold text-white">Decisiones auditadas</p>
+        <p className="mt-1 text-xs leading-5 text-white/60">Identidad, estado de prescripciones, preparación, reidentificación e indicaciones.</p>
       </div>
     </div>
   );
