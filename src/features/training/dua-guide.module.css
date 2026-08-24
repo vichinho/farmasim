@@ -211,6 +211,23 @@
   line-height: 1.5;
 }
 
+.nextHintButton {
+  min-height: 2.6rem;
+  margin-top: 0.9rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid #a7f3d0;
+  border-radius: 0.7rem;
+  background: #ecfdf5;
+  color: #065f46;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.nextHintButton:hover {
+  border-color: #6ee7b7;
+  background: #d1fae5;
+}
+
 .resultCard {
   display: grid;
   grid-template-columns: 4.3rem minmax(0, 1fr);
